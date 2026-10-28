@@ -1,0 +1,303 @@
+/* Strydr — shared primitives, loaded after tokens.css.
+   The glass, motion and chart chrome mirror design-system/components/bundle.css;
+   the layout grid and the ambient wash are app additions. */
+
+* { box-sizing: border-box; }
+
+:root {
+  /* Motion (design-system Motion card). Glass responding to a touch bounces
+     on --ease-glass; everything else that moves settles on --ease-settle. */
+  --ease-glass: cubic-bezier(.34, 1.56, .64, 1);
+  --ease-settle: cubic-bezier(.22, 1, .36, 1);
+  --dur-press: 120ms;
+  --dur-release: 320ms;
+  --dur-morph: 420ms;
+
+  --sidebar-w: 248px;
+  --gutter: var(--space-4);
+}
+@media (min-width: 720px) { :root { --gutter: var(--space-6); } }
+
+html { -webkit-text-size-adjust: 100%; }
+body {
+  overflow-x: clip;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--body-size);
+  line-height: var(--body-leading);
+  color: var(--ink);
+  background: var(--surface-0);
+  min-height: 100dvh;
+}
+
+/* Ambient colour field behind the glass. Three soft lights drift slowly so the
+   glass always has moving colour to refract; transform-only, paused under
+   Reduce Motion. */
+.wash { position: fixed; inset: 0; height: 100lvh; z-index: -1; pointer-events: none; overflow: hidden; }
+.wash i {
+  position: absolute; display: block; width: 62vmax; height: 62vmax; border-radius: 50%;
+  filter: blur(60px); opacity: .34; will-change: transform;
+  animation: drift 38s var(--ease-settle) infinite alternate;
+}
+.wash i:nth-child(1) { background: var(--chart-pace); left: -18vmax; top: -16vmax; }
+.wash i:nth-child(2) { background: var(--secondary); right: -20vmax; top: -10vmax; animation-duration: 46s; animation-delay: -12s; }
+.wash i:nth-child(3) { background: var(--tertiary); left: 20vw; bottom: -34vmax; animation-duration: 52s; animation-delay: -24s; opacity: .26; }
+:root[data-theme='dark'] .wash i, :root:not([data-theme='light']) .wash i { opacity: .2; }
+@media (prefers-color-scheme: light) { :root:not([data-theme='dark']) .wash i { opacity: .3; } }
+@keyframes drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(8vw, 6vh, 0) scale(1.12); }
+  100% { transform: translate3d(-6vw, 10vh, 0) scale(.94); }
+}
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+a { color: var(--accent-text); }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* ============================================================
+   GLASS — Liquid Glass recipe: a corner glint, a two-tone bevel
+   (shadow-glass) and a backdrop that concentrates rather than softens. */
+.glass {
+  position: relative;
+  background:
+    radial-gradient(30% 24% at 12% 8%, var(--glass-specular) 0%, transparent 75%),
+    var(--glass-fill);
+  backdrop-filter: blur(var(--blur-md)) saturate(180%) contrast(1.05);
+  -webkit-backdrop-filter: blur(var(--blur-md)) saturate(180%) contrast(1.05);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glass);
+  isolation: isolate;
+  transition: transform var(--dur-release) var(--ease-glass), box-shadow var(--dur-release) var(--ease-settle);
+}
+.glass--sm { backdrop-filter: blur(var(--blur-sm)) saturate(180%) contrast(1.05); -webkit-backdrop-filter: blur(var(--blur-sm)) saturate(180%) contrast(1.05); }
+.glass--lg { backdrop-filter: blur(var(--blur-lg)) saturate(180%) contrast(1.05); -webkit-backdrop-filter: blur(var(--blur-lg)) saturate(180%) contrast(1.05); border-radius: var(--radius-xl); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: var(--surface-1); }
+  .glass--lg { background: var(--surface-2); }
+}
+
+/* Interactive glass: press scales on the bouncy curve and lights up where
+   touched. The v-press directive adds the .glass-touch child and sets --tx/--ty. */
+.glass-interactive { cursor: pointer; }
+.glass-interactive:active { transform: scale(.975); box-shadow: var(--shadow-glass-pressed); transition-duration: var(--dur-press); }
+@media (hover: hover) {
+  a.glass-interactive:hover, .glass-interactive.liftable:hover { transform: translateY(-2px); }
+  a.glass-interactive:active, .glass-interactive.liftable:active { transform: scale(.975); }
+}
+.glass-touch {
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
+  background: radial-gradient(circle at var(--tx, 50%) var(--ty, 50%), var(--glass-specular) 0%, transparent 38%);
+  opacity: 0;
+  transition: opacity var(--dur-release) var(--ease-settle);
+}
+.is-touched > .glass-touch { opacity: .7; transition-duration: var(--dur-press); }
+
+/* Real refraction, one surface per screen (the navigation lens). Chromium only;
+   App.vue adds .lens-ok to <html> when the browser renders it. */
+.lens-ok .glass--refract {
+  backdrop-filter: url(#glass-lens) blur(var(--blur-sm)) saturate(180%);
+  -webkit-backdrop-filter: url(#glass-lens) blur(var(--blur-sm)) saturate(180%);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .btn-glass, .lens { background: var(--surface-1); backdrop-filter: none; -webkit-backdrop-filter: none; border: 1px solid var(--divider); }
+  .wash { display: none; }
+}
+@media (prefers-contrast: more) {
+  .glass, .btn-glass { border: 1px solid var(--ink); }
+}
+
+/* Buttons */
+.btn {
+  position: relative;
+  font-family: var(--font-body);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 48px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  white-space: nowrap;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform var(--dur-release) var(--ease-glass), background-color .16s ease, color .16s ease, border-color .16s ease, box-shadow var(--dur-release) var(--ease-settle);
+}
+.btn:active { transform: scale(.965); transition-duration: var(--dur-press); }
+.btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; box-shadow: var(--shadow-focus); }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+.btn-primary { background: var(--accent); color: var(--ink-on-accent); box-shadow: var(--shadow-sm); }
+.btn-primary:hover:not(:disabled) { background: var(--accent-strong); }
+
+.btn-glass {
+  background:
+    radial-gradient(34% 55% at 18% 12%, var(--glass-specular) 0%, transparent 72%),
+    var(--glass-fill);
+  backdrop-filter: blur(var(--blur-sm)) saturate(180%) contrast(1.05);
+  -webkit-backdrop-filter: blur(var(--blur-sm)) saturate(180%) contrast(1.05);
+  border: 1px solid var(--glass-border);
+  color: var(--ink);
+  box-shadow: var(--shadow-glass);
+}
+.btn-glass:active { box-shadow: var(--shadow-glass-pressed); }
+
+.btn-secondary { background: transparent; border: 1.5px solid var(--divider); color: var(--ink); }
+.btn-secondary:hover:not(:disabled) { border-color: var(--accent-text); color: var(--accent-text); }
+
+.btn-sm { height: 36px; padding: 0 var(--space-4); font-size: 13px; }
+.btn-icon { width: 48px; padding: 0; }
+.btn > :not(.glass-touch) { position: relative; z-index: 1; }
+
+/* Pills */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+  gap: var(--space-1);
+  height: 24px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+.pill--success { background: color-mix(in srgb, var(--success) 16%, transparent); color: var(--success-text); }
+.pill--tertiary { background: color-mix(in srgb, var(--tertiary) 18%, transparent); color: var(--tertiary-text); }
+.pill--danger { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+.pill--neutral { background: color-mix(in srgb, var(--ink-muted) 14%, transparent); color: var(--ink-secondary); }
+
+/* Chart chrome — shared by every chart component so they read as one system */
+.chart-card { padding: var(--space-5); }
+.chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); }
+.chart-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--ink); margin: 0 0 2px; }
+.chart-caption { font-size: 12px; color: var(--ink-secondary); margin: 0; }
+
+.chart-legend { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-3); }
+.legend-item { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 12px; font-weight: 500; color: var(--ink-secondary); }
+.legend-key { width: 14px; height: 2px; border-radius: 1px; flex-shrink: 0; }
+.legend-swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+.table-toggle {
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--ink-secondary);
+  background: none; border: none; cursor: pointer; padding: var(--space-1) 0; white-space: nowrap;
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--divider);
+}
+.table-toggle:hover { color: var(--accent-text); text-decoration-color: currentColor; }
+.table-toggle:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 4px; }
+
+.chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--surface-2);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: 12px;
+  opacity: 0;
+  transform: translateY(4px) scale(.98);
+  transition: opacity .12s ease, transform var(--dur-release) var(--ease-glass);
+  white-space: nowrap;
+  z-index: 5;
+}
+.chart-tooltip.visible { opacity: 1; transform: none; }
+.chart-tooltip .tt-date { color: var(--ink-muted); font-size: 11px; margin-bottom: 4px; }
+.chart-tooltip .tt-row { display: flex; align-items: center; gap: var(--space-2); justify-content: space-between; }
+.chart-tooltip .tt-row + .tt-row { margin-top: 3px; }
+.chart-tooltip .tt-key { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.chart-tooltip .tt-label { color: var(--ink-secondary); }
+.chart-tooltip .tt-value { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; margin-left: var(--space-3); }
+
+.chart-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.chart-table th, .chart-table td { text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--divider); font-variant-numeric: tabular-nums; }
+/* Value columns right-align in tabular figures; the identity column stays left. */
+.chart-table th:not(:first-child), .chart-table td:not(:first-child) { text-align: right; }
+.chart-table th { color: var(--ink-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .3px; }
+.chart-table td { color: var(--ink); }
+.chart-table td:first-child { font-variant-numeric: normal; color: var(--ink-secondary); }
+
+/* Line draw-in and bar rise, once per mount. */
+.draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.1s var(--ease-settle) .15s forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.grow { transform-box: fill-box; transform-origin: 50% 100%; animation: grow .7s var(--ease-glass) both; animation-delay: calc(var(--i, 0) * 35ms + 120ms); }
+@keyframes grow { from { transform: scaleY(0); } }
+
+/* ============================================================
+   Layout */
+.page-title { font-family: var(--font-display); font-size: var(--display-lg-size); line-height: var(--display-lg-leading); font-weight: var(--display-lg-weight); margin: 0; letter-spacing: -.02em; }
+.page-sub { margin: 0; color: var(--ink-secondary); }
+.section-title { font-family: var(--font-display); font-size: 20px; line-height: 26px; font-weight: 700; margin: 0; letter-spacing: -.01em; }
+.stack { display: flex; flex-direction: column; gap: var(--space-4); }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.row-link { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4); text-decoration: none; color: var(--ink); }
+.row-link { position: relative; border-radius: inherit; overflow: hidden; height: 100%; }
+.row-link > :not(.glass-touch) { position: relative; z-index: 1; }
+.row-link .chev, .row-link > svg:last-child { transition: transform var(--dur-release) var(--ease-glass); }
+.row-link:hover > svg:last-child { transform: translateX(4px); }
+.row-link:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.row-title { font-weight: 600; }
+.row-meta { font-size: var(--body-sm-size); color: var(--ink-secondary); font-variant-numeric: tabular-nums; }
+.back { align-self: flex-start; }
+.placeholder-note { font-size: var(--body-sm-size); color: var(--ink-muted); margin: 0; }
+
+/* Title row: the h1 and its subline on the left, controls on the right. */
+.title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-3) var(--space-5); flex-wrap: wrap; }
+.title-row > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+/* The canvas grid. One column on a phone; 12 columns from 1080px.
+   12 × col + 11 × 24px gutter = the content width, so spans land on both edges. */
+.canvas { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+.canvas > * { min-width: 0; }
+@media (min-width: 1080px) {
+  .canvas { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--space-6); }
+  .canvas > * { grid-column: span 12; }
+  .canvas > .s3 { grid-column: span 3; }
+  .canvas > .s4 { grid-column: span 4; }
+  .canvas > .s5 { grid-column: span 5; }
+  .canvas > .s6 { grid-column: span 6; }
+  .canvas > .s7 { grid-column: span 7; }
+  .canvas > .s8 { grid-column: span 8; }
+  .canvas > .stretch { align-self: stretch; }
+}
+/* Auto grid for peer objects (runs, weeks, panels). */
+.cards { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+@media (min-width: 1080px) { .cards { gap: var(--space-5); } }
+
+/* Entrance: each block on the canvas rises in, staggered. */
+.canvas > *, .cards > * { animation: rise .6s var(--ease-settle) both; }
+.canvas > :nth-child(2), .cards > :nth-child(2) { animation-delay: 50ms; }
+.canvas > :nth-child(3), .cards > :nth-child(3) { animation-delay: 100ms; }
+.canvas > :nth-child(4), .cards > :nth-child(4) { animation-delay: 150ms; }
+.canvas > :nth-child(5), .cards > :nth-child(5) { animation-delay: 200ms; }
+.canvas > :nth-child(6), .cards > :nth-child(6) { animation-delay: 250ms; }
+.canvas > :nth-child(n+7), .cards > :nth-child(n+7) { animation-delay: 300ms; }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+
+/* Route change */
+.page-enter-active { transition: opacity .36s var(--ease-settle), transform .36s var(--ease-settle); }
+.page-leave-active { transition: opacity .14s ease, transform .14s ease; }
+.page-enter-from { opacity: 0; transform: translateY(10px); }
+.page-leave-to { opacity: 0; transform: translateY(-4px); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+  .wash i { animation: none !important; }
+  .glass-interactive:active, .btn:active { transform: none; }
+  .draw { stroke-dashoffset: 0; }
+}
+
+/* Panel headings share the chart-title size. */
+h2.row-title, h3.row-title { font-family: var(--font-display); font-size: 17px; line-height: 22px; font-weight: 700; margin: 0; }
+
+/* Map pins: the map is always the light style, so these use fixed colours. */
+.route-pin { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #fff; font: 700 11px/21px var(--font-body); text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+.route-pin--start { background: #1f9d55; color: #fff; }
+.route-pin--end { background: #16181d; color: #fff; }

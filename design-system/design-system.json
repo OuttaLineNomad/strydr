@@ -1,0 +1,40 @@
+{
+  "v": 3,
+  "layout": "files",
+  "createdOnFiles": { "v": 1, "at": "2026-10-25T05:27:03Z" },
+  "title": "Strydr",
+  "namespace": "Strydr",
+  "libraries": [],
+  "sections": {},
+  "groups": ["Logo"],
+  "assetGroups": {
+    "Logo": {
+      "name": "Logo",
+      "tile": "m",
+      "order": [
+        "strydr-mark.svg",
+        "strydr-app-icon.svg",
+        "strydr-wordmark.svg",
+        "strydr-wordmark-dark.svg",
+        "strydr-lockup.svg",
+        "strydr-lockup-dark.svg"
+      ],
+      "files": {
+        "strydr-mark.svg": { "name": "strydr-mark.svg", "blob": "cef2217aecb68ec43b6cc9489b344546", "size": 199, "type": "image/svg+xml" },
+        "strydr-app-icon.svg": { "name": "strydr-app-icon.svg", "blob": "ca194e3568401e334a2b94d62ca7296d", "size": 298, "type": "image/svg+xml" },
+        "strydr-wordmark.svg": { "name": "strydr-wordmark.svg", "blob": "a7ed8cdbb937c757340b8bf1f7821239", "size": 2622, "type": "image/svg+xml" },
+        "strydr-wordmark-dark.svg": { "name": "strydr-wordmark-dark.svg", "blob": "dc297efb5eef867d063d636a6e6eea53", "size": 2622, "type": "image/svg+xml" },
+        "strydr-lockup.svg": { "name": "strydr-lockup.svg", "blob": "94f85db044f7d72784b83eafd04edf51", "size": 2865, "type": "image/svg+xml" },
+        "strydr-lockup-dark.svg": { "name": "strydr-lockup-dark.svg", "blob": "8e03df9c8d54deee783f8f9491f2d7ff", "size": 2865, "type": "image/svg+xml" }
+      }
+    }
+  },
+  "blobs": {},
+  "docs": { "readme": "project/README.md", "sections": [] },
+  "lastChange": {
+    "by": "Bryce",
+    "via": "Cowork",
+    "at": "2026-10-27T18:05:00Z",
+    "note": "Checked the system against an outside dashboard-critique skill (taste-skill's app-screens rubric) and fixed what genuinely held up, without touching the Liquid Glass identity: chart-table now right-aligns every value column instead of left-aligning everything; Stat Tile's hero tile drops the decorative sparkline it used to draw next to the trend pill (Line Chart and Bar Chart already own the honest version of that trend); Line Chart's caption now states a real finding (the week's fastest day) instead of just repeating axis units; added a pill--neutral variant for a zero or undefined comparison period, and documented that pill color has always encoded good/bad-for-the-metric rather than up/down, which matches the critique's own rule. Documented, not changed: the glass material's shadow at rest and the 56px hero metric size were both checked against the same critique and knowingly kept, for reasons now written into the README and Stat Tile's card."
+  }
+}

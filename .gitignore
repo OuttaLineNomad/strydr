@@ -1,0 +1,42 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node
+web/node_modules/
+web/dist/
+web/coverage/
+
+# Secrets & local data — never commit
+*.key
+*.db
+*.db-wal
+*.db-shm
+*.log
+.env*
+secrets/
+
+# Claude local settings
+.claude/settings.local.json
+.claude/worktrees/
+
+# More secrets & personal data — never commit
+*.pem
+*.sqlite
+*.sqlite3
+*.zip
+cloudflared/config.yml
+cloudflared/*.json
+
+# Planning docs, BMad install and agent skills stay local (private)
+_bmad/
+_bmad-output/
+.claude/skills/
+skills-lock.json

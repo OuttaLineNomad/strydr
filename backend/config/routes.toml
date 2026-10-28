@@ -1,0 +1,51 @@
+# Route matching, sections, climbs and same-route comparison (FR-22..FR-23a).
+# Proposed defaults from research-routes.md; tune against real data. SI units throughout.
+
+[routes.match]
+workout_types = ["run"]
+min_run_length_m = 1000.0       # shorter runs never form routes
+min_gps_coverage = 0.80         # share of run time not inside a GPS gap
+max_gps_gap_s = 60.0
+start_end_radius_m = 150.0
+distance_tolerance_frac = 0.10
+distance_tolerance_floor_m = 250.0
+resample_spacing_m = 10.0
+corridor_m = 50.0
+corridor_min_frac = 0.90        # required in both directions
+frechet_max_m = 100.0           # measured on the in-corridor points (detours excluded)
+min_runs = 2                    # a route counts only with this many runs
+medoid_sample_stride = 10       # every Nth resampled point when ranking medoids
+
+[routes.sections]
+split_unit_m_metric = 1000.0
+split_unit_m_imperial = 1609.344
+split_min_tail_frac = 0.5       # a shorter final split is merged into the previous one
+min_hr_section_s = 180.0        # sections shorter than this make no HR claim
+hr_lag_s = 30.0                 # HR window is shifted later by this much
+hr_sample_span_s = 60.0         # a per-minute HR sample covers at most this long
+min_hr_samples = 3
+progress_window_back = 3        # vertices a run may step back on the route line
+progress_window_fwd = 60        # vertices searched ahead of the last position
+boundary_tolerance_m = 30.0     # run must reach a section boundary within this
+pause_s = 30.0                  # a stop longer than this makes a section not comparable
+pause_speed_mps = 0.3
+
+[routes.climbs]
+smoothing_window_m = 100.0
+pivot_prominence_m = 3.0        # ripples smaller than this are not climbs
+merge_gap_m = 100.0
+min_length_m = 300.0
+min_avg_grade = 0.03
+min_gain_m = 15.0
+flat_grade = 0.01              # rises paused on flats at least merge_gap_m long are split
+
+[routes.compare]
+window_days = 180
+hr_match_bpm = 4.0
+min_runs = 3
+min_gap_s = 15.0
+min_gap_frac = 0.05
+z_min = 2.0
+z_min_small_n = 2.5
+small_n_below = 5
+max_per_run = 2

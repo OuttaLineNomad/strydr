@@ -1,0 +1,153 @@
+<!-- @dsCard group="Charts" height=400 subtitle="Time series, emphasis form — hover for the crosshair, or view as a table" -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Sora:wght@400;500;600&display=swap">
+<style>
+  body { margin: 0; font-family: var(--font-body); color: var(--ink); background: var(--surface-0); padding: 24px; }
+  .wrap { max-width: 620px; }
+  .plot-wrap { position: relative; }
+  svg.plot { width: 100%; height: auto; display: block; overflow: visible; }
+  .hit { fill: transparent; cursor: pointer; }
+  .crosshair { stroke: var(--chart-axis); stroke-width: 1; opacity: 0; pointer-events: none; }
+  .crosshair.visible { opacity: 1; }
+  .grid-line { stroke: var(--chart-grid); stroke-width: 1; }
+  .tick-label { fill: var(--ink-muted); font-size: 10px; font-family: var(--font-body); }
+  .end-label { font-size: 12px; font-weight: 700; font-family: var(--font-body); font-variant-numeric: tabular-nums; }
+  .end-dot { stroke: var(--surface-1); stroke-width: 2; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="glass chart-card">
+      <div class="chart-head">
+        <div>
+          <h3 class="chart-title">Pace trend</h3>
+          <p class="chart-caption">Saturday's the fastest day &mdash; 8:30/mi, 45 sec quicker than Monday. Lower on this chart is faster.</p>
+        </div>
+        <button class="table-toggle" id="toggle" aria-pressed="false">View as table</button>
+      </div>
+
+      <div class="chart-legend">
+        <span class="legend-item"><span class="legend-key" style="background:var(--chart-pace)"></span>This week</span>
+        <span class="legend-item"><span class="legend-key" style="background:var(--chart-other)"></span>Last week</span>
+      </div>
+
+      <div class="plot-wrap" id="plotWrap">
+        <svg class="plot" viewBox="0 0 600 200" id="svg">
+          <line class="grid-line" x1="38" y1="27" x2="588" y2="27"/>
+          <line class="grid-line" x1="38" y1="82" x2="588" y2="82"/>
+          <line class="grid-line" x1="38" y1="137" x2="588" y2="137"/>
+          <text class="tick-label" x="4" y="30">8:30</text>
+          <text class="tick-label" x="4" y="85">9:00</text>
+          <text class="tick-label" x="4" y="140">9:30</text>
+
+          <text class="tick-label" x="38" y="186">Mon</text>
+          <text class="tick-label" x="129.7" y="186">Tue</text>
+          <text class="tick-label" x="221.3" y="186">Wed</text>
+          <text class="tick-label" x="313" y="186">Thu</text>
+          <text class="tick-label" x="404.7" y="186">Fri</text>
+          <text class="tick-label" x="488" y="186">Sat</text>
+          <text class="tick-label" x="580" y="186">Sun</text>
+
+          <line class="crosshair" id="crosshair" x1="38" y1="16" x2="38" y2="170"/>
+
+          <polyline fill="none" stroke="var(--chart-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            points="38,155.7 129.7,128.2 221.3,118.3 313,90.8 404.7,100.7 496.3,73.2 588,82"/>
+          <polyline fill="none" stroke="var(--chart-pace)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            points="38,109.5 129.7,85.3 221.3,78.7 313,54.5 404.7,63.3 496.3,27 588,49"/>
+
+          <circle class="end-dot" cx="588" cy="82" r="4" fill="var(--chart-other)"/>
+          <circle class="end-dot" cx="588" cy="49" r="4" fill="var(--chart-pace)"/>
+          <text class="end-label" x="546" y="78" fill="var(--ink-secondary)">9:00</text>
+          <text class="end-label" x="546" y="40" fill="var(--ink)">8:42</text>
+
+          <rect class="hit" data-i="0" x="4" y="16" width="81" height="154"/>
+          <rect class="hit" data-i="1" x="85" y="16" width="91.6" height="154"/>
+          <rect class="hit" data-i="2" x="176.6" y="16" width="91.6" height="154"/>
+          <rect class="hit" data-i="3" x="268.2" y="16" width="91.6" height="154"/>
+          <rect class="hit" data-i="4" x="359.8" y="16" width="91.6" height="154"/>
+          <rect class="hit" data-i="5" x="451.4" y="16" width="91.6" height="154"/>
+          <rect class="hit" data-i="6" x="543" y="16" width="53" height="154"/>
+        </svg>
+        <div class="chart-tooltip" id="tooltip">
+          <div class="tt-date" id="ttDate">Mon</div>
+          <div class="tt-row"><span class="tt-key" style="background:var(--chart-pace)"></span><span class="tt-label">This week</span><span class="tt-value" id="ttCur">9:15</span></div>
+          <div class="tt-row"><span class="tt-key" style="background:var(--chart-other)"></span><span class="tt-label">Last week</span><span class="tt-value" id="ttPrev">9:40</span></div>
+        </div>
+      </div>
+
+      <table class="chart-table" id="table" hidden>
+        <thead><tr><th>Day</th><th>This week</th><th>Last week</th></tr></thead>
+        <tbody>
+          <tr><td>Mon</td><td>9:15</td><td>9:40</td></tr>
+          <tr><td>Tue</td><td>9:02</td><td>9:25</td></tr>
+          <tr><td>Wed</td><td>8:58</td><td>9:20</td></tr>
+          <tr><td>Thu</td><td>8:45</td><td>9:05</td></tr>
+          <tr><td>Fri</td><td>8:50</td><td>9:10</td></tr>
+          <tr><td>Sat</td><td>8:30</td><td>8:55</td></tr>
+          <tr><td>Sun</td><td>8:42</td><td>9:00</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const cur = ['9:15','9:02','8:58','8:45','8:50','8:30','8:42'];
+    const prev = ['9:40','9:25','9:20','9:05','9:10','8:55','9:00'];
+    const xAt = [38,129.7,221.3,313,404.7,496.3,588];
+
+    const svg = document.getElementById('svg');
+    const crosshair = document.getElementById('crosshair');
+    const tooltip = document.getElementById('tooltip');
+    const plotWrap = document.getElementById('plotWrap');
+    const ttDate = document.getElementById('ttDate');
+    const ttCur = document.getElementById('ttCur');
+    const ttPrev = document.getElementById('ttPrev');
+
+    function showFor(i) {
+      const scale = svg.clientWidth / 600;
+      crosshair.setAttribute('x1', xAt[i]);
+      crosshair.setAttribute('x2', xAt[i]);
+      crosshair.classList.add('visible');
+      ttDate.textContent = days[i];
+      ttCur.textContent = cur[i];
+      ttPrev.textContent = prev[i];
+      tooltip.classList.add('visible');
+      const left = Math.min(Math.max(xAt[i] * scale - 54, 0), plotWrap.clientWidth - 150);
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = '4px';
+    }
+    function hide() {
+      crosshair.classList.remove('visible');
+      tooltip.classList.remove('visible');
+    }
+    svg.querySelectorAll('.hit').forEach(el => {
+      const i = Number(el.dataset.i);
+      el.addEventListener('pointerenter', () => showFor(i));
+      el.addEventListener('pointermove', () => showFor(i));
+      el.setAttribute('tabindex', '0');
+      el.addEventListener('focus', () => showFor(i));
+      el.addEventListener('blur', hide);
+    });
+    svg.addEventListener('pointerleave', hide);
+  </script>
+  <script>
+    (function () {
+      const toggle = document.getElementById('toggle');
+      const table = document.getElementById('table');
+      const plotWrap = document.getElementById('plotWrap');
+      let showingTable = false;
+      toggle.addEventListener('click', () => {
+        showingTable = !showingTable;
+        table.hidden = !showingTable;
+        plotWrap.hidden = showingTable;
+        toggle.textContent = showingTable ? 'View as chart' : 'View as table';
+        toggle.setAttribute('aria-pressed', String(showingTable));
+      });
+    })();
+  </script>
+</body>
+</html>

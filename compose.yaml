@@ -1,0 +1,44 @@
+services:
+  strydr:
+    build: .
+    image: strydr:local
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-UTC}
+    secrets:
+      - strydr_db_key
+    volumes:
+      - strydr_data:/data
+    healthcheck:
+      # Public liveness endpoint: no session, no DB access, no data (the image has no curl).
+      test: ["CMD", "python", "-c", "import sys, urllib.request as u; sys.exit(0 if u.urlopen('http://127.0.0.1:8080/api/v1/health', timeout=3).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    ports:
+      - "8080:8080"   # app: LAN / Tailscale only
+      - "8081:8081"   # ingest: LAN / Tailscale backfill; cloudflared reaches it on the internal network
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.4
+    restart: unless-stopped
+    command: tunnel --config /etc/cloudflared/config.yml run
+    environment:
+      TZ: ${TZ:-UTC}
+    depends_on:
+      - strydr
+    volumes:
+      - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+    secrets:
+      - source: cloudflared_credentials
+        target: cloudflared-credentials.json
+
+volumes:
+  strydr_data:
+
+secrets:
+  strydr_db_key:
+    file: ./secrets/strydr_db_key
+  cloudflared_credentials:
+    file: ./secrets/cloudflared-credentials.json

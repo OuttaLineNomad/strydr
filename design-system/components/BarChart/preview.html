@@ -1,0 +1,141 @@
+<!-- @dsCard group="Charts" height=380 subtitle="Single series, direct-labeled — no legend needed for one color" -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Sora:wght@400;500;600&display=swap">
+<style>
+  body { margin: 0; font-family: var(--font-body); color: var(--ink); background: var(--surface-0); padding: 24px; }
+  .wrap { max-width: 620px; }
+  svg.plot { width: 100%; height: auto; display: block; overflow: visible; }
+  .bar { fill: var(--secondary); cursor: pointer; transition: fill .1s ease; }
+  .bar:hover, .bar.active { fill: var(--secondary-strong); }
+  .hit { fill: transparent; cursor: pointer; }
+  .grid-line { stroke: var(--chart-grid); stroke-width: 1; }
+  .baseline { stroke: var(--chart-axis); stroke-width: 1; }
+  .tick-label { fill: var(--ink-muted); font-size: 10px; font-family: var(--font-body); }
+  .bar-label { font-size: 11px; font-weight: 700; fill: var(--ink); font-family: var(--font-body); font-variant-numeric: tabular-nums; text-anchor: middle; }
+  .rest-label { font-size: 10px; fill: var(--ink-muted); font-family: var(--font-body); text-anchor: middle; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="glass chart-card">
+      <div class="chart-head">
+        <div>
+          <h3 class="chart-title">This week's distance</h3>
+          <p class="chart-caption">Miles per day &middot; Monday&ndash;Sunday</p>
+        </div>
+        <button class="table-toggle" id="toggle" aria-pressed="false">View as table</button>
+      </div>
+
+      <div class="plot-wrap" id="plotWrap" style="position:relative;">
+        <svg class="plot" viewBox="0 0 600 200" id="svg">
+          <line class="grid-line" x1="30" y1="93" x2="588" y2="93"/>
+          <line class="grid-line" x1="30" y1="16" x2="588" y2="16"/>
+          <text class="tick-label" x="4" y="96">4</text>
+          <text class="tick-label" x="4" y="19">8</text>
+
+          <text class="tick-label" x="69.9" y="186" text-anchor="middle">Mon</text>
+          <text class="tick-label" x="149.6" y="186" text-anchor="middle">Tue</text>
+          <text class="tick-label" x="229.3" y="186" text-anchor="middle">Wed</text>
+          <text class="tick-label" x="309" y="186" text-anchor="middle">Thu</text>
+          <text class="tick-label" x="388.7" y="186" text-anchor="middle">Fri</text>
+          <text class="tick-label" x="468.4" y="186" text-anchor="middle">Sat</text>
+          <text class="tick-label" x="548.1" y="186" text-anchor="middle">Sun</text>
+
+          <line class="baseline" x1="30" y1="170" x2="588" y2="170"/>
+
+          <path class="bar" data-i="0" d="M57.9,170 L57.9,114.3 Q57.9,110.3 61.9,110.3 L77.9,110.3 Q81.9,110.3 81.9,114.3 L81.9,170 Z"/>
+          <path class="bar" data-i="2" d="M217.3,170 L217.3,87.4 Q217.3,83.4 221.3,83.4 L237.3,83.4 Q241.3,83.4 241.3,87.4 L241.3,170 Z"/>
+          <path class="bar" data-i="3" d="M297,170 L297,120.1 Q297,116.1 301.0,116.1 L317.0,116.1 Q321.0,116.1 321.0,120.1 L321.0,170 Z"/>
+          <path class="bar" data-i="5" d="M456.4,170 L456.4,35.4 Q456.4,31.4 460.4,31.4 L476.4,31.4 Q480.4,31.4 480.4,35.4 L480.4,170 Z"/>
+          <path class="bar" data-i="6" d="M536.1,170 L536.1,70.0 Q536.1,66.0 540.1,66.0 L556.1,66.0 Q560.1,66.0 560.1,70.0 L560.1,170 Z"/>
+
+          <text class="bar-label" x="69.9" y="102">3.1</text>
+          <text class="bar-label" x="229.3" y="75.4">4.5</text>
+          <text class="bar-label" x="309" y="108.1">2.8</text>
+          <text class="bar-label" x="468.4" y="23.4">7.2</text>
+          <text class="bar-label" x="548.1" y="58">5.4</text>
+          <text class="rest-label" x="149.6" y="164">rest</text>
+          <text class="rest-label" x="388.7" y="164">rest</text>
+
+          <rect class="hit" data-i="0" x="46" y="16" width="48" height="154"/>
+          <rect class="hit" data-i="1" x="126" y="16" width="48" height="154"/>
+          <rect class="hit" data-i="2" x="206" y="16" width="48" height="154"/>
+          <rect class="hit" data-i="3" x="285" y="16" width="48" height="154"/>
+          <rect class="hit" data-i="4" x="365" y="16" width="48" height="154"/>
+          <rect class="hit" data-i="5" x="444" y="16" width="48" height="154"/>
+          <rect class="hit" data-i="6" x="524" y="16" width="48" height="154"/>
+        </svg>
+        <div class="chart-tooltip" id="tooltip">
+          <div class="tt-date" id="ttDate">Mon</div>
+          <div class="tt-row"><span class="tt-key" style="background:var(--secondary)"></span><span class="tt-label">Distance</span><span class="tt-value" id="ttVal">3.1 mi</span></div>
+        </div>
+      </div>
+
+      <table class="chart-table" id="table" hidden>
+        <thead><tr><th>Day</th><th>Distance</th></tr></thead>
+        <tbody>
+          <tr><td>Mon</td><td>3.1 mi</td></tr>
+          <tr><td>Tue</td><td>Rest</td></tr>
+          <tr><td>Wed</td><td>4.5 mi</td></tr>
+          <tr><td>Thu</td><td>2.8 mi</td></tr>
+          <tr><td>Fri</td><td>Rest</td></tr>
+          <tr><td>Sat</td><td>7.2 mi</td></tr>
+          <tr><td>Sun</td><td>5.4 mi</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const vals = ['3.1 mi','Rest','4.5 mi','2.8 mi','Rest','7.2 mi','5.4 mi'];
+    const xAt = [70,150,229,309,389,468,548];
+
+    const svg = document.getElementById('svg');
+    const tooltip = document.getElementById('tooltip');
+    const plotWrap = document.getElementById('plotWrap');
+    const ttDate = document.getElementById('ttDate');
+    const ttVal = document.getElementById('ttVal');
+
+    function showFor(i) {
+      const scale = svg.clientWidth / 600;
+      svg.querySelectorAll('.bar').forEach(b => b.classList.toggle('active', Number(b.dataset.i) === i));
+      ttDate.textContent = days[i];
+      ttVal.textContent = vals[i];
+      tooltip.classList.add('visible');
+      const left = Math.min(Math.max(xAt[i] * scale - 60, 0), plotWrap.clientWidth - 140);
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = '4px';
+    }
+    function hide() {
+      svg.querySelectorAll('.bar').forEach(b => b.classList.remove('active'));
+      tooltip.classList.remove('visible');
+    }
+    svg.querySelectorAll('.hit').forEach(el => {
+      const i = Number(el.dataset.i);
+      el.addEventListener('pointerenter', () => showFor(i));
+      el.addEventListener('pointermove', () => showFor(i));
+      el.setAttribute('tabindex', '0');
+      el.addEventListener('focus', () => showFor(i));
+      el.addEventListener('blur', hide);
+    });
+    svg.addEventListener('pointerleave', hide);
+
+    (function () {
+      const toggle = document.getElementById('toggle');
+      const table = document.getElementById('table');
+      let showingTable = false;
+      toggle.addEventListener('click', () => {
+        showingTable = !showingTable;
+        table.hidden = !showingTable;
+        plotWrap.hidden = showingTable;
+        toggle.textContent = showingTable ? 'View as chart' : 'View as table';
+        toggle.setAttribute('aria-pressed', String(showingTable));
+      });
+    })();
+  </script>
+</body>
+</html>

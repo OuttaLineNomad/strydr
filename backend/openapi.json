@@ -1,0 +1,5238 @@
+{
+  "components": {
+    "schemas": {
+      "AiSettingsIn": {
+        "properties": {
+          "api_key": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Write-only. Omit to keep the stored key; empty string removes it.",
+            "title": "Api Key"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "provider": {
+            "default": "nvidia",
+            "enum": [
+              "nvidia",
+              "openai-compatible"
+            ],
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "title": "AiSettingsIn",
+        "type": "object"
+      },
+      "AiSettingsOut": {
+        "properties": {
+          "base_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "default_base_url": {
+            "title": "Default Base Url",
+            "type": "string"
+          },
+          "default_model": {
+            "title": "Default Model",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "has_key": {
+            "title": "Has Key",
+            "type": "boolean"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "provider": {
+            "enum": [
+              "nvidia",
+              "openai-compatible"
+            ],
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "base_url",
+          "model",
+          "default_base_url",
+          "default_model",
+          "has_key",
+          "enabled"
+        ],
+        "title": "AiSettingsOut",
+        "type": "object"
+      },
+      "CalendarDay": {
+        "properties": {
+          "in_month": {
+            "title": "In Month",
+            "type": "boolean"
+          },
+          "is_hard": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Hard"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "run",
+                  "active",
+                  "rest"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "load": {
+            "title": "Load",
+            "type": "number"
+          },
+          "local_date": {
+            "title": "Local Date",
+            "type": "string"
+          },
+          "workouts": {
+            "items": {
+              "$ref": "#/components/schemas/CalendarWorkout"
+            },
+            "title": "Workouts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "local_date",
+          "in_month",
+          "kind",
+          "is_hard",
+          "load",
+          "workouts"
+        ],
+        "title": "CalendarDay",
+        "type": "object"
+      },
+      "CalendarOut": {
+        "properties": {
+          "active_days": {
+            "title": "Active Days",
+            "type": "integer"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/CalendarDay"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "longest_run_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longest Run M"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "previous": {
+            "$ref": "#/components/schemas/MonthTotals"
+          },
+          "rest_days": {
+            "title": "Rest Days",
+            "type": "integer"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/MonthTotals"
+          }
+        },
+        "required": [
+          "month",
+          "as_of",
+          "days",
+          "totals",
+          "previous",
+          "longest_run_m",
+          "active_days",
+          "rest_days"
+        ],
+        "title": "CalendarOut",
+        "type": "object"
+      },
+      "CalendarWorkout": {
+        "properties": {
+          "distance_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance M"
+          },
+          "duration_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration S"
+          },
+          "type": {
+            "enum": [
+              "run",
+              "walk",
+              "hike"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "workout_id": {
+            "title": "Workout Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workout_id",
+          "type",
+          "distance_m",
+          "duration_s"
+        ],
+        "title": "CalendarWorkout",
+        "type": "object"
+      },
+      "ConditionsOut": {
+        "description": "Weather for an outdoor run (derive/conditions). Apple's own reading wins; fetched weather fills the rest.",
+        "properties": {
+          "apparent_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apparent C"
+          },
+          "band": {
+            "enum": [
+              "ideal",
+              "warm",
+              "hot",
+              "oppressive",
+              "cold",
+              "freezing"
+            ],
+            "title": "Band",
+            "type": "string"
+          },
+          "cloud_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cloud Pct"
+          },
+          "dew_point_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dew Point C"
+          },
+          "gust_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gust Ms"
+          },
+          "heat_adjust_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heat Adjust Pct"
+          },
+          "heat_adjusted_speed_mps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heat Adjusted Speed Mps"
+          },
+          "humidity_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Humidity Pct"
+          },
+          "precip_mm_h": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precip Mm H"
+          },
+          "rain": {
+            "title": "Rain",
+            "type": "boolean"
+          },
+          "sources": {
+            "additionalProperties": {
+              "enum": [
+                "apple",
+                "open-meteo"
+              ],
+              "type": "string"
+            },
+            "title": "Sources",
+            "type": "object"
+          },
+          "temp_c": {
+            "title": "Temp C",
+            "type": "number"
+          },
+          "temp_dew_sum_f": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temp Dew Sum F"
+          },
+          "wind_dir_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Dir Deg"
+          },
+          "wind_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Ms"
+          },
+          "windy": {
+            "title": "Windy",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "temp_c",
+          "humidity_pct",
+          "dew_point_c",
+          "apparent_c",
+          "wind_ms",
+          "wind_dir_deg",
+          "gust_ms",
+          "precip_mm_h",
+          "cloud_pct",
+          "temp_dew_sum_f",
+          "heat_adjust_pct",
+          "heat_adjusted_speed_mps",
+          "band",
+          "windy",
+          "rain",
+          "sources"
+        ],
+        "title": "ConditionsOut",
+        "type": "object"
+      },
+      "DashboardOut": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "avg_pace": {
+            "$ref": "#/components/schemas/Tile"
+          },
+          "one_mile_pace": {
+            "$ref": "#/components/schemas/Tile"
+          },
+          "weeks": {
+            "items": {
+              "$ref": "#/components/schemas/WeekTotal"
+            },
+            "title": "Weeks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as_of",
+          "weeks",
+          "one_mile_pace",
+          "avg_pace"
+        ],
+        "title": "DashboardOut",
+        "type": "object"
+      },
+      "DayLoadOut": {
+        "properties": {
+          "by_type": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "By Type",
+            "type": "object"
+          },
+          "estimated": {
+            "title": "Estimated",
+            "type": "boolean"
+          },
+          "is_hard": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Hard"
+          },
+          "is_rest": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Rest"
+          },
+          "load": {
+            "title": "Load",
+            "type": "number"
+          },
+          "local_date": {
+            "title": "Local Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "local_date",
+          "load",
+          "by_type",
+          "estimated",
+          "is_hard",
+          "is_rest"
+        ],
+        "title": "DayLoadOut",
+        "type": "object"
+      },
+      "DisplayGeometry": {
+        "description": "Clipped by the privacy zones; markers and bounds come from the clipped track only. Points are [lat, lon].",
+        "properties": {
+          "bounds": {
+            "maxItems": 4,
+            "minItems": 4,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Bounds",
+            "type": "array"
+          },
+          "end": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "End",
+            "type": "array"
+          },
+          "segments": {
+            "items": {
+              "items": {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "title": "Segments",
+            "type": "array"
+          },
+          "start": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Start",
+            "type": "array"
+          }
+        },
+        "required": [
+          "segments",
+          "start",
+          "end",
+          "bounds"
+        ],
+        "title": "DisplayGeometry",
+        "type": "object"
+      },
+      "ElevationPoint": {
+        "properties": {
+          "altitude_m": {
+            "title": "Altitude M",
+            "type": "number"
+          },
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          }
+        },
+        "required": [
+          "distance_m",
+          "altitude_m"
+        ],
+        "title": "ElevationPoint",
+        "type": "object"
+      },
+      "FeedbackIn": {
+        "properties": {
+          "thumb": {
+            "enum": [
+              "up",
+              "down"
+            ],
+            "title": "Thumb",
+            "type": "string"
+          }
+        },
+        "required": [
+          "thumb"
+        ],
+        "title": "FeedbackIn",
+        "type": "object"
+      },
+      "FeedbackOut": {
+        "properties": {
+          "insight_key": {
+            "title": "Insight Key",
+            "type": "string"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/FeedbackSnapshot"
+          },
+          "thumb": {
+            "enum": [
+              "up",
+              "down"
+            ],
+            "title": "Thumb",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "insight_key",
+          "thumb",
+          "snapshot",
+          "updated_at"
+        ],
+        "title": "FeedbackOut",
+        "type": "object"
+      },
+      "FeedbackSnapshot": {
+        "properties": {
+          "context_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Hash"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Evidence",
+            "type": "object"
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ai",
+                  "template"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "title": "FeedbackSnapshot",
+        "type": "object"
+      },
+      "GapOut": {
+        "properties": {
+          "gap_speed_mps": {
+            "title": "Gap Speed Mps",
+            "type": "number"
+          },
+          "hilly": {
+            "title": "Hilly",
+            "type": "boolean"
+          },
+          "relief_m": {
+            "title": "Relief M",
+            "type": "number"
+          },
+          "relief_m_per_km": {
+            "title": "Relief M Per Km",
+            "type": "number"
+          }
+        },
+        "required": [
+          "gap_speed_mps",
+          "relief_m",
+          "relief_m_per_km",
+          "hilly"
+        ],
+        "title": "GapOut",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HealthOut": {
+        "properties": {
+          "status": {
+            "const": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "HealthOut",
+        "type": "object"
+      },
+      "HrPoint": {
+        "properties": {
+          "avg": {
+            "title": "Avg",
+            "type": "number"
+          },
+          "max": {
+            "title": "Max",
+            "type": "number"
+          },
+          "min": {
+            "title": "Min",
+            "type": "number"
+          },
+          "t_s": {
+            "title": "T S",
+            "type": "number"
+          }
+        },
+        "required": [
+          "t_s",
+          "avg",
+          "min",
+          "max"
+        ],
+        "title": "HrPoint",
+        "type": "object"
+      },
+      "ImportStatusOut": {
+        "description": "Progress of the latest Apple Health export import.",
+        "properties": {
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "kept_existing": {
+            "title": "Kept Existing",
+            "type": "integer"
+          },
+          "merged": {
+            "title": "Merged",
+            "type": "integer"
+          },
+          "metrics": {
+            "title": "Metrics",
+            "type": "integer"
+          },
+          "nights": {
+            "title": "Nights",
+            "type": "integer"
+          },
+          "payload_id": {
+            "title": "Payload Id",
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "queued",
+              "validating",
+              "writing",
+              "done",
+              "failed"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "workouts": {
+            "title": "Workouts",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "payload_id",
+          "state",
+          "workouts",
+          "merged",
+          "kept_existing",
+          "metrics",
+          "nights",
+          "date_from",
+          "date_to",
+          "error",
+          "updated_at"
+        ],
+        "title": "ImportStatusOut",
+        "type": "object"
+      },
+      "InsightDetailOut": {
+        "properties": {
+          "insight_key": {
+            "title": "Insight Key",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "observation",
+              "attaboy",
+              "check-reading"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "local_date": {
+            "title": "Local Date",
+            "type": "string"
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number"
+          },
+          "period": {
+            "title": "Period",
+            "type": "string"
+          },
+          "reasoning": {
+            "$ref": "#/components/schemas/InsightReasoning"
+          },
+          "rule_id": {
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "template_id": {
+            "title": "Template Id",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "text_source": {
+            "enum": [
+              "ai",
+              "template"
+            ],
+            "title": "Text Source",
+            "type": "string"
+          },
+          "text_template": {
+            "title": "Text Template",
+            "type": "string"
+          },
+          "thumb": {
+            "anyOf": [
+              {
+                "enum": [
+                  "up",
+                  "down"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumb"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "week_id": {
+            "title": "Week Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "insight_key",
+          "rule_id",
+          "subject",
+          "period",
+          "kind",
+          "number",
+          "unit",
+          "text",
+          "text_source",
+          "local_date",
+          "week_id",
+          "run_id",
+          "thumb",
+          "template_id",
+          "text_template",
+          "reasoning"
+        ],
+        "title": "InsightDetailOut",
+        "type": "object"
+      },
+      "InsightFeedOut": {
+        "properties": {
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InsightOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset",
+          "disclaimer"
+        ],
+        "title": "InsightFeedOut",
+        "type": "object"
+      },
+      "InsightOut": {
+        "properties": {
+          "insight_key": {
+            "title": "Insight Key",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "observation",
+              "attaboy",
+              "check-reading"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "local_date": {
+            "title": "Local Date",
+            "type": "string"
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number"
+          },
+          "period": {
+            "title": "Period",
+            "type": "string"
+          },
+          "rule_id": {
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "text_source": {
+            "enum": [
+              "ai",
+              "template"
+            ],
+            "title": "Text Source",
+            "type": "string"
+          },
+          "thumb": {
+            "anyOf": [
+              {
+                "enum": [
+                  "up",
+                  "down"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumb"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "week_id": {
+            "title": "Week Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "insight_key",
+          "rule_id",
+          "subject",
+          "period",
+          "kind",
+          "number",
+          "unit",
+          "text",
+          "text_source",
+          "local_date",
+          "week_id",
+          "run_id",
+          "thumb"
+        ],
+        "title": "InsightOut",
+        "type": "object"
+      },
+      "InsightReasoning": {
+        "description": "FR-19: the rule that fired, the data it used and a short note on the evidence.",
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "rule": {
+            "title": "Rule",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule",
+          "data",
+          "note"
+        ],
+        "title": "InsightReasoning",
+        "type": "object"
+      },
+      "IntensityMix": {
+        "properties": {
+          "easy_share_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Easy Share Pct"
+          },
+          "zone_seconds": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zone Seconds"
+          }
+        },
+        "required": [
+          "zone_seconds",
+          "easy_share_pct"
+        ],
+        "title": "IntensityMix",
+        "type": "object"
+      },
+      "JsonValue": {},
+      "LoadDayOut": {
+        "properties": {
+          "by_type": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "By Type",
+            "type": "object"
+          },
+          "estimated": {
+            "title": "Estimated",
+            "type": "boolean"
+          },
+          "fatigue": {
+            "title": "Fatigue",
+            "type": "number"
+          },
+          "fitness": {
+            "title": "Fitness",
+            "type": "number"
+          },
+          "form": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Form"
+          },
+          "form_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Form Pct"
+          },
+          "load": {
+            "title": "Load",
+            "type": "number"
+          },
+          "local_date": {
+            "title": "Local Date",
+            "type": "string"
+          },
+          "tooltip": {
+            "$ref": "#/components/schemas/LoadTooltip"
+          },
+          "warmup": {
+            "title": "Warmup",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "local_date",
+          "load",
+          "by_type",
+          "estimated",
+          "fitness",
+          "fatigue",
+          "form",
+          "form_pct",
+          "warmup",
+          "tooltip"
+        ],
+        "title": "LoadDayOut",
+        "type": "object"
+      },
+      "LoadOut": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/LoadDayOut"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "training_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrainingStateOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "as_of",
+          "series",
+          "training_state"
+        ],
+        "title": "LoadOut",
+        "type": "object"
+      },
+      "LoadTooltip": {
+        "description": "Context for tooltips only (FR-24c): no risk colours, no risk wording.",
+        "properties": {
+          "acwr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acwr"
+          },
+          "ramp_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ramp Pct"
+          }
+        },
+        "required": [
+          "acwr",
+          "ramp_pct"
+        ],
+        "title": "LoadTooltip",
+        "type": "object"
+      },
+      "LoginIn": {
+        "properties": {
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginIn",
+        "type": "object"
+      },
+      "MonthTotals": {
+        "properties": {
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "duration_s": {
+            "title": "Duration S",
+            "type": "number"
+          },
+          "elevation_gain_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elevation Gain M"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "run_count": {
+            "title": "Run Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month",
+          "distance_m",
+          "duration_s",
+          "run_count",
+          "elevation_gain_m"
+        ],
+        "title": "MonthTotals",
+        "type": "object"
+      },
+      "NoteIn": {
+        "properties": {
+          "rpe": {
+            "anyOf": [
+              {
+                "maximum": 10.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpe"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "maxLength": 10000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "title": "NoteIn",
+        "type": "object"
+      },
+      "NoteOut": {
+        "properties": {
+          "rpe": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpe"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "rpe",
+          "updated_at"
+        ],
+        "title": "NoteOut",
+        "type": "object"
+      },
+      "PacePoint": {
+        "properties": {
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "speed_mps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed Mps"
+          },
+          "t_s": {
+            "title": "T S",
+            "type": "number"
+          }
+        },
+        "required": [
+          "t_s",
+          "distance_m",
+          "speed_mps"
+        ],
+        "title": "PacePoint",
+        "type": "object"
+      },
+      "PrivacyZoneIn": {
+        "description": "Input only. The centre is accepted here and never returned by any endpoint.",
+        "properties": {
+          "lat": {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Lon",
+            "type": "number"
+          },
+          "radius_m": {
+            "default": 400.0,
+            "maximum": 5000.0,
+            "minimum": 50.0,
+            "title": "Radius M",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lon"
+        ],
+        "title": "PrivacyZoneIn",
+        "type": "object"
+      },
+      "PrivacyZoneOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "radius_m": {
+            "title": "Radius M",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "radius_m"
+        ],
+        "title": "PrivacyZoneOut",
+        "type": "object"
+      },
+      "ProfileOut": {
+        "properties": {
+          "recompute_pending": {
+            "title": "Recompute Pending",
+            "type": "boolean"
+          },
+          "resolved": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResolvedProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ProfileSettings"
+          },
+          "zone_bounds_pct": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Zone Bounds Pct",
+            "type": "array"
+          }
+        },
+        "required": [
+          "settings",
+          "zone_bounds_pct",
+          "resolved",
+          "recompute_pending"
+        ],
+        "title": "ProfileOut",
+        "type": "object"
+      },
+      "ProfileSettings": {
+        "properties": {
+          "birth_year": {
+            "anyOf": [
+              {
+                "maximum": 2100.0,
+                "minimum": 1900.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Year"
+          },
+          "home_tz": {
+            "title": "Home Tz",
+            "type": "string"
+          },
+          "hrmax_override": {
+            "anyOf": [
+              {
+                "maximum": 230.0,
+                "minimum": 100.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hrmax Override"
+          },
+          "sex": {
+            "anyOf": [
+              {
+                "enum": [
+                  "male",
+                  "female"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sex"
+          },
+          "units": {
+            "default": "metric",
+            "enum": [
+              "metric",
+              "imperial"
+            ],
+            "title": "Units",
+            "type": "string"
+          },
+          "zones": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zones"
+          }
+        },
+        "required": [
+          "home_tz"
+        ],
+        "title": "ProfileSettings",
+        "type": "object"
+      },
+      "QuarantinedPayload": {
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "received_at": {
+            "title": "Received At",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "received_at",
+          "size_bytes",
+          "error"
+        ],
+        "title": "QuarantinedPayload",
+        "type": "object"
+      },
+      "RecordOut": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "local_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Date"
+          },
+          "period_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Id"
+          },
+          "unit": {
+            "enum": [
+              "s",
+              "m",
+              "m/s"
+            ],
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          },
+          "workout_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workout Id"
+          }
+        },
+        "required": [
+          "key",
+          "value",
+          "unit",
+          "workout_id",
+          "local_date",
+          "period_id"
+        ],
+        "title": "RecordOut",
+        "type": "object"
+      },
+      "ResolvedProfile": {
+        "properties": {
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "easy_ceiling_bpm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Easy Ceiling Bpm"
+          },
+          "hrmax": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hrmax"
+          },
+          "hrmax_source": {
+            "enum": [
+              "override",
+              "observed",
+              "tanaka",
+              "unavailable"
+            ],
+            "title": "Hrmax Source",
+            "type": "string"
+          },
+          "hrv_60d_baseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hrv 60D Baseline"
+          },
+          "rhr_30d_baseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rhr 30D Baseline"
+          },
+          "rhr_7d_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rhr 7D Median"
+          },
+          "zone_bounds_bpm": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zone Bounds Bpm"
+          }
+        },
+        "required": [
+          "as_of",
+          "hrmax",
+          "hrmax_source",
+          "zone_bounds_bpm",
+          "easy_ceiling_bpm",
+          "rhr_7d_median",
+          "rhr_30d_baseline",
+          "hrv_60d_baseline"
+        ],
+        "title": "ResolvedProfile",
+        "type": "object"
+      },
+      "RouteDetailOut": {
+        "properties": {
+          "display_geometry": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DisplayGeometry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "first_date": {
+            "title": "First Date",
+            "type": "string"
+          },
+          "last_date": {
+            "title": "Last Date",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SectionResultOut"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "route_key": {
+            "title": "Route Key",
+            "type": "string"
+          },
+          "run_count": {
+            "title": "Run Count",
+            "type": "integer"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutOut"
+            },
+            "title": "Runs",
+            "type": "array"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionOut"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "sibling_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sibling Key"
+          }
+        },
+        "required": [
+          "route_key",
+          "run_count",
+          "distance_m",
+          "first_date",
+          "last_date",
+          "sibling_key",
+          "display_geometry",
+          "sections",
+          "runs",
+          "results"
+        ],
+        "title": "RouteDetailOut",
+        "type": "object"
+      },
+      "RouteMapLine": {
+        "properties": {
+          "display_geometry": {
+            "$ref": "#/components/schemas/DisplayGeometry"
+          },
+          "local_date": {
+            "title": "Local Date",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "run",
+              "walk",
+              "hike"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "workout_id": {
+            "title": "Workout Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workout_id",
+          "type",
+          "local_date",
+          "display_geometry"
+        ],
+        "title": "RouteMapLine",
+        "type": "object"
+      },
+      "RouteMapOut": {
+        "properties": {
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/RouteMapLine"
+            },
+            "title": "Lines",
+            "type": "array"
+          }
+        },
+        "required": [
+          "lines"
+        ],
+        "title": "RouteMapOut",
+        "type": "object"
+      },
+      "RouteOut": {
+        "properties": {
+          "display_geometry": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DisplayGeometry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "first_date": {
+            "title": "First Date",
+            "type": "string"
+          },
+          "last_date": {
+            "title": "Last Date",
+            "type": "string"
+          },
+          "route_key": {
+            "title": "Route Key",
+            "type": "string"
+          },
+          "run_count": {
+            "title": "Run Count",
+            "type": "integer"
+          },
+          "sibling_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sibling Key"
+          }
+        },
+        "required": [
+          "route_key",
+          "run_count",
+          "distance_m",
+          "first_date",
+          "last_date",
+          "sibling_key",
+          "display_geometry"
+        ],
+        "title": "RouteOut",
+        "type": "object"
+      },
+      "RouteOverrideIn": {
+        "properties": {
+          "action": {
+            "enum": [
+              "join",
+              "split"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "workout_a": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Workout A",
+            "type": "string"
+          },
+          "workout_b": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Workout B",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workout_a",
+          "workout_b",
+          "action"
+        ],
+        "title": "RouteOverrideIn",
+        "type": "object"
+      },
+      "RouteOverrideOut": {
+        "properties": {
+          "action": {
+            "enum": [
+              "join",
+              "split"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "workout_a": {
+            "title": "Workout A",
+            "type": "string"
+          },
+          "workout_b": {
+            "title": "Workout B",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workout_a",
+          "workout_b",
+          "action"
+        ],
+        "title": "RouteOverrideOut",
+        "type": "object"
+      },
+      "RunSummaryOut": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "ai",
+              "template"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "thumb": {
+            "anyOf": [
+              {
+                "enum": [
+                  "up",
+                  "down"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumb"
+          }
+        },
+        "required": [
+          "text",
+          "source",
+          "key"
+        ],
+        "title": "RunSummaryOut",
+        "type": "object"
+      },
+      "SectionOut": {
+        "properties": {
+          "end_m": {
+            "title": "End M",
+            "type": "number"
+          },
+          "gain_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gain M"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "s",
+              "c"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "length_m": {
+            "title": "Length M",
+            "type": "number"
+          },
+          "section_id": {
+            "title": "Section Id",
+            "type": "string"
+          },
+          "start_m": {
+            "title": "Start M",
+            "type": "number"
+          }
+        },
+        "required": [
+          "section_id",
+          "kind",
+          "index",
+          "start_m",
+          "end_m",
+          "length_m",
+          "gain_m"
+        ],
+        "title": "SectionOut",
+        "type": "object"
+      },
+      "SectionResultOut": {
+        "properties": {
+          "avg_hr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Hr"
+          },
+          "baseline_hr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Hr"
+          },
+          "baseline_time_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Time S"
+          },
+          "comparable": {
+            "title": "Comparable",
+            "type": "boolean"
+          },
+          "direction": {
+            "anyOf": [
+              {
+                "enum": [
+                  "slower",
+                  "faster"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction"
+          },
+          "fires": {
+            "title": "Fires",
+            "type": "boolean"
+          },
+          "gap_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap S"
+          },
+          "local_date": {
+            "title": "Local Date",
+            "type": "string"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "section_id": {
+            "title": "Section Id",
+            "type": "string"
+          },
+          "spread_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spread S"
+          },
+          "time_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time S"
+          },
+          "workout_id": {
+            "title": "Workout Id",
+            "type": "string"
+          },
+          "z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Z"
+          }
+        },
+        "required": [
+          "section_id",
+          "workout_id",
+          "local_date",
+          "time_s",
+          "avg_hr",
+          "comparable",
+          "n",
+          "baseline_time_s",
+          "baseline_hr",
+          "gap_s",
+          "spread_s",
+          "z",
+          "direction",
+          "fires",
+          "reasons"
+        ],
+        "title": "SectionResultOut",
+        "type": "object"
+      },
+      "SleepOut": {
+        "description": "The night before a run (derive/sleep): hours from Apple's sleep stages, and the next morning's readings.",
+        "properties": {
+          "awake_h": {
+            "title": "Awake H",
+            "type": "number"
+          },
+          "bedtime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bedtime"
+          },
+          "core_h": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Core H"
+          },
+          "deep_h": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deep H"
+          },
+          "deep_rem_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deep Rem Pct"
+          },
+          "efficiency_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Efficiency Pct"
+          },
+          "hours_before_run": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hours Before Run"
+          },
+          "hrv_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hrv Ms"
+          },
+          "hrv_usual_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hrv Usual Ms"
+          },
+          "night_of": {
+            "title": "Night Of",
+            "type": "string"
+          },
+          "quality": {
+            "enum": [
+              "short",
+              "restless",
+              "good",
+              "fair"
+            ],
+            "title": "Quality",
+            "type": "string"
+          },
+          "rem_h": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rem H"
+          },
+          "rhr_bpm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rhr Bpm"
+          },
+          "rhr_usual_bpm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rhr Usual Bpm"
+          },
+          "total_h": {
+            "title": "Total H",
+            "type": "number"
+          },
+          "usual_h": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usual H"
+          },
+          "vs_usual_h": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vs Usual H"
+          },
+          "wake": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wake"
+          }
+        },
+        "required": [
+          "night_of",
+          "total_h",
+          "deep_h",
+          "rem_h",
+          "core_h",
+          "awake_h",
+          "bedtime",
+          "wake",
+          "hours_before_run",
+          "efficiency_pct",
+          "deep_rem_pct",
+          "usual_h",
+          "vs_usual_h",
+          "quality",
+          "rhr_bpm",
+          "rhr_usual_bpm",
+          "hrv_ms",
+          "hrv_usual_ms"
+        ],
+        "title": "SleepOut",
+        "type": "object"
+      },
+      "SplitOut": {
+        "properties": {
+          "avg_hr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Hr"
+          },
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "duration_s": {
+            "title": "Duration S",
+            "type": "number"
+          },
+          "elevation_change_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elevation Change M"
+          },
+          "gap_speed_mps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap Speed Mps"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "partial": {
+            "title": "Partial",
+            "type": "boolean"
+          },
+          "speed_mps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed Mps"
+          }
+        },
+        "required": [
+          "index",
+          "distance_m",
+          "duration_s",
+          "speed_mps",
+          "avg_hr",
+          "elevation_change_m",
+          "partial"
+        ],
+        "title": "SplitOut",
+        "type": "object"
+      },
+      "SyncStatus": {
+        "properties": {
+          "last_processed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Processed At"
+          },
+          "quarantined": {
+            "items": {
+              "$ref": "#/components/schemas/QuarantinedPayload"
+            },
+            "title": "Quarantined",
+            "type": "array"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "stale_after_days": {
+            "title": "Stale After Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "last_processed_at",
+          "stale",
+          "stale_after_days",
+          "quarantined"
+        ],
+        "title": "SyncStatus",
+        "type": "object"
+      },
+      "ThresholdsIn": {
+        "properties": {
+          "overrides": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              "type": "object"
+            },
+            "title": "Overrides",
+            "type": "object"
+          }
+        },
+        "required": [
+          "overrides"
+        ],
+        "title": "ThresholdsIn",
+        "type": "object"
+      },
+      "ThresholdsOut": {
+        "properties": {
+          "defaults": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              "type": "object"
+            },
+            "title": "Defaults",
+            "type": "object"
+          },
+          "overrides": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              "type": "object"
+            },
+            "title": "Overrides",
+            "type": "object"
+          },
+          "recompute_pending": {
+            "title": "Recompute Pending",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "defaults",
+          "overrides",
+          "recompute_pending"
+        ],
+        "title": "ThresholdsOut",
+        "type": "object"
+      },
+      "Tile": {
+        "properties": {
+          "latest_local_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Local Date"
+          },
+          "latest_speed_mps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Speed Mps"
+          },
+          "latest_workout_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Workout Id"
+          },
+          "pr_local_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pr Local Date"
+          },
+          "pr_speed_mps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pr Speed Mps"
+          },
+          "pr_workout_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pr Workout Id"
+          }
+        },
+        "required": [
+          "latest_speed_mps",
+          "latest_workout_id",
+          "latest_local_date",
+          "pr_speed_mps",
+          "pr_workout_id",
+          "pr_local_date"
+        ],
+        "title": "Tile",
+        "type": "object"
+      },
+      "TrainingStateOut": {
+        "properties": {
+          "since": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "enum": [
+                  "Building",
+                  "Holding",
+                  "Easing",
+                  "Overreaching"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          }
+        },
+        "required": [
+          "state",
+          "since"
+        ],
+        "title": "TrainingStateOut",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WeatherSettingsIn": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "WeatherSettingsIn",
+        "type": "object"
+      },
+      "WeatherSettingsOut": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "fetched": {
+            "title": "Fetched",
+            "type": "integer"
+          },
+          "provider_host": {
+            "title": "Provider Host",
+            "type": "string"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          },
+          "unavailable": {
+            "title": "Unavailable",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "provider_host",
+          "fetched",
+          "unavailable",
+          "skipped"
+        ],
+        "title": "WeatherSettingsOut",
+        "type": "object"
+      },
+      "WeekDetailOut": {
+        "properties": {
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/DayLoadOut"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "duration_s": {
+            "title": "Duration S",
+            "type": "number"
+          },
+          "elevation_gain_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elevation Gain M"
+          },
+          "has_note": {
+            "title": "Has Note",
+            "type": "boolean"
+          },
+          "insight_count": {
+            "title": "Insight Count",
+            "type": "integer"
+          },
+          "insights": {
+            "items": {
+              "$ref": "#/components/schemas/InsightOut"
+            },
+            "title": "Insights",
+            "type": "array"
+          },
+          "intensity": {
+            "$ref": "#/components/schemas/IntensityMix"
+          },
+          "load": {
+            "$ref": "#/components/schemas/WeekLoad"
+          },
+          "long_run_count": {
+            "title": "Long Run Count",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WeekNoteOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_count": {
+            "title": "Run Count",
+            "type": "integer"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutOut"
+            },
+            "title": "Runs",
+            "type": "array"
+          },
+          "week_end": {
+            "title": "Week End",
+            "type": "string"
+          },
+          "week_id": {
+            "title": "Week Id",
+            "type": "string"
+          },
+          "week_start": {
+            "title": "Week Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "week_id",
+          "week_start",
+          "week_end",
+          "distance_m",
+          "duration_s",
+          "run_count",
+          "long_run_count",
+          "elevation_gain_m",
+          "intensity",
+          "load",
+          "insight_count",
+          "has_note",
+          "days",
+          "runs",
+          "insights",
+          "note"
+        ],
+        "title": "WeekDetailOut",
+        "type": "object"
+      },
+      "WeekLoad": {
+        "properties": {
+          "by_type": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "By Type",
+            "type": "object"
+          },
+          "estimated": {
+            "title": "Estimated",
+            "type": "boolean"
+          },
+          "fatigue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fatigue"
+          },
+          "fitness": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fitness"
+          },
+          "form_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Form Pct"
+          },
+          "total": {
+            "title": "Total",
+            "type": "number"
+          }
+        },
+        "required": [
+          "total",
+          "by_type",
+          "estimated",
+          "fitness",
+          "fatigue",
+          "form_pct"
+        ],
+        "title": "WeekLoad",
+        "type": "object"
+      },
+      "WeekNoteIn": {
+        "properties": {
+          "text": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "WeekNoteIn",
+        "type": "object"
+      },
+      "WeekNoteOut": {
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "updated_at"
+        ],
+        "title": "WeekNoteOut",
+        "type": "object"
+      },
+      "WeekSummaryOut": {
+        "properties": {
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "duration_s": {
+            "title": "Duration S",
+            "type": "number"
+          },
+          "elevation_gain_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elevation Gain M"
+          },
+          "has_note": {
+            "title": "Has Note",
+            "type": "boolean"
+          },
+          "insight_count": {
+            "title": "Insight Count",
+            "type": "integer"
+          },
+          "intensity": {
+            "$ref": "#/components/schemas/IntensityMix"
+          },
+          "load": {
+            "$ref": "#/components/schemas/WeekLoad"
+          },
+          "long_run_count": {
+            "title": "Long Run Count",
+            "type": "integer"
+          },
+          "run_count": {
+            "title": "Run Count",
+            "type": "integer"
+          },
+          "week_end": {
+            "title": "Week End",
+            "type": "string"
+          },
+          "week_id": {
+            "title": "Week Id",
+            "type": "string"
+          },
+          "week_start": {
+            "title": "Week Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "week_id",
+          "week_start",
+          "week_end",
+          "distance_m",
+          "duration_s",
+          "run_count",
+          "long_run_count",
+          "elevation_gain_m",
+          "intensity",
+          "load",
+          "insight_count",
+          "has_note"
+        ],
+        "title": "WeekSummaryOut",
+        "type": "object"
+      },
+      "WeekTotal": {
+        "properties": {
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "duration_s": {
+            "title": "Duration S",
+            "type": "number"
+          },
+          "run_count": {
+            "title": "Run Count",
+            "type": "integer"
+          },
+          "week_id": {
+            "title": "Week Id",
+            "type": "string"
+          },
+          "week_start": {
+            "title": "Week Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "week_id",
+          "week_start",
+          "distance_m",
+          "duration_s",
+          "run_count"
+        ],
+        "title": "WeekTotal",
+        "type": "object"
+      },
+      "WorkoutDetailOut": {
+        "properties": {
+          "avg_cadence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Cadence"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConditionsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "data_quality_issues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Data Quality Issues",
+            "type": "array"
+          },
+          "display_geometry": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DisplayGeometry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "effort_estimated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effort Estimated"
+          },
+          "effort_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effort Score"
+          },
+          "elevation_series": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ElevationPoint"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elevation Series"
+          },
+          "gap": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GapOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hr_series": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/HrPoint"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hr Series"
+          },
+          "humidity_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Humidity Pct"
+          },
+          "max_speed_mps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Speed Mps"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NoteOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pace_series": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PacePoint"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pace Series"
+          },
+          "quality_flags": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Quality Flags",
+            "type": "object"
+          },
+          "sleep": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SleepOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "splits_km": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SplitOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Splits Km"
+          },
+          "splits_mi": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SplitOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Splits Mi"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunSummaryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "temperature_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature C"
+          },
+          "workout": {
+            "$ref": "#/components/schemas/WorkoutOut"
+          },
+          "zone_seconds": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zone Seconds"
+          }
+        },
+        "required": [
+          "workout",
+          "max_speed_mps",
+          "avg_cadence",
+          "temperature_c",
+          "humidity_pct",
+          "effort_score",
+          "effort_estimated",
+          "zone_seconds",
+          "splits_km",
+          "splits_mi",
+          "hr_series",
+          "pace_series",
+          "elevation_series",
+          "display_geometry",
+          "quality_flags",
+          "data_quality_issues",
+          "note"
+        ],
+        "title": "WorkoutDetailOut",
+        "type": "object"
+      },
+      "WorkoutOut": {
+        "properties": {
+          "avg_hr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Hr"
+          },
+          "avg_speed_mps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Speed Mps"
+          },
+          "distance_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance M"
+          },
+          "duration_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration S"
+          },
+          "elevation_gain_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elevation Gain M"
+          },
+          "has_hr": {
+            "title": "Has Hr",
+            "type": "boolean"
+          },
+          "has_route": {
+            "title": "Has Route",
+            "type": "boolean"
+          },
+          "is_indoor": {
+            "title": "Is Indoor",
+            "type": "boolean"
+          },
+          "is_long_run": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Long Run"
+          },
+          "local_date": {
+            "title": "Local Date",
+            "type": "string"
+          },
+          "max_hr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Hr"
+          },
+          "start": {
+            "title": "Start",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "run",
+              "walk",
+              "hike"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "workout_id": {
+            "title": "Workout Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workout_id",
+          "type",
+          "is_indoor",
+          "start",
+          "local_date",
+          "duration_s",
+          "distance_m",
+          "avg_speed_mps",
+          "avg_hr",
+          "max_hr",
+          "elevation_gain_m",
+          "has_hr",
+          "has_route",
+          "is_long_run"
+        ],
+        "title": "WorkoutOut",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "strydr",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Login"
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Logout"
+      }
+    },
+    "/api/v1/calendar": {
+      "get": {
+        "operationId": "month_view",
+        "parameters": [
+          {
+            "description": "YYYY-MM, default the month of as_of",
+            "in": "query",
+            "name": "month",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-\\d{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "YYYY-MM, default the month of as_of",
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Month View",
+        "tags": [
+          "calendar"
+        ]
+      }
+    },
+    "/api/v1/dashboard": {
+      "get": {
+        "operationId": "dashboard",
+        "parameters": [
+          {
+            "description": "how many ISO weeks to show, ending with as_of's",
+            "in": "query",
+            "name": "weeks",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "description": "how many ISO weeks to show, ending with as_of's",
+              "maximum": 520,
+              "minimum": 1,
+              "title": "Weeks",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Dashboard"
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "description": "Liveness for the container healthcheck. Public by design: no DB access, no key, no version, no data.",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/import/apple": {
+      "get": {
+        "description": "The latest import's status, or null when none was uploaded.",
+        "operationId": "get_apple_import",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ImportStatusOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Apple Import"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Apple Import",
+        "tags": [
+          "import"
+        ]
+      },
+      "post": {
+        "description": "Upload an Apple Health `export.zip` (raw body). It is validated and imported by a background job.",
+        "operationId": "upload_apple_import",
+        "requestBody": {
+          "content": {
+            "application/zip": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportStatusOut"
+                }
+              }
+            },
+            "description": "This export was already uploaded: its status"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportStatusOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "409": {
+            "description": "The same bytes are stored as something other than an Apple export"
+          },
+          "413": {
+            "description": "Body over 4 GiB"
+          },
+          "415": {
+            "description": "Body is not a zip"
+          }
+        },
+        "summary": "Upload Apple Import",
+        "tags": [
+          "import"
+        ]
+      }
+    },
+    "/api/v1/insights": {
+      "get": {
+        "operationId": "list_insights",
+        "parameters": [
+          {
+            "description": "exact subject: run/{id}, week/{id}, route/{key} or athlete",
+            "in": "query",
+            "name": "subject",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "exact subject: run/{id}, week/{id}, route/{key} or athlete",
+              "title": "Subject"
+            }
+          },
+          {
+            "description": "a workout_id: that run's insights",
+            "in": "query",
+            "name": "run",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "a workout_id: that run's insights",
+              "title": "Run"
+            }
+          },
+          {
+            "description": "a week_id: insights dated in that ISO week",
+            "in": "query",
+            "name": "week",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-W\\d{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "a week_id: insights dated in that ISO week",
+              "title": "Week"
+            }
+          },
+          {
+            "in": "query",
+            "name": "rule_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Rule Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsightFeedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Insights",
+        "tags": [
+          "insights"
+        ]
+      }
+    },
+    "/api/v1/insights/{insight_key}": {
+      "get": {
+        "operationId": "get_insight",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "insight_key",
+            "required": true,
+            "schema": {
+              "title": "Insight Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsightDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Insight",
+        "tags": [
+          "insights"
+        ]
+      }
+    },
+    "/api/v1/insights/{insight_key}/feedback": {
+      "delete": {
+        "operationId": "delete_feedback",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "insight_key",
+            "required": true,
+            "schema": {
+              "title": "Insight Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Feedback",
+        "tags": [
+          "insights"
+        ]
+      },
+      "put": {
+        "operationId": "put_feedback",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "insight_key",
+            "required": true,
+            "schema": {
+              "title": "Insight Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Feedback",
+        "tags": [
+          "insights"
+        ]
+      }
+    },
+    "/api/v1/load": {
+      "get": {
+        "operationId": "get_load",
+        "parameters": [
+          {
+            "description": "how many days to return, ending at as_of",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 180,
+              "description": "how many days to return, ending at as_of",
+              "maximum": 3650,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Load",
+        "tags": [
+          "load"
+        ]
+      }
+    },
+    "/api/v1/privacy-zones": {
+      "get": {
+        "operationId": "list_zones",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PrivacyZoneOut"
+                  },
+                  "title": "Response List Zones",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Zones",
+        "tags": [
+          "privacy"
+        ]
+      },
+      "post": {
+        "operationId": "add_zone",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivacyZoneIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyZoneOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Zone",
+        "tags": [
+          "privacy"
+        ]
+      }
+    },
+    "/api/v1/privacy-zones/{zone_id}": {
+      "delete": {
+        "operationId": "delete_zone",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "zone_id",
+            "required": true,
+            "schema": {
+              "title": "Zone Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Zone",
+        "tags": [
+          "privacy"
+        ]
+      }
+    },
+    "/api/v1/profile": {
+      "get": {
+        "operationId": "get_profile",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Profile"
+      },
+      "put": {
+        "operationId": "put_profile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Profile"
+      }
+    },
+    "/api/v1/records": {
+      "get": {
+        "operationId": "records",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RecordOut"
+                  },
+                  "title": "Response Records",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Records"
+      }
+    },
+    "/api/v1/routes": {
+      "get": {
+        "operationId": "list_routes",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RouteOut"
+                  },
+                  "title": "Response List Routes",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Routes",
+        "tags": [
+          "routes"
+        ]
+      }
+    },
+    "/api/v1/routes/map": {
+      "get": {
+        "description": "Every workout's clipped track on one map. Only `for_display` output is served (AD-10).",
+        "operationId": "route_map",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteMapOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Route Map",
+        "tags": [
+          "routes"
+        ]
+      }
+    },
+    "/api/v1/routes/overrides": {
+      "delete": {
+        "operationId": "delete_override",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "workout_a",
+            "required": true,
+            "schema": {
+              "title": "Workout A",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "workout_b",
+            "required": true,
+            "schema": {
+              "title": "Workout B",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Override",
+        "tags": [
+          "routes"
+        ]
+      },
+      "get": {
+        "operationId": "list_overrides",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RouteOverrideOut"
+                  },
+                  "title": "Response List Overrides",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Overrides",
+        "tags": [
+          "routes"
+        ]
+      },
+      "post": {
+        "operationId": "add_override",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteOverrideIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteOverrideOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Override",
+        "tags": [
+          "routes"
+        ]
+      }
+    },
+    "/api/v1/routes/{route_key}": {
+      "get": {
+        "operationId": "get_route",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "route_key",
+            "required": true,
+            "schema": {
+              "title": "Route Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Route",
+        "tags": [
+          "routes"
+        ]
+      }
+    },
+    "/api/v1/settings/ai": {
+      "get": {
+        "operationId": "get_ai",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiSettingsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Ai",
+        "tags": [
+          "settings"
+        ]
+      },
+      "put": {
+        "operationId": "put_ai",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiSettingsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiSettingsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Ai",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/settings/thresholds": {
+      "get": {
+        "operationId": "get_thresholds",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThresholdsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Thresholds",
+        "tags": [
+          "settings"
+        ]
+      },
+      "put": {
+        "operationId": "put_thresholds",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThresholdsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThresholdsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Thresholds",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/settings/weather": {
+      "get": {
+        "operationId": "get_weather",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeatherSettingsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Weather",
+        "tags": [
+          "settings"
+        ]
+      },
+      "put": {
+        "operationId": "put_weather",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeatherSettingsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeatherSettingsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Weather",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/sync-status": {
+      "get": {
+        "operationId": "sync_status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sync Status"
+      }
+    },
+    "/api/v1/weeks": {
+      "get": {
+        "operationId": "list_weeks",
+        "parameters": [
+          {
+            "description": "first week_id, default 11 weeks before `to`",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-W\\d{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "first week_id, default 11 weeks before `to`",
+              "title": "From"
+            }
+          },
+          {
+            "description": "last week_id, default the week of as_of",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-W\\d{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "last week_id, default the week of as_of",
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WeekSummaryOut"
+                  },
+                  "title": "Response List Weeks",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Weeks",
+        "tags": [
+          "weeks"
+        ]
+      }
+    },
+    "/api/v1/weeks/{week_id}": {
+      "get": {
+        "operationId": "get_week",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "week_id",
+            "required": true,
+            "schema": {
+              "title": "Week Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeekDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Week",
+        "tags": [
+          "weeks"
+        ]
+      }
+    },
+    "/api/v1/weeks/{week_id}/note": {
+      "delete": {
+        "operationId": "delete_week_note",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "week_id",
+            "required": true,
+            "schema": {
+              "title": "Week Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Week Note",
+        "tags": [
+          "weeks"
+        ]
+      },
+      "put": {
+        "operationId": "put_week_note",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "week_id",
+            "required": true,
+            "schema": {
+              "title": "Week Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeekNoteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeekNoteOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Week Note",
+        "tags": [
+          "weeks"
+        ]
+      }
+    },
+    "/api/v1/workouts": {
+      "get": {
+        "operationId": "workouts",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "run",
+                    "walk",
+                    "hike"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WorkoutOut"
+                  },
+                  "title": "Response Workouts",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Workouts"
+      }
+    },
+    "/api/v1/workouts/{workout_id}": {
+      "get": {
+        "operationId": "workout_detail",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workout_id",
+            "required": true,
+            "schema": {
+              "title": "Workout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Workout Detail"
+      }
+    },
+    "/api/v1/workouts/{workout_id}/note": {
+      "delete": {
+        "operationId": "delete_note",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workout_id",
+            "required": true,
+            "schema": {
+              "title": "Workout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Note"
+      },
+      "put": {
+        "operationId": "put_note",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workout_id",
+            "required": true,
+            "schema": {
+              "title": "Workout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Note"
+      }
+    }
+  }
+}

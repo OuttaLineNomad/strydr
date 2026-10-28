@@ -1,0 +1,9 @@
+# Copy to cloudflared/config.yml (gitignored values: none here, but keep it local).
+# Only the ingest port is ever exposed (AD-11). Never point a hostname at :8080.
+# tunnel: <TUNNEL-UUID>
+credentials-file: /run/secrets/cloudflared-credentials.json
+
+ingress:
+  # - hostname: strydr-ingest.example.com
+  #   service: http://strydr:8081
+  - service: http_status:404

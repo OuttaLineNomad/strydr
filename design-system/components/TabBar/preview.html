@@ -1,0 +1,63 @@
+<!-- @dsCard group="Navigation" height=200 subtitle="Floating glass bar, four flat destinations" -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600&display=swap">
+<style>
+  body { margin: 0; font-family: var(--font-body); color: var(--ink); background: var(--surface-0); }
+  .stage { position: relative; height: 200px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 20px; }
+  .stage::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(60% 70% at 50% -10%, var(--secondary) 0%, transparent 60%);
+    opacity: .25;
+  }
+  .bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 64px;
+    padding: 0 10px;
+    width: min(380px, 92%);
+  }
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 8px 4px;
+    border-radius: var(--radius-full);
+    color: var(--ink-secondary);
+  }
+  .tab.active { color: var(--accent-text); }
+  .tab svg { width: 22px; height: 22px; }
+  .tab span { font-size: 10px; font-weight: 600; letter-spacing: .2px; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="bar glass glass--sm">
+      <div class="tab active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="18" x2="6" y2="13"/><line x1="12" y1="18" x2="12" y2="7"/><line x1="18" y1="18" x2="18" y2="4"/></svg>
+        <span>Dashboard</span>
+      </div>
+      <div class="tab">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 3 4 5v16l5-2 6 2 5-2V3l-5 2-6-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 3v16M15 5v16" stroke="currentColor" stroke-width="1.8"/></svg>
+        <span>Routes</span>
+      </div>
+      <div class="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9l-4 4v-4H6.5A2.5 2.5 0 0 1 4 13.5v-8Z"/></svg>
+        <span>Coach</span>
+      </div>
+      <div class="tab">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c0-3.9 3.1-6 7-6s7 2.1 7 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span>Profile</span>
+      </div>
+    </div>
+  </div>
+  <script>/* static — .active toggles on route change */</script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!-- @dsCard group="Materials" height=860 subtitle="Morph, scroll-responsive chrome, and the curve/duration reference" -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Sora:wght@400;500;600&display=swap">
+<style>
+  body { margin: 0; font-family: var(--font-body); color: var(--ink); padding: 28px; }
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 10px; }
+  .section + .section { margin-top: 26px; }
+  .caption { font-size: 12px; color: var(--ink-secondary); line-height: 18px; margin: 10px 0 0; }
+  .caption code { font-family: var(--font-mono); font-size: 11px; background: var(--surface-1); padding: 1px 5px; border-radius: 4px; }
+  .caption b { color: var(--ink); }
+
+  /* --- Morph --- */
+  .morph-stage {
+    position: relative;
+    height: 150px;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    background: var(--surface-0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .morph-stage::before {
+    content: "";
+    position: absolute; inset: -20%;
+    background:
+      radial-gradient(40% 55% at 20% 30%, var(--secondary) 0%, transparent 70%),
+      radial-gradient(40% 55% at 80% 75%, var(--chart-pace) 0%, transparent 70%);
+    opacity: .5;
+    filter: blur(2px);
+  }
+  .morph-control {
+    position: relative;
+    height: 56px;
+    width: 56px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    transition: width var(--dur-morph) var(--ease-glass);
+    cursor: pointer;
+  }
+  .morph-control .icon-btn {
+    flex-shrink: 0; width: 56px; height: 56px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .morph-control svg { width: 22px; height: 22px; color: var(--ink); }
+  .morph-control input {
+    border: none; background: none; outline: none;
+    font: inherit; font-size: 14px; color: var(--ink);
+    width: 0; opacity: 0;
+    transition: width var(--dur-morph) var(--ease-glass), opacity .18s ease var(--dur-morph);
+  }
+  .morph-control.expanded { width: 300px; }
+  .morph-control.expanded input { width: 200px; opacity: 1; }
+  .morph-control .close-icon { display: none; }
+  .morph-control.expanded .search-icon { display: none; }
+  .morph-control.expanded .close-icon { display: flex; }
+
+  /* --- Scroll-responsive bar --- */
+  .scroll-shell {
+    position: relative;
+    height: 220px;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    background: var(--surface-0);
+  }
+  .scroll-list { height: 100%; overflow-y: auto; padding: 14px 14px 76px; }
+  .scroll-row {
+    height: 44px;
+    border-radius: var(--radius-md);
+    background: var(--surface-1);
+    margin-bottom: 8px;
+    display: flex; align-items: center; padding: 0 14px;
+    font-size: 13px; color: var(--ink-secondary);
+  }
+  .scroll-shell .mini-bar {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    width: max-content;
+    gap: 8px;
+    height: 48px;
+    padding: 0 16px;
+    transition: height var(--dur-release) var(--ease-settle), padding var(--dur-release) var(--ease-settle), gap var(--dur-release) var(--ease-settle);
+  }
+  .mini-bar.minimized { height: 36px; padding: 0 12px; gap: 6px; }
+  .mini-bar .tab-chip { display: flex; align-items: center; gap: 6px; color: var(--ink-secondary); }
+  .mini-bar .tab-chip.active { color: var(--accent-text); }
+  .mini-bar svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .mini-bar span { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; max-width: 60px; transition: max-width var(--dur-release) var(--ease-settle), opacity .15s ease; }
+  .mini-bar.minimized span { max-width: 0; opacity: 0; }
+
+  /* --- Reference table --- */
+  table.motion-ref { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+  table.motion-ref th, table.motion-ref td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--divider); }
+  table.motion-ref th { color: var(--ink-muted); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: .3px; }
+  table.motion-ref td { color: var(--ink); }
+  table.motion-ref code { font-family: var(--font-mono); font-size: 11px; color: var(--ink-secondary); }
+</style>
+</head>
+<body>
+
+  <p class="section-label">Morph — a control grows into what it needs</p>
+  <div class="section morph-stage">
+    <div class="morph-control glass glass--sm glass-interactive" id="morphControl">
+      <div class="icon-btn search-icon" id="morphTrigger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+      <div class="icon-btn close-icon" id="morphClose" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </div>
+      <input type="text" placeholder="Search routes…" id="morphInput" />
+    </div>
+  </div>
+  <p class="caption">Click the icon. A circular control and a search field are the <b>same shape family</b> (capsule — Apple's default Liquid Glass shape) at two widths, not two components, so growing from one into the other is a single <code>width</code> transition on <code>--ease-glass</code> rather than a cut. Real Liquid Glass does this with a shared <code>glassEffectID</code> so the system animates between two distinct views; this demo fakes the same result by resizing one element, which is the right call unless you're actually in SwiftUI.</p>
+
+  <div class="section">
+    <p class="section-label">Scroll-responsive chrome — the bar gives way to content</p>
+    <div class="scroll-shell">
+      <div class="scroll-list" id="scrollList">
+        <div class="scroll-row">Tuesday — 5.2 mi easy</div>
+        <div class="scroll-row">Monday — rest</div>
+        <div class="scroll-row">Sunday — 8.1 mi long run</div>
+        <div class="scroll-row">Saturday — 3.0 mi recovery</div>
+        <div class="scroll-row">Friday — rest</div>
+        <div class="scroll-row">Thursday — 6.4 mi tempo</div>
+        <div class="scroll-row">Wednesday — 4.1 mi easy</div>
+        <div class="scroll-row">Tuesday — rest</div>
+        <div class="scroll-row">Monday — 7.3 mi long run</div>
+      </div>
+      <div class="mini-bar glass glass--sm tab-minimize-demo" id="miniBar">
+        <div class="tab-chip active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="18" x2="6" y2="13"/><line x1="12" y1="18" x2="12" y2="7"/><line x1="18" y1="18" x2="18" y2="4"/></svg><span>Dashboard</span></div>
+        <div class="tab-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.9 3.1-6 7-6s7 2.1 7 6"/></svg><span>Profile</span></div>
+      </div>
+    </div>
+  </div>
+  <p class="caption">Scroll the list. The tab bar shrinks to icon-only on the way down — <code>.tabBarMinimizeBehavior(.onScrollDown)</code> in Apple's own terms — and expands back the moment you scroll up, so it never permanently costs the content space it floats over.</p>
+
+  <div class="section">
+    <p class="section-label">Reference</p>
+    <table class="motion-ref">
+      <thead><tr><th>Token</th><th>Value</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td><code>--ease-glass</code></td><td><code>cubic-bezier(.34, 1.56, .64, 1)</code></td><td>Press, release, morph — the gel overshoot. Glass only.</td></tr>
+        <tr><td><code>--ease-settle</code></td><td><code>cubic-bezier(.22, 1, .36, 1)</code></td><td>Sheets, tab switches, the scroll-bar resize. No overshoot.</td></tr>
+        <tr><td><code>--dur-press</code></td><td><code>120ms</code></td><td>Scale-down and touch-glow-in on contact.</td></tr>
+        <tr><td><code>--dur-release</code></td><td><code>320ms</code></td><td>Scale/shadow/glow settling back out; bar resize.</td></tr>
+        <tr><td><code>--dur-morph</code></td><td><code>420ms</code></td><td>A control growing or shrinking into another shape.</td></tr>
+      </tbody>
+    </table>
+    <p class="caption"><b>Reduce Motion</b> drops every duration above to near-zero and disables the overshoot — glass still changes state, it just cuts rather than bounces. <b>Reduce Transparency</b> and <b>Increase Contrast</b> are handled in the material itself (see the Materials card); neither needs a motion-specific fallback.</p>
+  </div>
+
+  <script>
+    const control = document.getElementById('morphControl');
+    const trigger = document.getElementById('morphTrigger');
+    const closeBtn = document.getElementById('morphClose');
+    const input = document.getElementById('morphInput');
+    function openMorph() {
+      control.classList.add('expanded');
+      trigger.style.display = 'none';
+      closeBtn.style.display = 'flex';
+      setTimeout(() => input.focus(), 200);
+    }
+    function closeMorph() {
+      control.classList.remove('expanded');
+      input.value = '';
+      setTimeout(() => { trigger.style.display = 'flex'; closeBtn.style.display = 'none'; }, 200);
+    }
+    trigger.addEventListener('click', openMorph);
+    closeBtn.addEventListener('click', closeMorph);
+
+    const list = document.getElementById('scrollList');
+    const bar = document.getElementById('miniBar');
+    let lastTop = 0;
+    list.addEventListener('scroll', () => {
+      const top = list.scrollTop;
+      if (top > lastTop && top > 16) bar.classList.add('minimized');
+      else if (top < lastTop) bar.classList.remove('minimized');
+      lastTop = top;
+    });
+  </script>
+</body>
+</html>

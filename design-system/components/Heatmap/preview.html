@@ -1,0 +1,231 @@
+<!-- @dsCard group="Charts" height=320 subtitle="Sequential ramp, one hue — the lightest step is allowed to fade into the surface" -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Sora:wght@400;500;600&display=swap">
+<style>
+  body { margin: 0; font-family: var(--font-body); color: var(--ink); background: var(--surface-0); padding: 24px; }
+  .wrap { max-width: 440px; }
+  svg.plot { width: 100%; height: auto; display: block; overflow: visible; }
+  .cell { cursor: pointer; transition: opacity .1s ease; stroke: var(--surface-0); stroke-width: 1; }
+  .cell:hover, .cell.active { opacity: .7; }
+  .day-label { fill: var(--ink-muted); font-size: 9px; font-family: var(--font-body); }
+  .legend-row { display: flex; align-items: center; gap: 6px; margin-top: var(--space-3); font-size: 11px; color: var(--ink-muted); }
+  .legend-swatches { display: flex; gap: 3px; }
+  .legend-swatches span { width: 11px; height: 11px; border-radius: 3px; display: block; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="glass chart-card">
+      <div class="chart-head">
+        <div>
+          <h3 class="chart-title">Training load</h3>
+          <p class="chart-caption">Last 13 weeks &middot; daily distance</p>
+        </div>
+        <button class="table-toggle" id="toggle" aria-pressed="false">View as table</button>
+      </div>
+
+      <div class="plot-wrap" id="plotWrap" style="position:relative;">
+        <svg class="plot" viewBox="0 0 248 124" id="svg">
+          <text class="day-label" x="0" y="13">Mon</text>
+          <text class="day-label" x="0" y="47">Wed</text>
+          <text class="day-label" x="0" y="81">Fri</text>
+
+          <rect class="cell" data-w="0" data-d="0" x="24" y="4" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="0" data-d="1" x="24" y="21" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="0" data-d="2" x="24" y="38" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="0" data-d="3" x="24" y="55" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="0" data-d="4" x="24" y="72" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="0" data-d="5" x="24" y="89" width="14" height="14" rx="3" fill="var(--heat-4)"/>
+          <rect class="cell" data-w="0" data-d="6" x="24" y="106" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="1" data-d="0" x="41" y="4" width="14" height="14" rx="3" fill="var(--heat-3)"/>
+          <rect class="cell" data-w="1" data-d="1" x="41" y="21" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="1" data-d="2" x="41" y="38" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="1" data-d="3" x="41" y="55" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="1" data-d="4" x="41" y="72" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="1" data-d="5" x="41" y="89" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="1" data-d="6" x="41" y="106" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="2" data-d="0" x="58" y="4" width="14" height="14" rx="3" fill="var(--heat-4)"/>
+          <rect class="cell" data-w="2" data-d="1" x="58" y="21" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="2" data-d="2" x="58" y="38" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="2" data-d="3" x="58" y="55" width="14" height="14" rx="3" fill="var(--heat-4)"/>
+          <rect class="cell" data-w="2" data-d="4" x="58" y="72" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="2" data-d="5" x="58" y="89" width="14" height="14" rx="3" fill="var(--heat-3)"/>
+          <rect class="cell" data-w="2" data-d="6" x="58" y="106" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="3" data-d="0" x="75" y="4" width="14" height="14" rx="3" fill="var(--heat-5)"/>
+          <rect class="cell" data-w="3" data-d="1" x="75" y="21" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="3" data-d="2" x="75" y="38" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="3" data-d="3" x="75" y="55" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="3" data-d="4" x="75" y="72" width="14" height="14" rx="3" fill="var(--heat-3)"/>
+          <rect class="cell" data-w="3" data-d="5" x="75" y="89" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="3" data-d="6" x="75" y="106" width="14" height="14" rx="3" fill="var(--heat-5)"/>
+          <rect class="cell" data-w="4" data-d="0" x="92" y="4" width="14" height="14" rx="3" fill="var(--heat-4)"/>
+          <rect class="cell" data-w="4" data-d="1" x="92" y="21" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="4" data-d="2" x="92" y="38" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="4" data-d="3" x="92" y="55" width="14" height="14" rx="3" fill="var(--heat-3)"/>
+          <rect class="cell" data-w="4" data-d="4" x="92" y="72" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="4" data-d="5" x="92" y="89" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="4" data-d="6" x="92" y="106" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="5" data-d="0" x="109" y="4" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="5" data-d="1" x="109" y="21" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="5" data-d="2" x="109" y="38" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="5" data-d="3" x="109" y="55" width="14" height="14" rx="3" fill="var(--heat-4)"/>
+          <rect class="cell" data-w="5" data-d="4" x="109" y="72" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="5" data-d="5" x="109" y="89" width="14" height="14" rx="3" fill="var(--heat-3)"/>
+          <rect class="cell" data-w="5" data-d="6" x="109" y="106" width="14" height="14" rx="3" fill="var(--heat-4)"/>
+          <rect class="cell" data-w="6" data-d="0" x="126" y="4" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="6" data-d="1" x="126" y="21" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="6" data-d="2" x="126" y="38" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="6" data-d="3" x="126" y="55" width="14" height="14" rx="3" fill="var(--heat-3)"/>
+          <rect class="cell" data-w="6" data-d="4" x="126" y="72" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="6" data-d="5" x="126" y="89" width="14" height="14" rx="3" fill="var(--heat-4)"/>
+          <rect class="cell" data-w="6" data-d="6" x="126" y="106" width="14" height="14" rx="3" fill="var(--heat-5)"/>
+          <rect class="cell" data-w="7" data-d="0" x="143" y="4" width="14" height="14" rx="3" fill="var(--heat-3)"/>
+          <rect class="cell" data-w="7" data-d="1" x="143" y="21" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="7" data-d="2" x="143" y="38" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="7" data-d="3" x="143" y="55" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="7" data-d="4" x="143" y="72" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="7" data-d="5" x="143" y="89" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="7" data-d="6" x="143" y="106" width="14" height="14" rx="3" fill="var(--heat-3)"/>
+          <rect class="cell" data-w="8" data-d="0" x="160" y="4" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="8" data-d="1" x="160" y="21" width="14" height="14" rx="3" fill="var(--heat-3)"/>
+          <rect class="cell" data-w="8" data-d="2" x="160" y="38" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="8" data-d="3" x="160" y="55" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="8" data-d="4" x="160" y="72" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="8" data-d="5" x="160" y="89" width="14" height="14" rx="3" fill="var(--heat-5)"/>
+          <rect class="cell" data-w="8" data-d="6" x="160" y="106" width="14" height="14" rx="3" fill="var(--heat-4)"/>
+          <rect class="cell" data-w="9" data-d="0" x="177" y="4" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="9" data-d="1" x="177" y="21" width="14" height="14" rx="3" fill="var(--heat-3)"/>
+          <rect class="cell" data-w="9" data-d="2" x="177" y="38" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="9" data-d="3" x="177" y="55" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="9" data-d="4" x="177" y="72" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="9" data-d="5" x="177" y="89" width="14" height="14" rx="3" fill="var(--heat-4)"/>
+          <rect class="cell" data-w="9" data-d="6" x="177" y="106" width="14" height="14" rx="3" fill="var(--heat-3)"/>
+          <rect class="cell" data-w="10" data-d="0" x="194" y="4" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="10" data-d="1" x="194" y="21" width="14" height="14" rx="3" fill="var(--heat-3)"/>
+          <rect class="cell" data-w="10" data-d="2" x="194" y="38" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="10" data-d="3" x="194" y="55" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="10" data-d="4" x="194" y="72" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="10" data-d="5" x="194" y="89" width="14" height="14" rx="3" fill="var(--heat-3)"/>
+          <rect class="cell" data-w="10" data-d="6" x="194" y="106" width="14" height="14" rx="3" fill="var(--heat-4)"/>
+          <rect class="cell" data-w="11" data-d="0" x="211" y="4" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="11" data-d="1" x="211" y="21" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="11" data-d="2" x="211" y="38" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="11" data-d="3" x="211" y="55" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="11" data-d="4" x="211" y="72" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="11" data-d="5" x="211" y="89" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="11" data-d="6" x="211" y="106" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="12" data-d="0" x="228" y="4" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="12" data-d="1" x="228" y="21" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="12" data-d="2" x="228" y="38" width="14" height="14" rx="3" fill="var(--heat-2)"/>
+          <rect class="cell" data-w="12" data-d="3" x="228" y="55" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="12" data-d="4" x="228" y="72" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+          <rect class="cell" data-w="12" data-d="5" x="228" y="89" width="14" height="14" rx="3" fill="var(--heat-3)"/>
+          <rect class="cell" data-w="12" data-d="6" x="228" y="106" width="14" height="14" rx="3" fill="var(--heat-1)"/>
+        </svg>
+        <div class="chart-tooltip" id="tooltip">
+          <div class="tt-date" id="ttDate">Week 1, Mon</div>
+          <div class="tt-row"><span class="tt-key" style="background:var(--heat-3)"></span><span class="tt-label">Distance</span><span class="tt-value" id="ttVal">1.8 mi</span></div>
+        </div>
+      </div>
+
+      <div class="legend-row">
+        <span>Less</span>
+        <span class="legend-swatches">
+          <span style="background:var(--heat-1)"></span>
+          <span style="background:var(--heat-2)"></span>
+          <span style="background:var(--heat-3)"></span>
+          <span style="background:var(--heat-4)"></span>
+          <span style="background:var(--heat-5)"></span>
+        </span>
+        <span>More</span>
+      </div>
+
+      <table class="chart-table" id="table" hidden></table>
+    </div>
+  </div>
+
+  <script>
+    const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const data = [{w:0,d:0,mi:1.8},{w:0,d:1,mi:0},{w:0,d:2,mi:0},{w:0,d:3,mi:0},{w:0,d:4,mi:0.9},{w:0,d:5,mi:6.4},{w:0,d:6,mi:1.3},{w:1,d:0,mi:4.2},{w:1,d:1,mi:0},{w:1,d:2,mi:1.2},{w:1,d:3,mi:1.1},{w:1,d:4,mi:1.6},{w:1,d:5,mi:0},{w:1,d:6,mi:0},{w:2,d:0,mi:7.1},{w:2,d:1,mi:0},{w:2,d:2,mi:0},{w:2,d:3,mi:5.6},{w:2,d:4,mi:0},{w:2,d:5,mi:4.3},{w:2,d:6,mi:1.1},{w:3,d:0,mi:8.1},{w:3,d:1,mi:0},{w:3,d:2,mi:1.4},{w:3,d:3,mi:0},{w:3,d:4,mi:3.6},{w:3,d:5,mi:0.9},{w:3,d:6,mi:7.7},{w:4,d:0,mi:6.1},{w:4,d:1,mi:0},{w:4,d:2,mi:1.5},{w:4,d:3,mi:4.2},{w:4,d:4,mi:0},{w:4,d:5,mi:1.6},{w:4,d:6,mi:0},{w:5,d:0,mi:0},{w:5,d:1,mi:0},{w:5,d:2,mi:1.9},{w:5,d:3,mi:5.8},{w:5,d:4,mi:0},{w:5,d:5,mi:3.8},{w:5,d:6,mi:6.1},{w:6,d:0,mi:0},{w:6,d:1,mi:0},{w:6,d:2,mi:0},{w:6,d:3,mi:3.1},{w:6,d:4,mi:0},{w:6,d:5,mi:6.9},{w:6,d:6,mi:9},{w:7,d:0,mi:4.4},{w:7,d:1,mi:1.7},{w:7,d:2,mi:0},{w:7,d:3,mi:0},{w:7,d:4,mi:0},{w:7,d:5,mi:1.5},{w:7,d:6,mi:4.4},{w:8,d:0,mi:0},{w:8,d:1,mi:5.2},{w:8,d:2,mi:0},{w:8,d:3,mi:1.5},{w:8,d:4,mi:0},{w:8,d:5,mi:8.1},{w:8,d:6,mi:6.4},{w:9,d:0,mi:1},{w:9,d:1,mi:4.8},{w:9,d:2,mi:0},{w:9,d:3,mi:0},{w:9,d:4,mi:0},{w:9,d:5,mi:6.6},{w:9,d:6,mi:4.7},{w:10,d:0,mi:0},{w:10,d:1,mi:3.2},{w:10,d:2,mi:0},{w:10,d:3,mi:0},{w:10,d:4,mi:0},{w:10,d:5,mi:4.6},{w:10,d:6,mi:5.5},{w:11,d:0,mi:0.9},{w:11,d:1,mi:0},{w:11,d:2,mi:0.9},{w:11,d:3,mi:0},{w:11,d:4,mi:0},{w:11,d:5,mi:2.1},{w:11,d:6,mi:0},{w:12,d:0,mi:0},{w:12,d:1,mi:0},{w:12,d:2,mi:0.9},{w:12,d:3,mi:0},{w:12,d:4,mi:0},{w:12,d:5,mi:3.7},{w:12,d:6,mi:0}];
+    const byKey = {};
+    data.forEach(c => byKey[c.w + '_' + c.d] = c.mi);
+
+    const svg = document.getElementById('svg');
+    const tooltip = document.getElementById('tooltip');
+    const plotWrap = document.getElementById('plotWrap');
+    const ttDate = document.getElementById('ttDate');
+    const ttVal = document.getElementById('ttVal');
+
+    svg.querySelectorAll('.cell').forEach(cell => {
+      const w = Number(cell.dataset.w), d = Number(cell.dataset.d);
+      const mi = byKey[w + '_' + d];
+      function show() {
+        svg.querySelectorAll('.cell').forEach(c => c.classList.remove('active'));
+        cell.classList.add('active');
+        ttDate.textContent = 'Week ' + (13 - w) + ' ago, ' + dayNames[d];
+        ttVal.textContent = mi === 0 ? 'Rest day' : mi + ' mi';
+        tooltip.classList.add('visible');
+        const scale = svg.clientWidth / 248;
+        const x = Number(cell.getAttribute('x')) * scale;
+        const left = Math.min(Math.max(x - 50, 0), plotWrap.clientWidth - 140);
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = '4px';
+      }
+      cell.addEventListener('pointerenter', show);
+      cell.setAttribute('tabindex', '0');
+      cell.addEventListener('focus', show);
+      cell.addEventListener('blur', () => { cell.classList.remove('active'); tooltip.classList.remove('visible'); });
+    });
+    svg.addEventListener('pointerleave', () => {
+      svg.querySelectorAll('.cell').forEach(c => c.classList.remove('active'));
+      tooltip.classList.remove('visible');
+    });
+
+    (function () {
+      const toggle = document.getElementById('toggle');
+      const table = document.getElementById('table');
+
+      // Built with DOM methods and textContent, not innerHTML — series/date
+      // labels are untrusted data in a real app (CSV headers, API responses),
+      // so this is the pattern to copy, not string concatenation.
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      ['Week', ...dayNames].forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      for (let w = 0; w <= 12; w++) {
+        const row = document.createElement('tr');
+        const weekCell = document.createElement('td');
+        weekCell.textContent = (13 - w) + ' wk ago';
+        row.appendChild(weekCell);
+        for (let d = 0; d < 7; d++) {
+          const mi = byKey[w + '_' + d];
+          const td = document.createElement('td');
+          td.textContent = mi === 0 ? '—' : mi + ' mi';
+          row.appendChild(td);
+        }
+        tbody.appendChild(row);
+      }
+      table.appendChild(tbody);
+
+      let showingTable = false;
+      toggle.addEventListener('click', () => {
+        showingTable = !showingTable;
+        table.hidden = !showingTable;
+        plotWrap.hidden = showingTable;
+        toggle.textContent = showingTable ? 'View as chart' : 'View as table';
+        toggle.setAttribute('aria-pressed', String(showingTable));
+      });
+    })();
+  </script>
+</body>
+</html>

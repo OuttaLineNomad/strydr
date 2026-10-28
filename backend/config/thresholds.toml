@@ -1,0 +1,171 @@
+# Strydr thresholds (AD-8). Keyed by rule_id; sections `engine`, `load`, `training-state` and
+# `days` hold the parameters of the derive stages and the engine. Runner overrides (settings)
+# are layered on top by `load_thresholds(overrides)`. Every value is a configurable default
+# marked [ASSUMPTION]: a starting point from published sports-science defaults, meant to be tuned.
+
+[engine]
+# Per-run and per-day rules evaluate every day in (as_of - run_lookback_days, as_of].
+run_lookback_days = 14
+
+# ---- derive/load (FR-24, FR-24a) ----
+[load]
+trimp_b_male = 1.92
+trimp_b_female = 1.67
+max_step_s = 120                # a time step longer than this is capped; the rest is a gap (no forward-fill)
+hr_floor_bpm = 30               # samples outside [floor, ceiling] are dropped
+hr_ceiling_bpm = 230
+default_resting_hr = 60
+full_coverage = 0.95            # tier A at or above this coverage is a measured (not estimated) load
+tier_a_min_coverage = 0.80      # FR-24a step 1
+history_min_sessions = 5        # FR-24a step 3: HR-backed sessions of the same type needed
+history_window_days = 120
+pace_band_s_per_km = 15         # runs: personal rate from runs within this pace band
+default_hrr_fraction = { run = 0.70, hike = 0.55, walk = 0.40 }   # FR-24a step 4
+tau_fitness_days = 42
+tau_fatigue_days = 7
+warmup_days = 42
+seed_days = 28                  # fitness/fatigue start at the mean load of the first N days (0 = start at 0)
+# RPE -> HR-reserve fraction (linear interpolation, clamped)
+rpe_hrr = { "1" = 0.35, "3" = 0.55, "5" = 0.70, "7" = 0.82, "9" = 0.92, "10" = 0.97 }
+
+# ---- FR-24b training state ----
+[training-state]
+enabled = true
+overreach_form_pct = -30.0
+overreach_form_days = 3
+overreach_form_window = 5
+overreach_ramp_pct = 10.0
+overreach_ramp_weeks = 2
+building_ramp_pct = 3.0
+easing_ramp_pct = -3.0
+hysteresis_days = 3
+min_fitness_fraction_of_max = 0.10   # CTL floor, as a share of the 90-day max CTL
+fitness_max_window_days = 90
+min_sessions_14d = 3
+
+# ---- derive/days (FR-18 hard day, rest day) ----
+[days]
+hard_hr_fraction = 0.88
+hard_minutes = 20
+light_load_fraction = 0.25           # rest-day cap: share of the 28-day median run-day load
+light_median_window_days = 28
+fallback_max_minutes = 60            # cap when there is no run-day history
+fallback_max_effort = 4
+fallback_max_gain_m = 150
+
+# ---- insights ----
+[long-run-spike]
+jump_pct = 10.0
+window_days = 30
+
+[weekly-ramp]
+ramp_pct = 30.0
+baseline_weeks = 4
+
+[attaboys-streaks]
+streak_min_runs = 3
+forgive_one_per_weeks = 12
+streak_milestones = [4, 8, 12, 26, 52]
+record_min_history_weeks = 8
+record_min_history_months = 3
+longest_run_min_prior_runs = 10
+lifetime_milestones = [100, 250, 500, 1000, 2500]   # in the runner's distance unit
+max_per_run = 2
+
+[intensity-mix]
+window_days = 28
+min_easy_share_pct = 70.0
+min_runs = 8
+min_hr_coverage = 0.80
+
+[easy-creep]
+recent_days = 14
+prior_days = 56
+min_runs = 4
+over_ceiling_share_pct = 40.0
+pace_faster_pct = 5.0
+hr_higher_bpm = 3.0
+min_hr_coverage = 0.80
+
+[cardiac-drift]
+min_duration_min = 40
+warmup_min = 10
+min_hr_coverage = 0.90
+max_speed_cv = 0.10
+max_surge_minutes = 2
+surge_factor = 1.25
+max_net_gain_m_per_km = 10.0
+max_half_gain_diff_m_per_km = 5.0
+notable_pct = 5.0
+high_pct = 10.0
+attaboy_min_duration_min = 60
+heat_c = 24.0
+
+[resting-hr]
+baseline_min_days = 21
+abs_bpm = 5.0
+sd_multiple = 1.5
+sd_floor_bpm = 1.5
+consecutive_days = 3
+check_jump_bpm = 15.0
+check_low_bpm = 35.0
+check_high_bpm = 100.0
+check_lookback_days = 3
+
+[hrv]
+baseline_min_days = 40
+window_days = 7
+min_readings = 4
+sd_multiple = 1.0
+consecutive_days = 2
+
+[pace-at-fixed-hr]
+window_days = 28
+band_bpm = 10
+warmup_min = 10
+min_minutes = 10
+min_runs = 4
+change_pct = 3.0
+max_abs_grade_pct = 2.0
+min_speed_mps = 0.5
+heat_c = 24.0
+easy_hr_window_days = 56
+
+# ---- tier 2: conditions (derive/conditions, derive/grade) ----
+[heat-adjusted-pace]
+min_pct = 3.0
+min_distance_m = 1000.0
+
+[hill-adjusted-pace]
+min_pct = 2.0
+
+[pace-by-conditions]
+window_days = 180
+dew_split_c = 15.0
+min_runs = 6
+change_pct = 3.0
+
+# ---- tier 2: sleep (derive/sleep) ----
+[short-sleep-run]
+short_h = 1.0
+floor_h = 6.0
+
+[effort-by-sleep]
+window_days = 120
+min_runs = 5
+change_pct = 3.0
+
+[hard-day-stacking]
+consecutive_days = 2
+window_days = 7
+window_count = 3
+monotony_threshold = 2.0
+monotony_cap = 10.0
+monotony_window_days = 7
+volume_weeks = 4
+
+[no-rest-day]
+enabled = true
+min_days = 6
+min_load_fraction = 0.50
+volume_weeks = 4

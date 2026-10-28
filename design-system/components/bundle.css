@@ -1,0 +1,192 @@
+/* Strydr — shared primitives, loaded after tokens.css in every preview.
+   Component-specific layout lives in each component's own preview.html. */
+
+* { box-sizing: border-box; }
+
+:root {
+  /* Motion. Liquid Glass is "gel-like" on purpose — Apple's own language
+     for it — so a press or a morph is allowed a small, controlled
+     overshoot. Nothing else in Strydr overshoots: a sheet opening, a tab
+     switching, still settle on --ease-settle with no bounce. Mixing the
+     two curves up is what makes a UI feel either dead (all settle) or
+     cartoonish (all bounce) — glass controls bounce, everything built
+     from them stays calm. */
+  --ease-glass: cubic-bezier(.34, 1.56, .64, 1);
+  --ease-settle: cubic-bezier(.22, 1, .36, 1);
+  --dur-press: 120ms;
+  --dur-release: 320ms;
+  --dur-morph: 420ms;
+}
+
+/* ============================================================
+   GLASS — Apple's Liquid Glass, not a flat frosted panel.
+   Three things carry the material at rest (no interaction needed to see
+   them): (1) a GLINT — a small, bright point of light baked into the
+   panel's own background at the corner nearest the implied light source,
+   not a diagonal wash across the whole thing; (2) a two-tone BEVEL — the
+   top edge is lit, the bottom edge pools in shadow (in shadow-glass,
+   below), standing in for a real lens edge bending light around the rim;
+   (3) backdrop-filter with a contrast nudge on top of blur+saturate, so
+   the panel concentrates what's behind it rather than just softening it.
+   See .glass-interactive below for how it moves. */
+.glass {
+  position: relative;
+  background:
+    radial-gradient(30% 24% at 12% 8%, var(--glass-specular) 0%, transparent 75%),
+    var(--glass-fill);
+  backdrop-filter: blur(var(--blur-md)) saturate(180%) contrast(1.05);
+  -webkit-backdrop-filter: blur(var(--blur-md)) saturate(180%) contrast(1.05);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glass);
+  isolation: isolate;
+  transition: transform var(--dur-press) var(--ease-glass), box-shadow var(--dur-release) var(--ease-settle);
+}
+.glass--sm { backdrop-filter: blur(var(--blur-sm)) saturate(180%) contrast(1.05); -webkit-backdrop-filter: blur(var(--blur-sm)) saturate(180%) contrast(1.05); }
+.glass--lg { backdrop-filter: blur(var(--blur-lg)) saturate(180%) contrast(1.05); -webkit-backdrop-filter: blur(var(--blur-lg)) saturate(180%) contrast(1.05); border-radius: var(--radius-xl); }
+
+/* Interactive glass — controls only (buttons, the active tab pill, a
+   tappable card), never a static surface. Apple's glass "lights up" where
+   it's touched and settles with a bounce on release rather than snapping;
+   `.glass-touch` is a real child element (not a pseudo-element, so JS can
+   position it) that a pointer handler moves to the contact point and
+   fades in, imitating illumination radiating from the touch. */
+.glass-interactive { cursor: pointer; }
+.glass-interactive:active { transform: scale(.965); box-shadow: var(--shadow-glass-pressed); }
+.glass-touch {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at var(--tx, 50%) var(--ty, 50%), var(--glass-specular) 0%, transparent 38%);
+  opacity: 0;
+  transition: opacity var(--dur-release) var(--ease-settle);
+  pointer-events: none;
+}
+.glass-interactive.is-touched .glass-touch { opacity: .85; transition-duration: var(--dur-press); }
+
+@media (prefers-reduced-motion: reduce) {
+  .glass, .glass-interactive, .glass-touch, .btn, .tab-minimize-demo * { transition-duration: 1ms !important; animation: none !important; }
+  .glass-interactive:active { transform: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .btn-glass { background: var(--surface-1); backdrop-filter: none; -webkit-backdrop-filter: none; border: 1px solid var(--divider); }
+}
+@media (prefers-contrast: more) {
+  .glass, .btn-glass { border: 1px solid var(--ink); }
+}
+
+/* Buttons */
+.btn {
+  font-family: var(--font-body);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 48px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  white-space: nowrap;
+  transition: transform var(--dur-press) var(--ease-glass), background-color .16s ease, color .16s ease, border-color .16s ease, box-shadow var(--dur-release) var(--ease-settle);
+}
+.btn:active { transform: scale(.965); }
+.btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; box-shadow: var(--shadow-focus); }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+.btn-primary { background: var(--accent); color: var(--ink-on-accent); box-shadow: var(--shadow-sm); }
+.btn-primary:hover:not(:disabled) { background: var(--accent-strong); }
+
+.btn-glass {
+  position: relative;
+  background:
+    radial-gradient(34% 55% at 18% 12%, var(--glass-specular) 0%, transparent 72%),
+    var(--glass-fill);
+  backdrop-filter: blur(var(--blur-sm)) saturate(180%) contrast(1.05);
+  -webkit-backdrop-filter: blur(var(--blur-sm)) saturate(180%) contrast(1.05);
+  border: 1px solid var(--glass-border);
+  color: var(--ink);
+  box-shadow: var(--shadow-glass);
+  isolation: isolate;
+}
+.btn-glass:active { box-shadow: var(--shadow-glass-pressed); transform: scale(.965); }
+
+.btn-secondary { background: transparent; border: 1.5px solid var(--divider); color: var(--ink); }
+.btn-secondary:hover:not(:disabled) { border-color: var(--accent-text); color: var(--accent-text); }
+
+.btn-sm { height: 36px; padding: 0 var(--space-4); font-size: 13px; }
+.btn-icon { width: 48px; padding: 0; }
+
+/* Small helpers reused across cards */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+  gap: var(--space-1);
+  height: 24px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+.pill--success { background: color-mix(in srgb, var(--success) 16%, transparent); color: var(--success-text); }
+.pill--tertiary { background: color-mix(in srgb, var(--tertiary) 18%, transparent); color: var(--tertiary-text); }
+.pill--danger { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+.pill--neutral { background: color-mix(in srgb, var(--ink-muted) 14%, transparent); color: var(--ink-secondary); }
+
+/* Chart chrome — shared by every chart component so they read as one system */
+.chart-card { padding: var(--space-5); }
+.chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); }
+.chart-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--ink); margin: 0 0 2px; }
+.chart-caption { font-size: 12px; color: var(--ink-muted); margin: 0; }
+
+.chart-legend { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-3); }
+.legend-item { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 12px; font-weight: 500; color: var(--ink-secondary); }
+.legend-key { width: 14px; height: 2px; border-radius: 1px; flex-shrink: 0; }
+.legend-swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+.table-toggle {
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--ink-secondary);
+  background: none; border: none; cursor: pointer; padding: var(--space-1) 0;
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--divider);
+}
+.table-toggle:hover { color: var(--accent-text); text-decoration-color: currentColor; }
+.table-toggle:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 4px; }
+
+.chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--surface-2);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity .1s ease;
+  white-space: nowrap;
+  z-index: 5;
+}
+.chart-tooltip.visible { opacity: 1; }
+.chart-tooltip .tt-date { color: var(--ink-muted); font-size: 11px; margin-bottom: 4px; }
+.chart-tooltip .tt-row { display: flex; align-items: center; gap: var(--space-2); justify-content: space-between; }
+.chart-tooltip .tt-row + .tt-row { margin-top: 3px; }
+.chart-tooltip .tt-key { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.chart-tooltip .tt-label { color: var(--ink-secondary); }
+.chart-tooltip .tt-value { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; margin-left: var(--space-3); }
+
+.chart-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.chart-table th, .chart-table td { text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--divider); font-variant-numeric: tabular-nums; }
+/* Every column but the first is a value, not a label — right-align it in
+   tabular figures so digits stack and compare at a glance, the way a
+   spreadsheet would. The identity column (day, week) stays left-aligned
+   prose. */
+.chart-table th:not(:first-child), .chart-table td:not(:first-child) { text-align: right; }
+.chart-table th { color: var(--ink-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .3px; }
+.chart-table td { color: var(--ink); }
+.chart-table td:first-child { font-variant-numeric: normal; color: var(--ink-secondary); }

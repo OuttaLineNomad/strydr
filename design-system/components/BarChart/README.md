@@ -1,0 +1,7 @@
+One series, one color — `secondary` (the token's own usage note already covers this: "maps, routes, GPS, distance metrics"). A single-series chart needs no legend box; the title and caption already say what's plotted, so a box with one swatch would just restate them.
+
+Bars are capped at 24px regardless of how wide their slot is — let the leftover space breathe rather than stretching the bar to fill it. Every bar has a 4px rounded top and a **square bottom where it meets the baseline**; that's a path per bar (two quarter-arcs at the top corners), not a plain rounded-rect, which would round the bottom too and visually detach the bar from its own axis. The baseline (`chart-axis`) is a touch stronger than the gridlines (`chart-grid`) above it — it's the one line doing structural work, the gridlines are just reference.
+
+A rest day is a real, meaningful zero — it renders as no bar at all plus a small `rest` label sitting on the baseline, rather than a bar with a "0" value label (which would just be noise at that height) or, worse, an empty slot with nothing to explain it.
+
+Direct labels sit above each bar's tip in `ink`, never in the bar's own color — identity here comes from the bar itself, not from colored text. Hover or focus on a bar's hit area (wider than the bar, same as every other chart in this system) darkens it to `secondary-strong` and opens the one-row tooltip; the same "View as table" twin as Line Chart keeps every value reachable without hovering.
