@@ -20,7 +20,9 @@ around it. Everything lives in one encrypted database on your own machine.
 ## Running it
 
 - Development (macOS or Linux): [backend/README.md](backend/README.md), then `cd web && npm install && npm run dev`.
-- Docker with a Cloudflare tunnel for remote syncs: [deploy/README.md](deploy/README.md).
+- Windows, one step: [install/windows/README.md](install/windows/README.md) installs Docker, builds and starts
+  Strydr, and prints the sign-in and sync token.
+- Docker on Linux, with an optional Cloudflare tunnel for remote syncs: [deploy/README.md](deploy/README.md).
 
 The stack is Python 3.14 (FastAPI, SQLAlchemy, SQLCipher, uv) and Vue 3 with TypeScript (Vite, MapLibre).
 Tests run on synthetic fixtures only (`fixtures/`): `cd backend && uv run pytest`, `cd web && npm test`.

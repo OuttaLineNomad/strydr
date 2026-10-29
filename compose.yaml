@@ -21,6 +21,8 @@ services:
       - "8081:8081"   # ingest: LAN / Tailscale backfill; cloudflared reaches it on the internal network
 
   cloudflared:
+    # Optional: only started with `docker compose --profile tunnel up -d` (deploy/README.md step 5).
+    profiles: ["tunnel"]
     image: cloudflare/cloudflared:2026.10.4
     restart: unless-stopped
     command: tunnel --config /etc/cloudflared/config.yml run

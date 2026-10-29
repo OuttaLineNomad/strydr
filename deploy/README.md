@@ -1,4 +1,6 @@
-# Deploying Strydr with Docker (x86_64 Linux)
+# Deploying Strydr with Docker (Linux)
+
+On Windows, use the one-step installer instead: see [install/windows/README.md](../install/windows/README.md).
 
 Two containers: `strydr` (app `:8080`, ingest `:8081`) and `cloudflared` (tunnel to `:8081` only).
 Run every command from the repo root unless noted.
@@ -22,7 +24,7 @@ chmod 644 secrets/strydr_db_key                        # the container runs as u
 Back this key up somewhere safe and separate from the data. **Losing it loses all data.**
 The Cloudflare credentials file comes from step 5.
 
-## 3. Build on the XPS
+## 3. Build on the server
 
 ```sh
 git clone <repo> strydr && cd strydr
@@ -30,7 +32,7 @@ export TZ=Europe/London         # optional; or put TZ=... in .env (compose defau
 docker compose build strydr
 ```
 
-Build on the XPS itself so the image matches its architecture (sqlcipher3 needs a matching wheel).
+Build on the server itself so the image matches its architecture (x86_64 and arm64 both work) (sqlcipher3 needs a matching wheel).
 
 ## 4. Initialise (create the user and ingest token)
 
@@ -52,16 +54,17 @@ cloudflared tunnel create strydr          # prints the UUID and writes ~/.cloudf
 cloudflared tunnel route dns strydr strydr-ingest.example.com
 ```
 
-On the XPS:
+On the server:
 
 ```sh
 cp ~/.cloudflared/<UUID>.json secrets/cloudflared-credentials.json
 chmod 644 secrets/cloudflared-credentials.json
 cp cloudflared/config.yml.example cloudflared/config.yml
 # edit: uncomment `tunnel:` and the hostname rule, fill in UUID and hostname
-docker compose up -d
+docker compose --profile tunnel up -d
 ```
 
+The tunnel container is optional (compose profile `tunnel`); without it, syncs work on the LAN only.
 The only ingress rule is `hostname -> http://strydr:8081`, then a `http_status:404` catch-all.
 Never route a hostname to `:8080`; the dashboard stays LAN/Tailscale only (AD-11).
 
@@ -72,7 +75,7 @@ curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up
 ```
 
-The app is then at `http://<xpss-tailscale-name>:8080` from your devices. Do not use `tailscale funnel`.
+The app is then at `http://<server-tailscale-name>:8080` from your devices. Do not use `tailscale funnel`.
 Keep `8080`/`8081` closed at the router/firewall (no port forwards).
 
 ## 7. Point Health Auto Export at Strydr
@@ -80,7 +83,7 @@ Keep `8080`/`8081` closed at the router/firewall (no port forwards).
 REST API automation, POST, JSON, header `Authorization: Bearer <ingest token>`.
 
 - **Routine syncs:** `https://strydr-ingest.example.com/ingest/hae` (tunnel). Keep each batch under 100 MB.
-- **Historical backfill:** `http://<xps-lan-ip-or-tailscale-name>:8081/ingest/hae`. Cloudflare caps tunnel
+- **Historical backfill:** `http://<server-lan-ip-or-tailscale-name>:8081/ingest/hae`. Cloudflare caps tunnel
   request bodies at 100 MB, so large backfills must use the LAN/Tailscale URL.
 
 ## 8. Backups
@@ -100,7 +103,8 @@ Restoring needs the DB key. Store the key separately from the backups.
 ```sh
 git pull
 docker compose build
-docker compose up -d       # recreates changed containers; migrations run on start
+docker compose --profile tunnel up -d   # recreates changed containers; migrations run on start
+                                        # (leave out --profile tunnel if you do not use the tunnel)
 docker image prune -f
 ```
 
