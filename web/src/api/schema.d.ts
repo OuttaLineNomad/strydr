@@ -537,6 +537,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workouts/{workout_id}/carry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Carry */
+        put: operations["put_carry"];
+        post?: never;
+        /** Delete Carry */
+        delete: operations["delete_carry"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workouts/{workout_id}/note": {
         parameters: {
             query?: never;
@@ -568,6 +586,23 @@ export interface paths {
         post?: never;
         /** Delete Workout Shoe */
         delete: operations["delete_workout_shoe"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workouts/{workout_id}/type": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Workout Type */
+        put: operations["put_workout_type"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1615,10 +1650,22 @@ export interface components {
             /** Week Start */
             week_start: string;
         };
+        /** WorkoutCarryIn */
+        WorkoutCarryIn: {
+            /** Weight Kg */
+            weight_kg: number;
+        };
+        /** WorkoutCarryOut */
+        WorkoutCarryOut: {
+            /** Carry Kg */
+            carry_kg: number | null;
+        };
         /** WorkoutDetailOut */
         WorkoutDetailOut: {
             /** Avg Cadence */
             avg_cadence: number | null;
+            /** Carry Kg */
+            carry_kg?: number | null;
             conditions?: components["schemas"]["ConditionsOut"] | null;
             /** Data Quality Issues */
             data_quality_issues: string[];
@@ -1667,6 +1714,8 @@ export interface components {
             avg_hr: number | null;
             /** Avg Speed Mps */
             avg_speed_mps: number | null;
+            /** Carry Kg */
+            carry_kg?: number | null;
             /** Distance M */
             distance_m: number | null;
             /** Duration S */
@@ -1719,6 +1768,24 @@ export interface components {
             /** Chosen */
             chosen: boolean;
             shoe: components["schemas"]["WorkoutShoeOut"] | null;
+        };
+        /** WorkoutTypeIn */
+        WorkoutTypeIn: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "run" | "walk" | "hike";
+        };
+        /** WorkoutTypeOut */
+        WorkoutTypeOut: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "run" | "walk" | "hike";
+            /** Workout Id */
+            workout_id: string;
         };
     };
     responses: never;
@@ -2851,7 +2918,8 @@ export interface operations {
     workouts: {
         parameters: {
             query?: {
-                type?: ("run" | "walk" | "hike") | null;
+                /** @description run, walk or hike; a comma list such as walk,hike */
+                type?: string | null;
                 limit?: number;
                 offset?: number;
             };
@@ -2899,6 +2967,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkoutDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_carry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkoutCarryIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutCarryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_carry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutCarryOut"];
                 };
             };
             /** @description Validation Error */
@@ -3029,6 +3163,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkoutShoeResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_workout_type: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkoutTypeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutTypeOut"];
                 };
             };
             /** @description Validation Error */

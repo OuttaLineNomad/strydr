@@ -82,3 +82,27 @@ const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const
 export function compass(deg: number | null | undefined): string | null {
   return deg == null ? null : COMPASS[Math.round((((deg % 360) + 360) % 360) / 45) % 8]!
 }
+
+export const LB_PER_KG = 2.2046226218
+
+export function weightUnit(system: UnitSystem): 'lb' | 'kg' {
+  return system === 'imperial' ? 'lb' : 'kg'
+}
+export function kgToDisplay(kg: number, system: UnitSystem): number {
+  return system === 'imperial' ? kg * LB_PER_KG : kg
+}
+export function displayToKg(value: number, system: UnitSystem): number {
+  return system === 'imperial' ? value / LB_PER_KG : value
+}
+/** Whole pounds, or kilograms to one decimal (a trailing ".0" dropped), and never 0 for a weight above 0.
+ *  Used by the field and the chip. */
+export function formatWeightValue(kg: number, system: UnitSystem): string {
+  const v = kgToDisplay(kg, system)
+  const step = system === 'imperial' ? 1 : 0.1
+  const r = Math.round(v / step) * step
+  return String(Number((v > 0 && r < step ? step : r).toFixed(1)))
+}
+/** "+25 lb" or "+11.3 kg": a chip for carried weight. */
+export function formatCarry(kg: number, system: UnitSystem): string {
+  return `+${formatWeightValue(kg, system)} ${weightUnit(system)}`
+}

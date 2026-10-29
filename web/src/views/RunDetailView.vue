@@ -8,11 +8,14 @@ import Button from '@/components/ui/Button.vue'
 import SplitsTable from '@/components/app/SplitsTable.vue'
 import NoteEditor from '@/components/app/NoteEditor.vue'
 import InsightList from '@/components/app/InsightList.vue'
+import TypePicker from '@/components/app/TypePicker.vue'
+import CarryField from '@/components/app/CarryField.vue'
 import ShoePicker from '@/components/app/ShoePicker.vue'
 import RunSummary from '@/components/app/RunSummary.vue'
 import RunHero from '@/components/app/RunHero.vue'
 import ConditionsCard from '@/components/app/ConditionsCard.vue'
 import SleepCard from '@/components/app/SleepCard.vue'
+import { useRoute } from 'vue-router'
 import { sleepLine } from '@/lib/sleep'
 import { conditionsLine } from '@/lib/conditions'
 import { useSettingsStore } from '@/stores/settings'
@@ -53,6 +56,11 @@ const LABEL_EVERY = 8
 const du = computed(() => distanceUnit(s.units))
 const detail = computed(() => w.detail)
 const run = computed(() => detail.value?.workout ?? null)
+// Back goes to the list the workout is on: runs on Runs, walks and hikes on Other activities.
+const route = useRoute()
+const fromActivities = computed(() => route?.query?.from === 'activities')
+const backName = computed(() => ((run.value ? run.value.type !== 'run' : fromActivities.value) ? 'activities' : 'runs'))
+const backLabel = computed(() => (backName.value === 'runs' ? 'Back to runs' : 'Back to other activities'))
 const notes = computed(() => (detail.value ? qualityNotes(detail.value.quality_flags, detail.value.data_quality_issues) : []))
 
 // Stopped or near-stopped samples are gaps, not infinite pace.
@@ -104,7 +112,7 @@ const elev = computed(() => {
 </script>
 
 <template>
-  <Button v-if="!(run && detail) || w.detailLoading || w.detailError" class="back" small :to="{ name: 'runs' }">Back to runs</Button>
+  <Button v-if="!(run && detail) || w.detailLoading || w.detailError" class="back" small :to="{ name: backName }">{{ backLabel }}</Button>
 
   <p v-if="w.detailLoading" class="page-sub" role="status">Loading your workout…</p>
   <template v-else-if="w.detailError">
@@ -128,9 +136,11 @@ const elev = computed(() => {
       ]"
     >
       <template #start>
-        <Button small :to="{ name: 'runs' }"><Icons name="chevron" :size="16" class="flip" /> Runs</Button>
+        <Button small :to="{ name: backName }" data-testid="back-link"><Icons name="chevron" :size="16" class="flip" /> {{ run.type === 'run' ? 'Runs' : 'Other activities' }}</Button>
       </template>
       <template #end>
+        <TypePicker :workout-id="run.workout_id" :type="run.type" />
+        <CarryField :workout-id="run.workout_id" :carry-kg="detail.carry_kg ?? null" />
         <ShoePicker :workout-id="run.workout_id" :shoe="detail.shoe ?? null" :chosen="detail.shoe_chosen" />
         <Button v-if="routeKey" small :to="{ name: 'route-detail', params: { routeKey } }" data-testid="route-link">Other runs on this route</Button>
       </template>

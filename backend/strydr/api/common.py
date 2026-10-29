@@ -15,12 +15,12 @@ def rfc3339(dt: datetime | None) -> str | None:
     return dt.replace(tzinfo=UTC).isoformat(timespec="seconds").replace("+00:00", "Z") if dt else None
 
 
-def workout_out(w: models.Workout, names: set[str], long_run: bool | None) -> sc.WorkoutOut:
+def workout_out(w: models.Workout, names: set[str], long_run: bool | None, carry_kg: float | None = None) -> sc.WorkoutOut:
     return sc.WorkoutOut(
         workout_id=w.workout_id, type=w.type, is_indoor=w.is_indoor, start=rfc3339(w.start_utc),
         local_date=w.local_date, duration_s=w.duration_s, distance_m=w.distance_m,
         avg_speed_mps=w.avg_speed_mps, avg_hr=w.avg_hr, max_hr=w.max_hr, elevation_gain_m=w.elevation_gain_m,
-        has_hr="heart_rate" in names, has_route="route" in names, is_long_run=long_run,
+        has_hr="heart_rate" in names, has_route="route" in names, is_long_run=long_run, carry_kg=carry_kg,
     )
 
 

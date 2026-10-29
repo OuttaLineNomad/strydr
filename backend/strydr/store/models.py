@@ -482,6 +482,14 @@ class WorkoutShoe(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime)
 
 
+class WorkoutCarry(Base):
+    """Extra weight carried on a run, walk or hike (child carrier, weighted vest). Display only: never a pipeline input."""
+    __tablename__ = "workout_carry"
+    workout_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    weight_kg: Mapped[float] = mapped_column(Float)
+    updated_at: Mapped[datetime] = mapped_column(DateTime)
+
+
 class WeekNote(Base):
     __tablename__ = "week_note"
     week_id: Mapped[str] = mapped_column(String(8), primary_key=True)

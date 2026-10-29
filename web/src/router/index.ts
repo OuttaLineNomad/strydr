@@ -6,6 +6,7 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
     { path: '/runs', name: 'runs', component: () => import('@/views/RunsView.vue') },
+    { path: '/activities', name: 'activities', component: () => import('@/views/ActivitiesView.vue') },
     { path: '/runs/routes', name: 'routes', component: () => import('@/views/RoutesView.vue') },
     { path: '/runs/routes/:routeKey', name: 'route-detail', component: () => import('@/views/RouteDetailView.vue'), props: true },
     { path: '/runs/:id', name: 'run-detail', component: () => import('@/views/RunDetailView.vue'), props: true },

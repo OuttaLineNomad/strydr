@@ -3472,6 +3472,41 @@
         "title": "WeekTotal",
         "type": "object"
       },
+      "WorkoutCarryIn": {
+        "properties": {
+          "weight_kg": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100.0,
+            "title": "Weight Kg",
+            "type": "number"
+          }
+        },
+        "required": [
+          "weight_kg"
+        ],
+        "title": "WorkoutCarryIn",
+        "type": "object"
+      },
+      "WorkoutCarryOut": {
+        "properties": {
+          "carry_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Carry Kg"
+          }
+        },
+        "required": [
+          "carry_kg"
+        ],
+        "title": "WorkoutCarryOut",
+        "type": "object"
+      },
       "WorkoutDetailOut": {
         "properties": {
           "avg_cadence": {
@@ -3484,6 +3519,17 @@
               }
             ],
             "title": "Avg Cadence"
+          },
+          "carry_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Carry Kg"
           },
           "conditions": {
             "anyOf": [
@@ -3763,6 +3809,17 @@
             ],
             "title": "Avg Speed Mps"
           },
+          "carry_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Carry Kg"
+          },
           "distance_m": {
             "anyOf": [
               {
@@ -3945,6 +4002,47 @@
           "chosen"
         ],
         "title": "WorkoutShoeResult",
+        "type": "object"
+      },
+      "WorkoutTypeIn": {
+        "properties": {
+          "type": {
+            "enum": [
+              "run",
+              "walk",
+              "hike"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "WorkoutTypeIn",
+        "type": "object"
+      },
+      "WorkoutTypeOut": {
+        "properties": {
+          "type": {
+            "enum": [
+              "run",
+              "walk",
+              "hike"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "workout_id": {
+            "title": "Workout Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workout_id",
+          "type"
+        ],
+        "title": "WorkoutTypeOut",
         "type": "object"
       }
     }
@@ -5443,23 +5541,20 @@
         "operationId": "workouts",
         "parameters": [
           {
+            "description": "run, walk or hike; a comma list such as walk,hike",
             "in": "query",
             "name": "type",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "enum": [
-                    "run",
-                    "walk",
-                    "hike"
-                  ],
                   "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "run, walk or hike; a comma list such as walk,hike",
               "title": "Type"
             }
           },
@@ -5553,6 +5648,92 @@
           }
         },
         "summary": "Workout Detail"
+      }
+    },
+    "/api/v1/workouts/{workout_id}/carry": {
+      "delete": {
+        "operationId": "delete_carry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workout_id",
+            "required": true,
+            "schema": {
+              "title": "Workout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutCarryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Carry"
+      },
+      "put": {
+        "operationId": "put_carry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workout_id",
+            "required": true,
+            "schema": {
+              "title": "Workout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutCarryIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutCarryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Carry"
       }
     },
     "/api/v1/workouts/{workout_id}/note": {
@@ -5724,6 +5905,55 @@
         "tags": [
           "shoes"
         ]
+      }
+    },
+    "/api/v1/workouts/{workout_id}/type": {
+      "put": {
+        "operationId": "put_workout_type",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workout_id",
+            "required": true,
+            "schema": {
+              "title": "Workout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutTypeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutTypeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Workout Type"
       }
     }
   }

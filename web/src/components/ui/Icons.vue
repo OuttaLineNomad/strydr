@@ -19,6 +19,7 @@ export const GLYPHS = {
   speed: '<path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16 16 9"/><circle cx="12" cy="16" r="1.3" fill="currentColor" stroke="none"/>',
   // additions
   runs: '<path d="M4 7h16M4 12h16M4 17h10"/>',
+  activities: '<circle cx="13" cy="5" r="1.8"/><path d="M11 21l2-6-3-3 1-4 4 2 3 1M9 11l-3 2M13 15l3 5"/>',
   weeks: '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>',
   settings: '<path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2.2"/><circle cx="9" cy="16" r="2.2"/>',
   chevron: '<path d="M9 6l6 6-6 6"/>',

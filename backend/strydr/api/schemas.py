@@ -43,6 +43,7 @@ class WorkoutOut(BaseModel):
     has_hr: bool
     has_route: bool
     is_long_run: bool | None  # None for walks and hikes, and until the first generation exists
+    carry_kg: float | None = None  # extra weight carried, from workout_carry
 
 
 class SplitOut(BaseModel):
@@ -97,6 +98,23 @@ class NoteIn(BaseModel):
         if not (self.text and self.text.strip()) and self.rpe is None:
             raise ValueError("a note needs text or an RPE")
         return self
+
+
+class WorkoutTypeIn(BaseModel):
+    type: Literal["run", "walk", "hike"]
+
+
+class WorkoutTypeOut(BaseModel):
+    workout_id: str
+    type: Literal["run", "walk", "hike"]
+
+
+class WorkoutCarryIn(BaseModel):
+    weight_kg: float = Field(gt=0, le=100)
+
+
+class WorkoutCarryOut(BaseModel):
+    carry_kg: float | None
 
 
 class WorkoutShoeOut(BaseModel):
@@ -243,6 +261,7 @@ class WorkoutDetailOut(BaseModel):
     note: NoteOut | None
     shoe: WorkoutShoeOut | None = None
     shoe_chosen: bool = False
+    carry_kg: float | None = None
     summary: RunSummaryOut | None = None
 
 

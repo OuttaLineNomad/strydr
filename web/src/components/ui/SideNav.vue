@@ -2,16 +2,17 @@
 import { ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import Icons from './Icons.vue'
-import { NAV_ITEMS, isActive } from './nav'
+import { NAV_ITEMS, isActive, useNavWorkoutType } from './nav'
 import { useLens } from '@/lib/useLens'
 import { vPress } from '@/directives/press'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
+const navType = useNavWorkoutType()
 const router = useRouter()
 const auth = useAuthStore()
 const list = ref<HTMLElement | null>(null)
-const { style: lens } = useLens(list, '.item.active', () => route.path)
+const { style: lens } = useLens(list, '.item.active', () => `${route.path}|${navType.value}`)
 
 async function signOut() {
   await auth.logout()
@@ -34,8 +35,8 @@ async function signOut() {
         v-press
         :to="t.to"
         class="item"
-        :class="{ active: isActive(t.to, route.path) }"
-        :aria-current="isActive(t.to, route.path) ? 'page' : undefined"
+        :class="{ active: isActive(t.to, route.path, navType) }"
+        :aria-current="isActive(t.to, route.path, navType) ? 'page' : undefined"
       >
         <Icons :name="t.icon" :size="20" />
         <span>{{ t.label }}</span>

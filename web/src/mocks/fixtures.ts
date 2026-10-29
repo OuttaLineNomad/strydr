@@ -30,6 +30,7 @@ export function workoutDetail(over: Partial<WorkoutDetail> = {}): WorkoutDetail 
       has_hr: true,
       has_route: true,
       is_long_run: false,
+      carry_kg: null,
     },
     max_speed_mps: 4.1,
     avg_cadence: 164,
@@ -49,6 +50,7 @@ export function workoutDetail(over: Partial<WorkoutDetail> = {}): WorkoutDetail 
     note: null,
     shoe: null,
     shoe_chosen: false,
+    carry_kg: null,
     ...over,
   }
 }

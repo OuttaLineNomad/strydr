@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
+from strydr import relabel
 from strydr.api import calendar, import_api, insights, load, privacy, routes_api, settings_api, shoes, weeks
 from strydr.api import schemas as sc
 from strydr.api.common import Api, rfc3339, workout_out
@@ -77,12 +78,15 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
             )
 
     @router.get("/workouts", response_model=list[sc.WorkoutOut], dependencies=auth)
-    def workouts(type: Literal["run", "walk", "hike"] | None = None,
+    def workouts(type: str | None = Query(None, description="run, walk or hike; a comma list such as walk,hike"),
                  limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0)) -> list[sc.WorkoutOut]:
         with generations.read_snapshot(engine) as s:
             q = select(models.Workout).order_by(models.Workout.start_utc.desc()).limit(limit).offset(offset)
             if type:
-                q = q.where(models.Workout.type == type)
+                kinds = [x.strip() for x in type.split(",")]
+                if not all(k in relabel.TYPES for k in kinds):
+                    raise HTTPException(status_code=422, detail="type must be run, walk or hike, or a comma list of them")
+                q = q.where(models.Workout.type.in_(kinds))
             rows = s.execute(q).scalars().all()
             ids = [r.workout_id for r in rows]
             names: dict[str, set[str]] = {}
@@ -93,7 +97,12 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
                     names.setdefault(wid, set()).add(name)
                 long_runs = dict(s.execute(select(models.WorkoutSummary.workout_id, models.WorkoutSummary.is_long_run)
                                            .where(in_current(models.WorkoutSummary), models.WorkoutSummary.workout_id.in_(ids))).all())
-            return [workout_out(w, names.get(w.workout_id, set()), long_runs.get(w.workout_id)) for w in rows]
+            carry: dict[str, float] = {}
+            if ids:
+                carry = dict(s.execute(select(models.WorkoutCarry.workout_id, models.WorkoutCarry.weight_kg)
+                                       .where(models.WorkoutCarry.workout_id.in_(ids))).all())
+            return [workout_out(w, names.get(w.workout_id, set()), long_runs.get(w.workout_id), carry.get(w.workout_id))
+                    for w in rows]
 
     @router.get("/workouts/{workout_id}", response_model=sc.WorkoutDetailOut, dependencies=auth)
     def workout_detail(workout_id: str) -> sc.WorkoutDetailOut:
@@ -110,6 +119,8 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
                 in_current(models.DataQualityIssue), models.DataQualityIssue.workout_id == workout_id)).scalars().all()
             note = s.get(models.WorkoutNote, workout_id)
             shoe = shoes.shoe_out_for(s, workout_id, w)
+            carry = s.get(models.WorkoutCarry, workout_id)
+            carry_kg = carry.weight_kg if carry else None
             served = summary_mod.serve(s, workout_id, default_tz)
             fb = s.get(models.InsightFeedback, f"run-summary/{workout_id}")
             # a thumb belongs to the summary it was given on: it resets when the context changes
@@ -117,7 +128,7 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
             return sc.WorkoutDetailOut(
                 summary=None if served is None else sc.RunSummaryOut(
                     text=served[0], source=served[1], key=f"run-summary/{workout_id}", thumb=thumb),
-                workout=workout_out(w, names, summary.is_long_run if summary else None),
+                workout=workout_out(w, names, summary.is_long_run if summary else None, carry_kg), carry_kg=carry_kg,
                 max_speed_mps=w.max_speed_mps, avg_cadence=w.avg_cadence, temperature_c=w.temperature_c,
                 humidity_pct=w.humidity_pct, effort_score=w.effort_score, effort_estimated=w.effort_estimated,
                 zone_seconds=summary.zone_seconds if summary else None,
@@ -130,6 +141,40 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
                 quality_flags=w.quality_flags or {}, data_quality_issues=list(issues), note=_note_out(note), shoe=shoe,
                 shoe_chosen=s.get(models.WorkoutShoe, workout_id) is not None,
             )
+
+    @router.put("/workouts/{workout_id}/type", response_model=sc.WorkoutTypeOut, dependencies=auth)
+    def put_workout_type(workout_id: str, body: sc.WorkoutTypeIn) -> sc.WorkoutTypeOut:
+        with Session(engine) as s:
+            w = s.execute(select(models.Workout).where(models.Workout.workout_id == workout_id)).scalar_one_or_none()
+            if w is None:
+                raise HTTPException(status_code=404, detail="workout not found")
+            if w.type != body.type:
+                relabel.set_type(s, workout_id, body.type, default_tz)  # override, type and recompute job commit together
+                s.commit()
+        queue.wakeup.set()
+        return sc.WorkoutTypeOut(workout_id=workout_id, type=body.type)
+
+    @router.put("/workouts/{workout_id}/carry", response_model=sc.WorkoutCarryOut, dependencies=auth)
+    def put_carry(workout_id: str, body: sc.WorkoutCarryIn) -> sc.WorkoutCarryOut:
+        with Session(engine) as s:
+            if s.execute(select(models.Workout.id).where(models.Workout.workout_id == workout_id)).first() is None:
+                raise HTTPException(status_code=404, detail="workout not found")
+            row = s.get(models.WorkoutCarry, workout_id) or models.WorkoutCarry(workout_id=workout_id)
+            row.weight_kg, row.updated_at = body.weight_kg, utcnow()
+            s.add(row)
+            s.commit()  # display only: no recompute
+        return sc.WorkoutCarryOut(carry_kg=body.weight_kg)
+
+    @router.delete("/workouts/{workout_id}/carry", response_model=sc.WorkoutCarryOut, dependencies=auth)
+    def delete_carry(workout_id: str) -> sc.WorkoutCarryOut:
+        with Session(engine) as s:
+            if s.execute(select(models.Workout.id).where(models.Workout.workout_id == workout_id)).first() is None:
+                raise HTTPException(status_code=404, detail="workout not found")
+            row = s.get(models.WorkoutCarry, workout_id)
+            if row is not None:
+                s.delete(row)
+                s.commit()
+        return sc.WorkoutCarryOut(carry_kg=None)
 
     @router.put("/workouts/{workout_id}/note", response_model=sc.NoteOut, dependencies=auth)
     def put_note(workout_id: str, body: sc.NoteIn) -> sc.NoteOut:
