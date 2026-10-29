@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import Button from '@/components/ui/Button.vue'
 import Segmented from '@/components/ui/Segmented.vue'
+import ShoesPanel from '@/components/app/ShoesPanel.vue'
 import PrivacyZonesPanel from '@/components/app/PrivacyZonesPanel.vue'
 import AiSettingsPanel from '@/components/app/AiSettingsPanel.vue'
 import ThresholdsPanel from '@/components/app/ThresholdsPanel.vue'
@@ -187,6 +188,7 @@ async function signOut() {
 
   <div class="cards">
     <PrivacyZonesPanel />
+    <ShoesPanel />
     <WeatherPanel />
     <ImportPanel />
     <AiSettingsPanel />

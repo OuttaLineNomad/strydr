@@ -99,6 +99,71 @@ class NoteIn(BaseModel):
         return self
 
 
+class WorkoutShoeOut(BaseModel):
+    id: int
+    name: str
+    retired: bool
+    source: Literal["default", "chosen"]
+
+
+class WorkoutShoeResult(BaseModel):
+    shoe: WorkoutShoeOut | None
+    chosen: bool  # a workout_shoe row exists (an explicit choice, possibly "no shoe")
+
+
+class WorkoutShoeIn(BaseModel):
+    shoe_id: int | None
+
+
+class ShoeOut(BaseModel):
+    id: int
+    name: str
+    retired: bool
+    distance_m: float
+    runs: int
+
+
+class ShoeDefaultOut(BaseModel):
+    shoe_id: int | None
+    from_date: str
+
+
+class ShoesOut(BaseModel):
+    shoes: list[ShoeOut]
+    default: ShoeDefaultOut | None
+
+
+class ShoeIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _strip(cls, v):
+        return v.strip() if isinstance(v, str) else v
+
+
+class ShoePatch(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=60)
+    retired: bool | None = None
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _strip(cls, v):
+        return v.strip() if isinstance(v, str) else v
+
+
+class ShoeDefaultIn(BaseModel):
+    shoe_id: int | None
+    from_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+    @field_validator("from_date")
+    @classmethod
+    def _real_date(cls, v: str) -> str:
+        from datetime import date as _d
+        _d.fromisoformat(v)  # ValueError becomes a 422
+        return v
+
+
 class ConditionsOut(BaseModel):
     """Weather for an outdoor run (derive/conditions). Apple's own reading wins; fetched weather fills the rest."""
     temp_c: float
@@ -176,6 +241,8 @@ class WorkoutDetailOut(BaseModel):
     quality_flags: dict[str, int]
     data_quality_issues: list[str]
     note: NoteOut | None
+    shoe: WorkoutShoeOut | None = None
+    shoe_chosen: bool = False
     summary: RunSummaryOut | None = None
 
 

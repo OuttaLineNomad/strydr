@@ -1,7 +1,7 @@
 import { ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import { api } from '@/api'
-import type { NoteOut, WorkoutDetail, WorkoutOut, WorkoutType } from '@/api/types'
+import type { NoteOut, WorkoutShoeResult, WorkoutDetail, WorkoutOut, WorkoutType } from '@/api/types'
 
 export const PAGE_SIZE = 20
 
@@ -18,6 +18,36 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   const detailError = ref<string | null>(null)
   const noteBusy = ref(false)
   const noteError = ref<string | null>(null)
+
+  const shoeBusy = ref(false)
+  const shoeError = ref<string | null>(null)
+
+  async function setShoe(id: string, call: () => Promise<{ data?: WorkoutShoeResult; response: { ok: boolean } }>, fail: string): Promise<boolean> {
+    shoeBusy.value = true
+    shoeError.value = null
+    try {
+      const { data, response } = await call()
+      if (!response.ok) {
+        shoeError.value = fail
+        return false
+      }
+      if (!data) {
+        shoeError.value = fail
+        return false
+      }
+      if (detail.value && detail.value.workout.workout_id === id) detail.value = { ...detail.value, shoe: data.shoe, shoe_chosen: data.chosen }
+      return true
+    } catch {
+      shoeError.value = `${fail} Check your connection.`
+      return false
+    } finally {
+      shoeBusy.value = false
+    }
+  }
+  const saveShoe = (id: string, shoe_id: number | null) =>
+    setShoe(id, () => api.PUT('/api/v1/workouts/{workout_id}/shoe', { params: { path: { workout_id: id } }, body: { shoe_id } }), 'The shoe was not saved. Try again.')
+  const clearShoe = (id: string) =>
+    setShoe(id, () => api.DELETE('/api/v1/workouts/{workout_id}/shoe', { params: { path: { workout_id: id } } }), 'The shoe was not reset. Try again.')
 
   async function loadList(opts: { type?: WorkoutType | null; page?: number } = {}) {
     if (opts.type !== undefined) type.value = opts.type
@@ -45,6 +75,7 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   async function loadDetail(id: string) {
     detailLoading.value = true
     detailError.value = null
+    shoeError.value = null
     detail.value = null
     try {
       const { data, response } = await api.GET('/api/v1/workouts/{workout_id}', { params: { path: { workout_id: id } } })
@@ -96,5 +127,5 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     }
   }
 
-  return { items, type, page, hasNext, loading, error, detail, detailLoading, detailError, noteBusy, noteError, loadList, loadDetail, saveNote, deleteNote }
+  return { items, type, page, hasNext, loading, error, detail, detailLoading, detailError, noteBusy, noteError, shoeBusy, shoeError, saveShoe, clearShoe, loadList, loadDetail, saveNote, deleteNote }
 })

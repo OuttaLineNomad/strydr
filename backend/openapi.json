@@ -2433,6 +2433,162 @@
         "title": "SectionResultOut",
         "type": "object"
       },
+      "ShoeDefaultIn": {
+        "properties": {
+          "from_date": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "From Date",
+            "type": "string"
+          },
+          "shoe_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shoe Id"
+          }
+        },
+        "required": [
+          "shoe_id",
+          "from_date"
+        ],
+        "title": "ShoeDefaultIn",
+        "type": "object"
+      },
+      "ShoeDefaultOut": {
+        "properties": {
+          "from_date": {
+            "title": "From Date",
+            "type": "string"
+          },
+          "shoe_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shoe Id"
+          }
+        },
+        "required": [
+          "shoe_id",
+          "from_date"
+        ],
+        "title": "ShoeDefaultOut",
+        "type": "object"
+      },
+      "ShoeIn": {
+        "properties": {
+          "name": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ShoeIn",
+        "type": "object"
+      },
+      "ShoeOut": {
+        "properties": {
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "retired": {
+            "title": "Retired",
+            "type": "boolean"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "retired",
+          "distance_m",
+          "runs"
+        ],
+        "title": "ShoeOut",
+        "type": "object"
+      },
+      "ShoePatch": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "retired": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retired"
+          }
+        },
+        "title": "ShoePatch",
+        "type": "object"
+      },
+      "ShoesOut": {
+        "properties": {
+          "default": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShoeDefaultOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "shoes": {
+            "items": {
+              "$ref": "#/components/schemas/ShoeOut"
+            },
+            "title": "Shoes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "shoes",
+          "default"
+        ],
+        "title": "ShoesOut",
+        "type": "object"
+      },
       "SleepOut": {
         "description": "The night before a run (derive/sleep): hours from Apple's sleep stages, and the next morning's readings.",
         "properties": {
@@ -3469,6 +3625,21 @@
             "title": "Quality Flags",
             "type": "object"
           },
+          "shoe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutShoeOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "shoe_chosen": {
+            "default": false,
+            "title": "Shoe Chosen",
+            "type": "boolean"
+          },
           "sleep": {
             "anyOf": [
               {
@@ -3698,6 +3869,82 @@
           "is_long_run"
         ],
         "title": "WorkoutOut",
+        "type": "object"
+      },
+      "WorkoutShoeIn": {
+        "properties": {
+          "shoe_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shoe Id"
+          }
+        },
+        "required": [
+          "shoe_id"
+        ],
+        "title": "WorkoutShoeIn",
+        "type": "object"
+      },
+      "WorkoutShoeOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "retired": {
+            "title": "Retired",
+            "type": "boolean"
+          },
+          "source": {
+            "enum": [
+              "default",
+              "chosen"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "retired",
+          "source"
+        ],
+        "title": "WorkoutShoeOut",
+        "type": "object"
+      },
+      "WorkoutShoeResult": {
+        "properties": {
+          "chosen": {
+            "title": "Chosen",
+            "type": "boolean"
+          },
+          "shoe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutShoeOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "shoe",
+          "chosen"
+        ],
+        "title": "WorkoutShoeResult",
         "type": "object"
       }
     }
@@ -4818,6 +5065,159 @@
         ]
       }
     },
+    "/api/v1/shoes": {
+      "get": {
+        "operationId": "list_shoes",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Shoes",
+        "tags": [
+          "shoes"
+        ]
+      },
+      "post": {
+        "operationId": "add_shoe",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShoeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Shoe",
+        "tags": [
+          "shoes"
+        ]
+      }
+    },
+    "/api/v1/shoes/default": {
+      "put": {
+        "operationId": "set_default",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShoeDefaultIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Default",
+        "tags": [
+          "shoes"
+        ]
+      }
+    },
+    "/api/v1/shoes/{shoe_id}": {
+      "patch": {
+        "operationId": "patch_shoe",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shoe_id",
+            "required": true,
+            "schema": {
+              "title": "Shoe Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShoePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Shoe",
+        "tags": [
+          "shoes"
+        ]
+      }
+    },
     "/api/v1/sync-status": {
       "get": {
         "operationId": "sync_status",
@@ -5232,6 +5632,98 @@
           }
         },
         "summary": "Put Note"
+      }
+    },
+    "/api/v1/workouts/{workout_id}/shoe": {
+      "delete": {
+        "operationId": "delete_workout_shoe",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workout_id",
+            "required": true,
+            "schema": {
+              "title": "Workout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutShoeResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Workout Shoe",
+        "tags": [
+          "shoes"
+        ]
+      },
+      "put": {
+        "operationId": "put_workout_shoe",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workout_id",
+            "required": true,
+            "schema": {
+              "title": "Workout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutShoeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutShoeResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Workout Shoe",
+        "tags": [
+          "shoes"
+        ]
       }
     }
   }

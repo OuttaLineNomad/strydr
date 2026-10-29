@@ -382,6 +382,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/shoes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Shoes */
+        get: operations["list_shoes"];
+        put?: never;
+        /** Add Shoe */
+        post: operations["add_shoe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shoes/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Default */
+        put: operations["set_default"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shoes/{shoe_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Shoe */
+        patch: operations["patch_shoe"];
+        trace?: never;
+    };
     "/api/v1/sync-status": {
         parameters: {
             query?: never;
@@ -498,6 +550,24 @@ export interface paths {
         post?: never;
         /** Delete Note */
         delete: operations["delete_note"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workouts/{workout_id}/shoe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Workout Shoe */
+        put: operations["put_workout_shoe"];
+        post?: never;
+        /** Delete Workout Shoe */
+        delete: operations["delete_workout_shoe"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1247,6 +1317,51 @@ export interface components {
             /** Z */
             z: number | null;
         };
+        /** ShoeDefaultIn */
+        ShoeDefaultIn: {
+            /** From Date */
+            from_date: string;
+            /** Shoe Id */
+            shoe_id: number | null;
+        };
+        /** ShoeDefaultOut */
+        ShoeDefaultOut: {
+            /** From Date */
+            from_date: string;
+            /** Shoe Id */
+            shoe_id: number | null;
+        };
+        /** ShoeIn */
+        ShoeIn: {
+            /** Name */
+            name: string;
+        };
+        /** ShoeOut */
+        ShoeOut: {
+            /** Distance M */
+            distance_m: number;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Retired */
+            retired: boolean;
+            /** Runs */
+            runs: number;
+        };
+        /** ShoePatch */
+        ShoePatch: {
+            /** Name */
+            name?: string | null;
+            /** Retired */
+            retired?: boolean | null;
+        };
+        /** ShoesOut */
+        ShoesOut: {
+            default: components["schemas"]["ShoeDefaultOut"] | null;
+            /** Shoes */
+            shoes: components["schemas"]["ShoeOut"][];
+        };
         /**
          * SleepOut
          * @description The night before a run (derive/sleep): hours from Apple's sleep stages, and the next morning's readings.
@@ -1528,6 +1643,12 @@ export interface components {
             quality_flags: {
                 [key: string]: number;
             };
+            shoe?: components["schemas"]["WorkoutShoeOut"] | null;
+            /**
+             * Shoe Chosen
+             * @default false
+             */
+            shoe_chosen: boolean;
             sleep?: components["schemas"]["SleepOut"] | null;
             /** Splits Km */
             splits_km: components["schemas"]["SplitOut"][] | null;
@@ -1573,6 +1694,31 @@ export interface components {
             type: "run" | "walk" | "hike";
             /** Workout Id */
             workout_id: string;
+        };
+        /** WorkoutShoeIn */
+        WorkoutShoeIn: {
+            /** Shoe Id */
+            shoe_id: number | null;
+        };
+        /** WorkoutShoeOut */
+        WorkoutShoeOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Retired */
+            retired: boolean;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "default" | "chosen";
+        };
+        /** WorkoutShoeResult */
+        WorkoutShoeResult: {
+            /** Chosen */
+            chosen: boolean;
+            shoe: components["schemas"]["WorkoutShoeOut"] | null;
         };
     };
     responses: never;
@@ -2432,6 +2578,127 @@ export interface operations {
             };
         };
     };
+    list_shoes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShoesOut"];
+                };
+            };
+        };
+    };
+    add_shoe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShoeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShoesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_default: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShoeDefaultIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShoesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_shoe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shoe_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShoePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShoesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sync_status: {
         parameters: {
             query?: never;
@@ -2697,6 +2964,72 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_workout_shoe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkoutShoeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutShoeResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_workout_shoe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutShoeResult"];
+                };
             };
             /** @description Validation Error */
             422: {

@@ -9,10 +9,12 @@ import { useSettingsStore } from '@/stores/settings'
 import { profile, workoutDetail } from '@/mocks/fixtures'
 
 const get = vi.mocked(api.GET) as unknown as ReturnType<typeof vi.fn>
+const put = vi.mocked(api.PUT) as unknown as ReturnType<typeof vi.fn>
 
 async function mountIt(detail = workoutDetail()) {
   get.mockImplementation(async (url: string) => {
     if (url === '/api/v1/workouts/{workout_id}') return { data: detail, response: { status: 200 } }
+    if (url === '/api/v1/shoes') return { data: { shoes: [{ id: 1, name: 'Pegasus', retired: false, distance_m: 0, runs: 0 }, { id: 2, name: 'Vomero', retired: false, distance_m: 0, runs: 0 }], default: null }, response: { status: 200 } }
     if (url === '/api/v1/insights') return { data: { items: [], total: 0, limit: 10, offset: 0, disclaimer: 'Not medical advice.' }, response: { status: 200 } }
     return { data: undefined, response: { status: 404 } }
   })
@@ -29,6 +31,18 @@ async function mountIt(detail = workoutDetail()) {
 
 describe('RunDetailView', () => {
   beforeEach(() => vi.clearAllMocks())
+
+  it('shows the run shoe in the picker and saves a change to this workout', async () => {
+    const { w } = await mountIt(workoutDetail({ shoe: { id: 1, name: 'Pegasus', retired: false, source: 'chosen' }, shoe_chosen: true }))
+    const sel = w.get('[data-testid="shoe-picker"]')
+    expect((sel.element as HTMLSelectElement).value).toBe('1')
+    expect(w.get('[data-testid="shoe-current"]').text()).toContain('Pegasus')
+    put.mockResolvedValue({ data: { shoe: { id: 2, name: 'Vomero', retired: false, source: 'chosen' }, chosen: true }, response: { ok: true } })
+    await sel.setValue('2')
+    await flushPromises()
+    expect(put).toHaveBeenCalledWith('/api/v1/workouts/{workout_id}/shoe', { params: { path: { workout_id: 'w-1' } }, body: { shoe_id: 2 } })
+    expect(w.get('[data-testid="shoe-current"]').text()).toContain('Vomero')
+  })
 
   it('switches the splits table between miles and kilometres with the units setting', async () => {
     const { w, settings } = await mountIt()

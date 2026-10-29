@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button.vue'
 import SplitsTable from '@/components/app/SplitsTable.vue'
 import NoteEditor from '@/components/app/NoteEditor.vue'
 import InsightList from '@/components/app/InsightList.vue'
+import ShoePicker from '@/components/app/ShoePicker.vue'
 import RunSummary from '@/components/app/RunSummary.vue'
 import RunHero from '@/components/app/RunHero.vue'
 import ConditionsCard from '@/components/app/ConditionsCard.vue'
@@ -130,6 +131,7 @@ const elev = computed(() => {
         <Button small :to="{ name: 'runs' }"><Icons name="chevron" :size="16" class="flip" /> Runs</Button>
       </template>
       <template #end>
+        <ShoePicker :workout-id="run.workout_id" :shoe="detail.shoe ?? null" :chosen="detail.shoe_chosen" />
         <Button v-if="routeKey" small :to="{ name: 'route-detail', params: { routeKey } }" data-testid="route-link">Other runs on this route</Button>
       </template>
     </RunHero>

@@ -2,7 +2,7 @@
 from datetime import datetime
 
 from sqlalchemy import JSON, BigInteger, Boolean, CheckConstraint, DateTime, Float, ForeignKey, Index, Integer, LargeBinary, String, Text
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -454,6 +454,31 @@ class WorkoutNote(Base):
     workout_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     text: Mapped[str | None] = mapped_column(Text)
     rpe: Mapped[int | None] = mapped_column(Integer)
+    updated_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class Shoe(Base):
+    """A pair of shoes. Never deleted: retiring hides it, renaming fixes a typo. No FKs; ids are held by value."""
+    __tablename__ = "shoe"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(60))
+    retired: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    __table_args__ = (Index("uq_shoe_name_lower", func.lower(name), unique=True),)
+
+
+class ShoeDefault(Base):
+    """Default-shoe history: the row with the latest from_date on or before a run's date applies. NULL shoe_id = none."""
+    __tablename__ = "shoe_default"
+    from_date: Mapped[str] = mapped_column(String(10), primary_key=True)
+    shoe_id: Mapped[int | None] = mapped_column(Integer)
+
+
+class WorkoutShoe(Base):
+    """Per-run shoe choice. NULL shoe_id = explicitly no shoe. Absent row = follow the default."""
+    __tablename__ = "workout_shoe"
+    workout_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    shoe_id: Mapped[int | None] = mapped_column(Integer)
     updated_at: Mapped[datetime] = mapped_column(DateTime)
 
 

@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
-from strydr.api import calendar, import_api, insights, load, privacy, routes_api, settings_api, weeks
+from strydr.api import calendar, import_api, insights, load, privacy, routes_api, settings_api, shoes, weeks
 from strydr.api import schemas as sc
 from strydr.api.common import Api, rfc3339, workout_out
 from strydr.auth import sessions
@@ -109,6 +109,7 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
             issues = s.execute(select(models.DataQualityIssue.stage).where(
                 in_current(models.DataQualityIssue), models.DataQualityIssue.workout_id == workout_id)).scalars().all()
             note = s.get(models.WorkoutNote, workout_id)
+            shoe = shoes.shoe_out_for(s, workout_id, w)
             served = summary_mod.serve(s, workout_id, default_tz)
             fb = s.get(models.InsightFeedback, f"run-summary/{workout_id}")
             # a thumb belongs to the summary it was given on: it resets when the context changes
@@ -126,7 +127,8 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
                 conditions=detail.conditions if detail else None, gap=detail.gap if detail else None,
                 sleep=detail.sleep if detail else None,
                 display_geometry=display.display_geometry if display else None,
-                quality_flags=w.quality_flags or {}, data_quality_issues=list(issues), note=_note_out(note),
+                quality_flags=w.quality_flags or {}, data_quality_issues=list(issues), note=_note_out(note), shoe=shoe,
+                shoe_chosen=s.get(models.WorkoutShoe, workout_id) is not None,
             )
 
     @router.put("/workouts/{workout_id}/note", response_model=sc.NoteOut, dependencies=auth)
@@ -218,7 +220,7 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
         return out
 
     shared = Api(engine, default_tz, auth)
-    for sub in (insights, weeks, calendar, load, routes_api, privacy, settings_api, import_api):
+    for sub in (insights, weeks, calendar, load, routes_api, privacy, settings_api, import_api, shoes):
         router.include_router(sub.router(shared))
     app.include_router(router)
     if web_dist is not None and web_dist.is_dir():

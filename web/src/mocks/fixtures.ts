@@ -47,6 +47,8 @@ export function workoutDetail(over: Partial<WorkoutDetail> = {}): WorkoutDetail 
     quality_flags: {},
     data_quality_issues: [],
     note: null,
+    shoe: null,
+    shoe_chosen: false,
     ...over,
   }
 }
