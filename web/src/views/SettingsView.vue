@@ -13,7 +13,7 @@ import ImportPanel from '@/components/app/ImportPanel.vue'
 import Icons from '@/components/ui/Icons.vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
-import { hrmaxText } from '@/lib/profile'
+import { hrmaxText, zoneBpm } from '@/lib/profile'
 import type { ProfileSettings } from '@/api/types'
 
 const s = useSettingsStore()
@@ -68,6 +68,16 @@ const tzOk = (tz: string) => {
 }
 
 const hrmaxLine = computed(() => hrmaxText(s.resolved))
+// The HRmax the zones work out from: the override typed in the form, else the resolved one.
+const liveHrmax = computed(() => {
+  const text = form.hrmaxOverride.trim()
+  const typed = text === '' ? NaN : Number(text)
+  if (Number.isInteger(typed) && typed >= 100 && typed <= 230) return typed
+  // A cleared override that is still the saved HRmax has no value to preview until it is saved.
+  if (text === '' && s.resolved?.hrmax_source === 'override') return null
+  return s.resolved?.hrmax ?? null
+})
+const zoneBpms = computed(() => form.zones.map((pct) => zoneBpm(liveHrmax.value, pct)))
 
 function intOrNull(v: string, min: number, max: number, what: string): number | null {
   if (v.trim() === '') return null
@@ -163,17 +173,22 @@ async function signOut() {
       <p class="hrmax" data-testid="hrmax-source">Your HRmax: {{ hrmaxLine }}</p>
       <label class="field">
         <span class="row-meta">HRmax override (bpm)</span>
-        <input v-model="form.hrmaxOverride" class="input" inputmode="numeric" placeholder="Leave empty to use the value above" data-testid="hrmax-override" />
+        <input v-model="form.hrmaxOverride" class="input" inputmode="numeric" placeholder="Leave empty to use your age" data-testid="hrmax-override" />
       </label>
       <fieldset class="zones">
         <legend class="row-meta">Zone upper limits, % of HRmax</legend>
         <div class="zone-row">
           <label v-for="(_, i) in form.zones" :key="i" class="field">
             <span class="row-meta">Zone {{ i + 1 }}</span>
-            <input v-model="form.zones[i]" class="input" inputmode="decimal" @input="zonesTouched = true" />
+            <span class="pct">
+              <input v-model="form.zones[i]" class="input" inputmode="decimal" :data-testid="`zone-pct-${i + 1}`" @input="zonesTouched = true" />
+              <span class="pct-sign" aria-hidden="true">%</span>
+            </span>
+            <span v-if="zoneBpms[i] != null" class="row-meta" :data-testid="`zone-bpm-${i + 1}`">{{ zoneBpms[i] }} bpm</span>
           </label>
         </div>
-        <p class="row-meta">Zone 5 covers everything above zone 4.</p>
+        <p v-if="zoneBpms[3] != null" class="row-meta" data-testid="zone-5">Zone 5: above {{ zoneBpms[3] }} bpm</p>
+        <p v-else class="row-meta">Zone 5 covers everything above zone 4.</p>
       </fieldset>
     </GlassPanel>
 
@@ -215,6 +230,9 @@ async function signOut() {
 .zones legend { padding: 0; margin-bottom: var(--space-2); }
 .zone-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: var(--space-3); }
 .hrmax { font-weight: 600; }
+.pct { position: relative; display: flex; }
+.pct .input { width: 100%; padding-right: var(--space-6, 32px); }
+.pct-sign { position: absolute; right: var(--space-3); top: 50%; transform: translateY(-50%); color: var(--ink-muted, var(--ink)); pointer-events: none; }
 .status { align-self: flex-start; }
 .err { margin: 0; color: var(--danger); }
 </style>

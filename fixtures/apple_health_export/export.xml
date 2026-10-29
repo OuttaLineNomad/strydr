@@ -8,7 +8,7 @@
 ]>
 <HealthData locale="en_US">
  <ExportDate value="2026-03-10 12:00:00 -0500"/>
- <Me HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexNotSet"/>
+ <Me HKCharacteristicTypeIdentifierDateOfBirth="1985-06-15" HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexFemale"/>
   <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Synthetic Watch" sourceVersion="11.0" device="&lt;&lt;HKDevice: 0x0&gt;, name:Synthetic Watch, manufacturer:Synthetic, model:Watch, hardware:Watch0,0, software:11.0&gt;&gt;" unit="count/min" creationDate="2026-03-03 07:30:23 -0500" startDate="2026-03-03 07:30:23 -0500" endDate="2026-03-03 07:30:23 -0500" value="157"/>
   <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Synthetic Watch" sourceVersion="11.0" device="&lt;&lt;HKDevice: 0x0&gt;, name:Synthetic Watch, manufacturer:Synthetic, model:Watch, hardware:Watch0,0, software:11.0&gt;&gt;" unit="count/min" creationDate="2026-03-03 07:30:32 -0500" startDate="2026-03-03 07:30:32 -0500" endDate="2026-03-03 07:30:32 -0500" value="160"/>
   <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Synthetic Watch" sourceVersion="11.0" device="&lt;&lt;HKDevice: 0x0&gt;, name:Synthetic Watch, manufacturer:Synthetic, model:Watch, hardware:Watch0,0, software:11.0&gt;&gt;" unit="count/min" creationDate="2026-03-03 07:30:40 -0500" startDate="2026-03-03 07:30:40 -0500" endDate="2026-03-03 07:30:40 -0500" value="158"/>

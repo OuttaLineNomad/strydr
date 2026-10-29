@@ -75,7 +75,7 @@ def test_happy_path_after_hae_merges_the_twins(engine, send, worker, login, expo
     assert len(select_ids(engine)) > len(hae_ids)
     with Session(engine) as s:
         p = s.execute(select(models.RawPayload).where(models.RawPayload.source == "apple")).scalar_one()
-        assert p.status == "processed" and p.adapter_version == 2
+        assert p.status == "processed" and p.adapter_version == 3
     assert count(engine, models.Job, models.Job.type == "fetch_weather") == 0  # weather is off
 
 
@@ -167,7 +167,7 @@ def test_reparse_replays_each_payload_through_its_own_parser(engine, send, worke
     assert after == before
     with Session(engine) as s:  # the HAE payload now carries the bumped version; the Apple one is untouched
         vers = dict(s.execute(select(models.RawPayload.source, models.RawPayload.adapter_version)).all())
-    assert vers == {"hae": process.ADAPTER_VERSION, "apple": 2}
+    assert vers == {"hae": process.ADAPTER_VERSION, "apple": 3}
     assert not reparse.needs_reparse(engine)
 
 
@@ -348,13 +348,13 @@ def test_a_processed_payload_is_not_imported_twice(engine, worker, login, export
 def test_apple_payload_staleness_is_judged_by_the_apple_version(engine, worker, login, export_zip, monkeypatch):
     assert _run(engine, worker, login, export_zip)["state"] == "done"
     assert not reparse.needs_reparse(engine)
-    monkeypatch.setattr(process.apple, "ADAPTER_VERSION", 3)
+    monkeypatch.setattr(process.apple, "ADAPTER_VERSION", 4)
     assert reparse.needs_reparse(engine) and reparse.enqueue_if_stale(engine)
     worker.run_all()
     assert not reparse.needs_reparse(engine)
     with Session(engine) as s:
-        assert s.execute(select(models.RawPayload.adapter_version)).scalar_one() == 3
-        assert s.execute(select(models.Workout.adapter_version).distinct()).scalars().all() == [3]
+        assert s.execute(select(models.RawPayload.adapter_version)).scalar_one() == 4
+        assert s.execute(select(models.Workout.adapter_version).distinct()).scalars().all() == [4]
 
 
 def test_a_processed_payload_with_no_version_is_stale(engine, worker, login, export_zip):
@@ -363,3 +363,85 @@ def test_a_processed_payload_with_no_version_is_stale(engine, worker, login, exp
         s.execute(models.RawPayload.__table__.update().values(adapter_version=None))
         s.commit()
     assert reparse.needs_reparse(engine)
+
+
+def _cfg(engine):
+    from strydr.store import settings
+    with Session(engine) as s:
+        return settings.read(s)
+
+
+def _pending_recomputes(engine):
+    return count(engine, models.Job, models.Job.type == "recompute", models.Job.status == "pending")
+
+
+def test_import_fills_birth_year_and_sex_when_unset(engine, worker, login, export_zip):
+    assert _run(engine, worker, login, export_zip)["state"] == "done"
+    cfg = _cfg(engine)
+    assert (cfg.birth_year, cfg.sex) == (1985, "female")
+
+
+def test_import_never_overwrites_the_runners_values(engine, worker, login, export_zip):
+    from strydr.store import settings
+    with Session(engine) as s:
+        settings.write(s, settings.UserSettings(birth_year=1970, sex="male"))
+        s.commit()
+    _run(engine, worker, login, export_zip)
+    cfg = _cfg(engine)
+    assert (cfg.birth_year, cfg.sex) == (1970, "male")
+
+
+def test_reparse_of_a_filled_export_changes_nothing_and_queues_no_recompute(engine, worker, login, export_zip):
+    _run(engine, worker, login, export_zip)
+    with Session(engine) as s:
+        pid = s.execute(select(models.RawPayload.id).where(models.RawPayload.source == "apple")).scalar_one()
+    assert _pending_recomputes(engine) == 0
+    process.process_payload(engine, pid)
+    assert (_cfg(engine).birth_year, _cfg(engine).sex) == (1985, "female")
+    assert _pending_recomputes(engine) == 0
+
+
+def test_reparse_fills_from_an_export_imported_before_and_enqueues_one_recompute(engine, worker, login, export_zip):
+    _run(engine, worker, login, export_zip)
+    from strydr.store import settings
+    with Session(engine) as s:  # as if imported by the older adapter: nothing was filled
+        settings.write(s, settings.UserSettings())
+        pid = s.execute(select(models.RawPayload.id).where(models.RawPayload.source == "apple")).scalar_one()
+        s.commit()
+    process.process_payload(engine, pid)
+    assert (_cfg(engine).birth_year, _cfg(engine).sex) == (1985, "female")
+    assert _pending_recomputes(engine) == 1
+
+
+def test_not_set_in_apple_writes_nothing(engine):
+    from strydr.sources.canonical import Characteristics
+    with Session(engine) as s:
+        process.write_characteristics(s, Characteristics(None, None))
+        s.commit()
+    cfg = _cfg(engine)
+    assert (cfg.birth_year, cfg.sex) == (None, None) and _pending_recomputes(engine) == 0
+
+
+@pytest.mark.parametrize("have, want", [({"birth_year": 1970}, (1970, "female")), ({"sex": "male"}, (1985, "male"))])
+def test_import_fills_only_the_unset_field(engine, worker, login, export_zip, have, want):
+    from strydr.store import settings
+    with Session(engine) as s:
+        settings.write(s, settings.UserSettings(**have))
+        s.commit()
+    _run(engine, worker, login, export_zip)
+    cfg = _cfg(engine)
+    assert (cfg.birth_year, cfg.sex) == want
+
+
+def test_filling_leaves_no_home_tz_row_and_importing_has_no_import_cycle(engine):
+    import subprocess
+    import sys
+    from strydr.sources.canonical import Characteristics
+    with Session(engine) as s:
+        process.write_characteristics(s, Characteristics(1985, "female"), "Europe/Paris")
+        s.commit()
+        assert s.get(models.Settings, "home_tz") is None
+        assert s.get(models.Settings, "birth_year") is not None
+    assert _pending_recomputes(engine) == 1
+    r = subprocess.run([sys.executable, "-c", "import strydr.pipeline.normalize.process"])
+    assert r.returncode == 0

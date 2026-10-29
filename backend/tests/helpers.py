@@ -1,5 +1,6 @@
 """Synthetic canonical data for analytic tests. Everything here is invented."""
 import json
+from dataclasses import replace
 import zlib
 from datetime import datetime, timedelta
 
@@ -45,6 +46,14 @@ def add_run(engine, wid: str, start: datetime, minutes: int, speed_mps: float = 
                                       data=zlib.compress(json.dumps(cols).encode())))
         s.commit()
     return dist
+
+
+def set_hrmax(engine, hrmax: int) -> None:
+    """HRmax is the runner's override or comes from age; tests that need zones pin it before the recompute."""
+    from strydr.store import settings
+    with Session(engine) as s:
+        settings.write(s, replace(settings.read(s), hrmax_override=hrmax))
+        s.commit()
 
 
 def recompute_now(engine, as_of: str) -> int:

@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from strydr.sources import hae
 from strydr.sources.apple import ADAPTER_VERSION, AdapterError, parse
 from strydr.sources.apple import sleep as sleep_mod
-from strydr.sources.canonical import DailyMetric, Workout, fallback_workout_id
+from strydr.sources.canonical import Characteristics, DailyMetric, Workout, fallback_workout_id
 
 EXPORT = FIXTURES / "apple_health_export" / "export.xml"
 HOME = ZoneInfo("America/New_York")
@@ -42,7 +42,7 @@ RUN = ("run", "2026-03-03T12:30:20")
 
 
 def test_version():
-    assert ADAPTER_VERSION == 2
+    assert ADAPTER_VERSION == 3
 
 
 def test_only_run_walk_hike_are_yielded():
@@ -152,7 +152,7 @@ def test_sleep_source_is_chosen_not_merged():
 
 def test_noise_is_ignored():
     kinds = {type(x) for x in _parse()}
-    assert kinds == {Workout, DailyMetric}
+    assert kinds == {Characteristics, Workout, DailyMetric}
     assert not any(m.metric in ("step_count", "active_energy") for m in _parse() if isinstance(m, DailyMetric))
 
 
@@ -360,3 +360,37 @@ def test_workouts_are_deferred_until_the_stream_ends():
     stream = Counting(data)
     first = next(parse(stream, HOME))
     assert isinstance(first, Workout) and stream.read_bytes == len(data)
+
+
+def _me(tmp_path, attrs):
+    p = tmp_path / "export.xml"
+    p.write_text(f'<?xml version="1.0"?><HealthData locale="en_US"><ExportDate value="2026-03-10 12:00:00 -0500"/>'
+                 f'<Me {attrs}/></HealthData>')
+    return [i for i in parse(p.open("rb"), HOME) if isinstance(i, Characteristics)]
+
+
+def test_me_gives_birth_year_and_sex_from_the_fixture():
+    (c,) = [i for i in _parse() if isinstance(i, Characteristics)]
+    assert (c.birth_year, c.sex) == (1985, "female")
+
+
+@pytest.mark.parametrize("attrs, want", [
+    ('HKCharacteristicTypeIdentifierDateOfBirth="1990-01-02" HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexMale"', (1990, "male")),
+    ('HKCharacteristicTypeIdentifierDateOfBirth="1990-01-02" HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexNotSet"', (1990, None)),
+    ('HKCharacteristicTypeIdentifierDateOfBirth="" HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexOther"', None),
+    ('HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexFemale"', (None, "female")),
+    ('', None),
+    ('HKCharacteristicTypeIdentifierDateOfBirth="2099-01-02"', None),
+    ('HKCharacteristicTypeIdentifierDateOfBirth="15/06/1985"', None),
+])
+def test_me_parsing(tmp_path, attrs, want):
+    got = _me(tmp_path, attrs)
+    assert (got and (got[0].birth_year, got[0].sex)) == (want or [])
+
+
+def test_no_me_or_a_nested_me_gives_nothing(tmp_path):
+    head = '<?xml version="1.0"?><HealthData locale="en_US"><ExportDate value="2026-03-10 12:00:00 -0500"/>'
+    for body in ("", '<Correlation type="x"><Me HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexMale"/></Correlation>'):
+        p = tmp_path / "export.xml"
+        p.write_text(head + body + "</HealthData>")
+        assert not [i for i in parse(p.open("rb"), HOME) if isinstance(i, Characteristics)]

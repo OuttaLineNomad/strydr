@@ -22,7 +22,7 @@ async function mountIt() {
 
 describe('HRmax source text', () => {
   it('says where each source came from', () => {
-    expect(hrmaxText(profile({ hrmax: 193, hrmax_source: 'observed' }).resolved)).toBe('193 bpm, measured from your runs')
+    expect(hrmaxText(profile({ hrmax: 193, hrmax_source: 'observed' }).resolved)).toBe('193 bpm') // an older generation's row
     expect(hrmaxText(profile({ hrmax: 188, hrmax_source: 'tanaka' }).resolved)).toBe('188 bpm, estimated from your age')
     expect(hrmaxText(profile({ hrmax: 190, hrmax_source: 'override' }).resolved)).toBe('190 bpm, set by you')
   })
@@ -43,9 +43,53 @@ describe('SettingsView', () => {
   })
 
   it('shows the resolved HRmax and its source in words', async () => {
-    current = profile({ hrmax: 193, hrmax_source: 'observed' })
+    current = profile({ hrmax: 193, hrmax_source: 'override' })
     const w = await mountIt()
-    expect(w.get('[data-testid="hrmax-source"]').text()).toBe('Your HRmax: 193 bpm, measured from your runs')
+    expect(w.get('[data-testid="hrmax-source"]').text()).toBe('Your HRmax: 193 bpm, set by you')
+  })
+
+  it('shows each zone limit with a % sign and the bpm it works out to', async () => {
+    current = profile({ hrmax: 180, hrmax_source: 'tanaka' })
+    const w = await mountIt()
+    expect([1, 2, 3, 4].map((i) => w.get(`[data-testid="zone-bpm-${i}"]`).text())).toEqual(['108 bpm', '126 bpm', '144 bpm', '162 bpm'])
+    expect(w.get('[data-testid="zone-5"]').text()).toBe('Zone 5: above 162 bpm')
+    expect(w.findAll('.pct-sign')).toHaveLength(4)
+    expect(w.get('[data-testid="hrmax-override"]').attributes('placeholder')).toBe('Leave empty to use your age')
+  })
+
+  it('works the bpm out from the override typed in the form, before saving', async () => {
+    current = profile({ hrmax: 180, hrmax_source: 'tanaka' })
+    const w = await mountIt()
+    await w.get('[data-testid="hrmax-override"]').setValue('200')
+    expect(w.get('[data-testid="zone-bpm-1"]').text()).toBe('120 bpm')
+    expect(w.get('[data-testid="zone-5"]').text()).toBe('Zone 5: above 180 bpm')
+    await w.get('[data-testid="zone-pct-2"]').setValue('75')
+    expect(w.get('[data-testid="zone-bpm-2"]').text()).toBe('150 bpm')
+  })
+
+  it('ignores an out-of-range or fractional override in the preview', async () => {
+    current = profile({ hrmax: 180, hrmax_source: 'tanaka' })
+    const w = await mountIt()
+    for (const v of ['20', '180.5']) {
+      await w.get('[data-testid="hrmax-override"]').setValue(v)
+      expect([1, 2, 3, 4].map((i) => w.get(`[data-testid="zone-bpm-${i}"]`).text())).toEqual(['108 bpm', '126 bpm', '144 bpm', '162 bpm'])
+    }
+  })
+
+  it('hides the bpm when a saved override is cleared in the form', async () => {
+    current = profile({ hrmax: 190, hrmax_source: 'override' }, { hrmax_override: 190 })
+    const w = await mountIt()
+    expect(w.get('[data-testid="zone-bpm-1"]').text()).toBe('114 bpm')
+    await w.get('[data-testid="hrmax-override"]').setValue('')
+    expect(w.find('[data-testid="zone-bpm-1"]').exists()).toBe(false)
+  })
+
+  it('hides the bpm text when there is no HRmax', async () => {
+    current = profile({ hrmax: null, hrmax_source: 'unavailable' })
+    const w = await mountIt()
+    expect(w.find('[data-testid="zone-bpm-1"]').exists()).toBe(false)
+    expect(w.find('[data-testid="zone-5"]').exists()).toBe(false)
+    expect(w.get('[data-testid="hrmax-source"]').text()).toMatch(/not available/)
   })
 
   it('shows the estimate wording when HRmax comes from age', async () => {

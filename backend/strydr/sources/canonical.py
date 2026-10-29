@@ -50,6 +50,13 @@ class DailyMetric:
     field_count: int = 1  # populated fields; AD-3 "more samples" proxy
 
 
+@dataclass(slots=True)
+class Characteristics:
+    """Who the export says the runner is. Only the birth year is kept, never the date."""
+    birth_year: int | None = None
+    sex: str | None = None  # male | female
+
+
 def fallback_workout_id(wtype: str, start_utc: datetime) -> str:
     """The AD-6 key for a workout with no source id: `h:` + sha256(type|start)[:16]. Shared by every adapter."""
     key = f"{wtype}|{start_utc.replace(tzinfo=UTC).isoformat(timespec='seconds')}"

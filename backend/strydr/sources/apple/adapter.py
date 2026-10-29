@@ -13,10 +13,10 @@ from xml.etree import ElementTree as ET
 from zoneinfo import ZoneInfo
 
 from strydr.sources.apple import sleep
-from strydr.sources.canonical import DailyMetric, SampleSeries, Workout, active_seconds, fallback_workout_id
+from strydr.sources.canonical import Characteristics, DailyMetric, SampleSeries, Workout, active_seconds, fallback_workout_id
 from strydr.sources.hae.units import convert
 
-ADAPTER_VERSION = 2
+ADAPTER_VERSION = 3
 
 HR_MIN, HR_MAX = 25, 250  # bpm; outside this range a sample is impossible (same bounds as the HAE adapter)
 MAX_SPEED_MPS = 12.0
@@ -46,7 +46,7 @@ class AdapterError(Exception):
 
 
 def parse(stream: BinaryIO, home_tz: tzinfo,
-          open_route: Callable[[str], BinaryIO | None] | None = None) -> Iterator[Workout | DailyMetric]:
+          open_route: Callable[[str], BinaryIO | None] | None = None) -> Iterator[Characteristics | Workout | DailyMetric]:
     """Stream-parse an export. Workouts are yielded after the stream ends (their heart rate records precede
     them in the file), then daily metrics and sleep.
 
@@ -61,6 +61,8 @@ def parse(stream: BinaryIO, home_tz: tzinfo,
     seen: set[tuple] = set()  # identical records (a nested copy of a top-level one) count once
     hr = _HeartRates()
     pending: list[tuple[Workout, str | None, list[tuple[float, float]], str | None]] = []
+    me: Characteristics | None = None
+    export_year = datetime.now(UTC).year
     depth = 0
     root = None
     in_workout = in_other = False  # inside a top-level Workout / Correlation
@@ -81,6 +83,10 @@ def parse(stream: BinaryIO, home_tz: tzinfo,
                     hr.add(el, nested=depth > 1)
                 else:
                     _record(el, home_tz, sums, sleep_samples, seen)
+            if el.tag == "ExportDate" and depth == 1 and (el.get("value") or "")[:4].isdigit():
+                export_year = int(el.get("value")[:4])
+            if el.tag == "Me" and depth == 1:
+                me = _characteristics(el, export_year)
             if el.tag == "Workout" and depth == 1:
                 w = _workout(el)
                 in_workout = False
@@ -95,6 +101,8 @@ def parse(stream: BinaryIO, home_tz: tzinfo,
     except ET.ParseError as e:
         raise AdapterError("malformed XML") from e
 
+    if me is not None:
+        yield me
     hr.finish()
     for w, source, pauses, route_path in pending:
         series = hr.series(w, source, pauses)
@@ -111,6 +119,16 @@ def parse(stream: BinaryIO, home_tz: tzinfo,
         yield DailyMetric(metric, date, units, total / n)
     for date, extra in sleep.nights(sleep_samples, home_tz):
         yield DailyMetric("sleep_analysis", date, "hr", extra["totalSleep"], extra, len(extra))
+
+
+def _characteristics(el, export_year: int) -> Characteristics | None:
+    """Birth year and sex from `<Me>`; anything unset, empty or unrecognised is left out."""
+    born = (el.get("HKCharacteristicTypeIdentifierDateOfBirth") or "")[:4]
+    ok = len(born) == 4 and born.isdigit() and (el.get("HKCharacteristicTypeIdentifierDateOfBirth") or "")[4:5] == "-"
+    year = int(born) if ok and 1900 <= int(born) <= export_year - 5 else None
+    sex = {"HKBiologicalSexMale": "male", "HKBiologicalSexFemale": "female"}.get(
+        el.get("HKCharacteristicTypeIdentifierBiologicalSex") or "")
+    return Characteristics(year, sex) if year is not None or sex is not None else None
 
 
 # --- timestamps -------------------------------------------------------------

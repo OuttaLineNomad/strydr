@@ -15,12 +15,10 @@ from strydr.pipeline.derive.load import LoadParams
 from strydr.pipeline.derive.load.trimp import hr_intervals
 from strydr.pipeline.hr import minute_means, sample_steps
 from strydr.pipeline.insights.thresholds import load_thresholds
-from strydr.pipeline.profile import resolve
 from strydr.store import models, settings
 
 from conftest import FIXTURES, load_fixture
 from helpers import add_run, login, recompute_now
-
 
 
 def _generator():
@@ -74,21 +72,6 @@ def test_dropout_adds_the_cap_not_the_gap():
     assert not any(m in means for m in range(6, 11))  # minutes inside the gap have no HR
 
 
-def test_hrmax_spike_needs_two_full_minutes():
-    t, a = _readings(10, [170.0] * 10)
-    for i, x in enumerate(t):
-        if 200 <= x < 220:
-            a[i] = 195.0
-    assert resolve.observed_hrmax([(t, a)]) <= 172
-
-
-def test_hrmax_sustained_two_minutes():
-    hrs = [150.0] * 10
-    hrs[4] = hrs[5] = 180.0
-    t, a = _readings(10, hrs)
-    assert resolve.observed_hrmax([(t, a)]) == 180
-
-
 def test_impossible_reading_counts_no_time_and_neighbours_do_not_stretch():
     t = [0.0, 5.0, 10.0, 15.0, 20.0]
     a = [150.0, 150.0, 320.0, 150.0, 150.0]
@@ -140,10 +123,6 @@ def test_unsorted_readings_get_the_same_steps_in_the_callers_order():
     order = [11, 3, 19, 0, 7, 15, 1, 12, 5, 18, 2, 9, 14, 4, 17, 6, 10, 13, 8, 16]
     got = sample_steps([t[i] for i in order], [a[i] for i in order])
     assert got == [want[i] for i in order]
-
-
-def test_a_few_seconds_in_two_minutes_is_not_two_minutes_held():
-    assert resolve.observed_hrmax([([119.0, 121.0], [180.0, 180.0])]) is None
 
 
 def test_all_impossible_readings_give_no_zones():
@@ -204,12 +183,6 @@ def test_run_without_pauses_gives_identical_results_on_either_clock():
     assert summary.minute_points(series, None, 1800.0) == summary.minute_points({"t": t, "avg": a}, None, 1800.0)
 
 
-def test_observed_hrmax_ignores_a_paused_spike():
-    series, _ = _paused_run(paused_hr=200.0, run_hr=150.0)
-    assert resolve.observed_hrmax([(series["t"], series["avg"])]) == 200  # wall clock sees the spike
-    assert resolve.observed_hrmax([(hr.active_clock(series), series["avg"])]) == 150
-
-
 def test_paused_route_fixes_do_not_dilute_the_pause_start_minute_speed():
     t = [float(x) for x in range(150)]
     at = [x if x <= 60 else (60.0 if x < 90 else x - 29.0) for x in t]
@@ -261,13 +234,3 @@ def test_pipeline_gives_a_paused_run_no_zone_intensity_load_or_hard_time(engine)
             _latest(s, models.WorkoutLoad, workout_id="control").trimp)
         assert _latest(s, models.DayClass, local_date="2026-03-10").hard_seconds == 0.0
 
-
-def test_profile_observed_hrmax_ignores_a_paused_spike(engine):
-    for i in range(resolve.OBSERVED_MIN_RUNS):
-        wid = f"r{i}"
-        add_run(engine, wid, datetime(2026, 3, 1 + i, 8, 0), 15, hr=None, route=False)
-        _add_hr_with_pause(engine, wid, True, paused_hr=200.0, run_hr=150.0)
-    recompute_now(engine, "2026-03-12")
-    with Session(engine) as s:
-        prof = _latest(s, models.ProfileResult)
-    assert (prof.hrmax_source, prof.hrmax) == ("observed", 150)

@@ -1,15 +1,10 @@
 """Pure profile math (AD-7: the sole owner of HRmax, zones, easy ceiling and the resting-HR / HRV baselines)."""
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
 import math
 from statistics import median, stdev
 
-from ..hr import minute_bins
-
-MIN_PAIR_COVERAGE_S = 45  # two adjacent minute bins must hold this much valid HR time between them
-OBSERVED_WINDOW_DAYS = 365
-OBSERVED_MIN_RUNS = 5  # fewer runs with HR and the observed value is not trusted yet (FR-31)
 EASY_CEILING_BOUND = 2  # index into the four zone upper bounds: 80% of HRmax by default (FR-18)
 RHR_PLAUSIBLE = (25.0, 130.0)
 HRV_PLAUSIBLE = (5.0, 300.0)
@@ -18,36 +13,17 @@ HRV_PLAUSIBLE = (5.0, 300.0)
 @dataclass(frozen=True)
 class HrmaxResult:
     hrmax: int | None
-    source: str  # override|observed|tanaka|unavailable
+    source: str  # override|tanaka|unavailable ("observed" only in rows from an older generation)
 
 
 def tanaka(birth_year: int, as_of: date) -> int:
     return round(208 - 0.7 * (as_of.year - birth_year))
 
 
-def observed_hrmax(runs: Iterable[tuple[Sequence[float], Sequence[float]]]) -> int | None:
-    """Highest average HR held for 2+ consecutive minutes, over (active clock, avg) columns of each run (`hr.active_clock`, so paused readings count for nothing).
-
-    Each active-clock minute is the time-weighted mean of its samples; the best adjacent pair of minutes bounds
-    every longer stretch, so a pair is enough."""
-    best = None
-    for t, avg in runs:
-        bins = minute_bins(t, avg)
-        for m, (a, wa) in bins.items():
-            nxt = bins.get(m + 1)
-            if nxt is not None and wa + nxt[1] >= MIN_PAIR_COVERAGE_S:
-                pair = min(a, nxt[0])
-                best = pair if best is None else max(best, pair)
-    return round(best) if best is not None else None
-
-
-def resolve_hrmax(override: int | None, observed: int | None, observed_runs: int,
-                  birth_year: int | None, as_of: date) -> HrmaxResult:
-    """Order (FR-31): the runner's override, the observed value, then Tanaka from birth year."""
+def resolve_hrmax(override: int | None, birth_year: int | None, as_of: date) -> HrmaxResult:
+    """Order: the runner's override, then Tanaka from birth year. A measured maximum is never used."""
     if override is not None:
         return HrmaxResult(override, "override")
-    if observed is not None and observed_runs >= OBSERVED_MIN_RUNS:
-        return HrmaxResult(observed, "observed")
     if birth_year is not None:
         return HrmaxResult(tanaka(birth_year, as_of), "tanaka")
     return HrmaxResult(None, "unavailable")

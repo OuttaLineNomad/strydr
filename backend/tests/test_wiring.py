@@ -13,12 +13,13 @@ from strydr.pipeline.insights.templates import BANNED_TERMS, ROUTE_TEMPLATES, re
 from strydr.pipeline.profile import resolve
 from strydr.store import models
 
-from helpers import add_run, login, recompute_now
+from helpers import add_run, login, recompute_now, set_hrmax
 
 AS_OF = "2026-10-26"
 
 
 def _history(engine):
+    set_hrmax(engine, 150)
     for i in range(8):
         add_run(engine, f"r{i}", datetime(2026, 10, 1 + 3 * i, 7), 40, 3.0, hr=[150.0] * 40)
     add_run(engine, "walk-nohr", datetime(2026, 10, 22, 12), 30, 1.3, hr=None, route=False, type_="walk")

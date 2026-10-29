@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import Engine, delete, func, select, update
 from sqlalchemy.orm import Session
 
-from strydr.sources.canonical import DailyMetric, Workout, fallback_workout_id
+from strydr.sources.canonical import Characteristics, DailyMetric, Workout, fallback_workout_id
 from strydr.sources import apple
 from strydr.sources import hae
 from strydr.sources.hae import ADAPTER_VERSION
@@ -112,7 +112,7 @@ class SeekableChunkReader:
         self._cached = None
 
 
-def apple_items(engine: Engine, payload_id: int, home_tz: str) -> Iterator[Workout | DailyMetric]:
+def apple_items(engine: Engine, payload_id: int, home_tz: str) -> Iterator[Characteristics | Workout | DailyMetric]:
     """Parse an uploaded Apple Health export.zip in place. Raises apple.AdapterError or zipfile.BadZipFile.
 
     Output before an error is partial: callers that must not write a partial export validate with a first pass.
@@ -149,7 +149,9 @@ def process_payload(engine: Engine, payload_id: int, default_tz: str = "UTC") ->
     counts = {"workouts": 0, "metrics": 0}
     with Session(engine) as s:
         for i, item in enumerate(items, 1):
-            if isinstance(item, Workout):
+            if isinstance(item, Characteristics):
+                write_characteristics(s, item, default_tz)
+            elif isinstance(item, Workout):
                 counts["workouts"] += write_workout(s, item, payload_id, received_at, version)
             else:
                 counts["metrics"] += write_metric(s, item, payload_id, received_at, version)
@@ -158,6 +160,26 @@ def process_payload(engine: Engine, payload_id: int, default_tz: str = "UTC") ->
         s.execute(update(models.RawPayload).where(models.RawPayload.id == payload_id).values(adapter_version=version))
         s.commit()
     return counts
+
+
+def write_characteristics(s: Session, c: Characteristics, default_tz: str = "UTC") -> None:
+    """Fill the runner's birth year and sex when unset; a value they set is never replaced. A change enqueues a recompute."""
+    from strydr.jobs import queue  # the jobs package imports this module
+
+    cfg = settings.read(s, default_tz)
+    changes = {}
+    if cfg.birth_year is None and c.birth_year is not None:
+        changes["birth_year"] = c.birth_year
+    if cfg.sex is None and c.sex is not None:
+        changes["sex"] = c.sex
+    for key, value in changes.items():  # only these rows: other settings stay as the runner left them
+        row = s.get(models.Settings, key)
+        if row is None:
+            s.add(models.Settings(key=key, value=json.dumps(value)))
+        else:
+            row.value = json.dumps(value)
+    if changes:
+        queue.enqueue_recompute(s, queue.local_today(cfg.home_tz))
 
 
 def _wins(new: tuple, old: tuple) -> bool:

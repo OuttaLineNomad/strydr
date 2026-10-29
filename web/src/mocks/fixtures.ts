@@ -61,7 +61,7 @@ export function profile(over: Partial<ProfileOut['resolved'] & object> = {}, set
     resolved: {
       as_of: '2026-10-25',
       hrmax: 193,
-      hrmax_source: 'observed',
+      hrmax_source: 'tanaka',
       zone_bounds_bpm: [116, 135, 154, 174],
       easy_ceiling_bpm: 135,
       rhr_7d_median: null,

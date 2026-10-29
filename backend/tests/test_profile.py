@@ -3,7 +3,6 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from strydr.pipeline.profile import resolve
 from strydr.store import generations, models, settings
 
 from helpers import add_run, login, recompute_now
@@ -11,12 +10,10 @@ from helpers import add_run, login, recompute_now
 AS_OF = date(2026, 10, 26)
 
 
-def _hr_runs(engine, n=5, spike=None):
+def _hr_runs(engine, n=5):
     for i in range(n):
         hrs = [140.0] * 30
-        hrs[10], hrs[11] = 168.0, 172.0  # sustained pair: counts as 168
-        if spike and i == 0:
-            hrs[20] = spike  # single bucket: never sustained
+        hrs[10], hrs[11] = 168.0, 172.0  # a hard stretch: HRmax ignores it
         add_run(engine, f"hr{i}", datetime(2026, 10, 1 + i), 30, 3.0, hr=hrs)
 
 
@@ -41,35 +38,22 @@ def test_no_birth_year_means_unavailable(engine):
     assert (p.hrmax, p.hrmax_source, p.zone_bounds_bpm, p.easy_ceiling_bpm) == (None, "unavailable", None, None)
 
 
-def test_observed_beats_tanaka_and_ignores_unsustained_spikes(engine):
-    _hr_runs(engine, spike=205.0)
+def test_age_only_gives_tanaka_even_with_hard_runs(engine):
+    _hr_runs(engine)
     p = _profile(engine, birth_year=1990)
-    assert (p.hrmax, p.hrmax_source) == (168, "observed")
+    assert (p.hrmax, p.hrmax_source) == (183, "tanaka")  # the 172 bpm stretch is never the maximum
 
 
-def test_override_beats_observed(engine):
+def test_override_beats_age(engine):
     _hr_runs(engine)
     p = _profile(engine, birth_year=1990, hrmax_override=190)
     assert (p.hrmax, p.hrmax_source) == (190, "override")
 
 
-def test_too_few_runs_falls_back_to_tanaka(engine):
-    _hr_runs(engine, n=resolve.OBSERVED_MIN_RUNS - 1)
-    assert _profile(engine, birth_year=1990).hrmax_source == "tanaka"
-
-
-def test_observed_window_and_run_only(engine):
-    for i in range(5):  # all more than 12 months before as_of
-        add_run(engine, f"old{i}", datetime(2025, 6, 1 + i), 30, 3.0, hr=[170.0] * 30)
-    for i in range(5):  # walks never count
-        add_run(engine, f"walk{i}", datetime(2026, 10, 1 + i), 30, 1.4, hr=[170.0] * 30, type_="walk")
-    assert _profile(engine, birth_year=1990).hrmax_source == "tanaka"
-
-
-def test_impossible_buckets_are_ignored():
-    assert resolve.observed_hrmax([([30, 90, 150], [260.0, 270.0, 150.0])]) is None
-    assert resolve.observed_hrmax([([30, 90, 150], [150.0, 151.0, 152.0])]) == 151
-    assert resolve.observed_hrmax([([30, 400], [160.0, 160.0])]) is None  # not consecutive
+def test_hr_runs_without_birth_year_are_unavailable(engine):
+    _hr_runs(engine)
+    p = _profile(engine)
+    assert (p.hrmax, p.hrmax_source) == (None, "unavailable")
 
 
 def test_resting_hr_and_hrv_baselines(engine):

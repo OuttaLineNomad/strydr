@@ -1,14 +1,12 @@
 """Profile stage: resolves the runner's physiological reference values for one generation (AD-7)."""
 from dataclasses import dataclass
-from datetime import timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from strydr.pipeline.context import Context
-from strydr.pipeline.hr import active_clock
 from strydr.pipeline.profile import resolve
-from strydr.store import generations, models, series, settings
+from strydr.store import generations, models, settings
 
 
 @dataclass(frozen=True)
@@ -30,17 +28,7 @@ class Profile:
 def run(ctx: Context) -> Profile:
     with Session(ctx.engine) as s:
         cfg = settings.read(s, ctx.tz.key)
-        window_start = (ctx.as_of - timedelta(days=resolve.OBSERVED_WINDOW_DAYS)).isoformat()
-        run_ids = s.execute(select(models.Workout.workout_id).where(
-            models.Workout.type == "run", models.Workout.local_date > window_start,
-            models.Workout.local_date <= ctx.as_of.isoformat(), models.Workout.series_count > 0)).scalars().all()
-        hr_runs = []
-        for wid in run_ids:
-            hr = series.load_series(s, wid).get("heart_rate")
-            if hr:
-                hr_runs.append((active_clock(hr), hr["avg"]))
-        observed = resolve.observed_hrmax(hr_runs)
-        found = resolve.resolve_hrmax(cfg.hrmax_override, observed, len(hr_runs), cfg.birth_year, ctx.as_of)
+        found = resolve.resolve_hrmax(cfg.hrmax_override, cfg.birth_year, ctx.as_of)
         bounds = resolve.zone_bounds_bpm(found.hrmax, cfg.zone_bounds_pct)
         rhr = _daily(s, "resting_heart_rate")
         hrv = _daily(s, "heart_rate_variability")

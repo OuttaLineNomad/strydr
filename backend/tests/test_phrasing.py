@@ -13,7 +13,7 @@ from strydr.pipeline.phrasing.validate import number_tokens, validate
 from strydr.store import generations, models
 from strydr.store.util import utcnow
 
-from helpers import add_run, login, recompute_now
+from helpers import add_run, login, recompute_now, set_hrmax
 
 AS_OF = "2026-10-26"
 
@@ -43,6 +43,7 @@ def seeded(engine, app_client):
     # an easy-pace history with every run above the easy ceiling: intensity-mix fires
     for i in range(10):
         add_run(engine, f"r{i}", datetime(2026, 10, 1 + 2 * i, 7), 40, 3.0, hr=[150.0 + (i % 3)] * 40)
+    set_hrmax(engine, 151)
     recompute_now(engine, AS_OF)
     login(app_client)
     return app_client

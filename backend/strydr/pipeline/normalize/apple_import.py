@@ -11,9 +11,10 @@ from sqlalchemy import Engine, select, update
 from sqlalchemy.orm import Session
 
 from strydr.jobs import queue
-from strydr.pipeline.normalize.process import BATCH, apple_items, match_existing, write_metric, write_workout
+from strydr.pipeline.normalize.process import (
+    BATCH, apple_items, match_existing, write_characteristics, write_metric, write_workout)
 from strydr.sources import apple
-from strydr.sources.canonical import Workout
+from strydr.sources.canonical import Characteristics, Workout
 from strydr.store import models, settings
 from strydr.store.util import utcnow
 
@@ -68,6 +69,9 @@ def run(engine: Engine, payload_id: int, default_tz: str) -> None:
     # One transaction: any failure rolls the whole write back, so a retry starts from zero.
     with Session(engine) as s:
         for i, item in enumerate(apple_items(engine, payload_id, home_tz), 1):
+            if isinstance(item, Characteristics):
+                write_characteristics(s, item, default_tz)
+                continue
             if isinstance(item, Workout):
                 same_id = s.execute(select(models.Workout.id).where(models.Workout.workout_id == item.workout_id)).first() is not None
                 matched = not same_id and match_existing(s, item, "apple") is not None

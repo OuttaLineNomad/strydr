@@ -265,7 +265,7 @@ def build() -> dict[str, str]:
     files["export.xml"] = (
         '<?xml version="1.0" encoding="UTF-8"?>\n' + dtd + '<HealthData locale="en_US">\n'
         f' <ExportDate value="{ts(t(10, 12, 0))}"/>\n'
-        ' <Me HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexNotSet"/>\n'
+        ' <Me HKCharacteristicTypeIdentifierDateOfBirth="1985-06-15" HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexFemale"/>\n'
         + rec + corr + "".join(w.xml for w in workouts) + summary + clinical + "</HealthData>\n")
     files["export_cda.xml"] = ('<?xml version="1.0" encoding="UTF-8"?>\n'
                                '<ClinicalDocument><title>Synthetic</title></ClinicalDocument>\n')

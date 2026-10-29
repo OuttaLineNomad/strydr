@@ -222,6 +222,6 @@ def test_twins_align_with_hae_fixture():
 def test_no_real_dates_in_tree():
     for f in TREE.rglob("*"):
         if f.is_file():
-            text = f.read_text(encoding="utf-8")
+            text = f.read_text(encoding="utf-8").replace('DateOfBirth="1985-06-15"', "")  # the one synthetic birth date
             assert "2026-09" not in text and "2026-10" not in text
             assert {d[:7] for d in re.findall(r"\d{4}-\d{2}-\d{2}", text)} <= {"2026-03"}, f
