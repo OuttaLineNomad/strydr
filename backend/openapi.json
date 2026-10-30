@@ -3995,6 +3995,28 @@
             ],
             "title": "Temperature C"
           },
+          "training_load": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Load"
+          },
+          "training_load_estimated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Load Estimated"
+          },
           "workout": {
             "$ref": "#/components/schemas/WorkoutOut"
           },

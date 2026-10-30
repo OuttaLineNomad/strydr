@@ -103,7 +103,7 @@ const hrv = computed(() => delta(z.value?.hrv_ms, z.value?.hrv_usual_ms, 'ms', f
 .morning dd { margin: 2px 0 0; font-size: 20px; font-weight: 600; color: var(--ink); white-space: nowrap; }
 .morning small { display: block; font-family: var(--font-body, inherit); font-size: 12px; font-weight: 500; color: var(--ink-secondary); }
 .morning small.worse { color: var(--accent-text); }
-.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
 .na, .src { margin: 0; font-size: var(--body-sm-size); color: var(--ink-secondary); }
 .src { color: var(--ink-muted); }
 @keyframes grow-x { from { transform: scaleX(0); } }

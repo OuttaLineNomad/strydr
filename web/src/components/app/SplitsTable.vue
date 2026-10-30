@@ -73,7 +73,7 @@ const rows = computed(() =>
 .splits { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
 .splits h3 { margin: 0; }
 .scroll { overflow-x: auto; }
-.mono, .mono th, .mono td { font-family: var(--font-mono); }
+.mono, .mono th, .mono td { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
 .mono th[scope='row'] { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--ink-secondary); font-weight: 400; white-space: nowrap; }
 .na { margin: 0; color: var(--ink-muted); }
 .muted { color: var(--ink-muted); }

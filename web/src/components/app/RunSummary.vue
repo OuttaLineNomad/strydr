@@ -37,12 +37,13 @@ function press(t: Thumb) {
 </template>
 
 <style scoped>
-.summary { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); margin-block: var(--space-3); }
+.summary { padding: var(--space-4) var(--space-5); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2) var(--space-4); align-items: center; }
+.summary > .tags, .summary > .fb-err { grid-column: 1 / -1; }
 .tags { display: flex; align-items: center; gap: var(--space-2); }
 .tags:empty { display: none; }
-.ai { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--ink-muted); }
-.text { margin: 0; }
-.thumbs { display: flex; gap: var(--space-1); justify-content: flex-end; }
+.ai { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--ink-secondary); }
+.text { margin: 0; font-size: 17px; line-height: 1.5; max-width: 72ch; }
+.thumbs { display: flex; gap: var(--space-1); justify-content: flex-end; align-self: end; }
 .thumb { width: 44px; height: 44px; border-radius: var(--radius-full); border: 1.5px solid var(--divider); background: var(--surface-1); color: var(--ink-secondary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 .thumb.on { border-color: var(--accent-text); color: var(--accent-text); background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .thumb:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }

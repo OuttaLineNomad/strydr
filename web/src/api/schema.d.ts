@@ -1805,6 +1805,10 @@ export interface components {
             summary?: components["schemas"]["RunSummaryOut"] | null;
             /** Temperature C */
             temperature_c: number | null;
+            /** Training Load */
+            training_load?: number | null;
+            /** Training Load Estimated */
+            training_load_estimated?: boolean | null;
             workout: components["schemas"]["WorkoutOut"];
             /** Zone Seconds */
             zone_seconds: number[] | null;

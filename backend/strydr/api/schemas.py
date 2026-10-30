@@ -262,6 +262,8 @@ class WorkoutDetailOut(BaseModel):
     shoe: WorkoutShoeOut | None = None
     shoe_chosen: bool = False
     carry_kg: float | None = None
+    training_load: float | None = None  # this workout's TRIMP (heart-rate effort over time); None when not computed
+    training_load_estimated: bool | None = None
     summary: RunSummaryOut | None = None
 
 

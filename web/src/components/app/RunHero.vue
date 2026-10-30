@@ -18,6 +18,8 @@ const props = defineProps<{
   conditions?: string | null
   /** Last night's sleep in one line ("7h 32m sleep"); null hides it. */
   sleep?: string | null
+  /** Extra weight carried in one line ("Carrying 25 lb"); null hides it. */
+  carry?: string | null
   stats: { label: string; value: string | null; unit?: string }[]
 }>()
 
@@ -115,9 +117,10 @@ onBeforeUnmount(() => {
     <div ref="overlay" class="overlay" :style="{ opacity: exploring ? 0 : overlayFade }">
       <h1 class="title">{{ title }}</h1>
       <p class="date">{{ date }}<template v-if="!geometry"> · No route recorded</template><template v-else-if="failed"> · The map could not load</template></p>
-      <div v-if="conditions || sleep" class="chips">
+      <div v-if="conditions || sleep || carry" class="chips">
         <p v-if="conditions" class="cond" data-testid="hero-conditions"><Icons name="sun" :size="16" /> {{ conditions }}</p>
         <p v-if="sleep" class="cond" data-testid="hero-sleep"><Icons name="moon" :size="16" /> {{ sleep }}</p>
+        <p v-if="carry" class="cond" data-testid="hero-carry"><Icons name="plus" :size="16" /> {{ carry }}</p>
       </div>
       <dl class="stats">
         <HeroStat v-for="s in stats" :key="s.label" :label="s.label" :value="s.value" :unit="s.unit" />

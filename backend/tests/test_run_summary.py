@@ -84,6 +84,7 @@ def test_insight_calls_keep_their_limits(engine, seeded):
     "Your pace was associated with 99 degrees.",  # a number not in the context
     "One. Two. Three. Four.",  # four sentences
     "Your run was a great burn.",  # a banned term
+    "Your run was associated with carrying a heavy pack.",  # a carry on a run with none logged
 ])
 def test_invalid_reply_is_cached_as_null_and_not_retried(engine, seeded, facts, reply):
     _enable(seeded)
@@ -96,6 +97,10 @@ def test_invalid_reply_is_cached_as_null_and_not_retried(engine, seeded, facts, 
     n = len(prov.run_calls)
     _rerun(engine, prov)
     assert len(prov.run_calls) == n
+
+
+def test_the_prompt_says_training_load_is_not_carried_mass():
+    assert "never carried mass" in SYSTEM_RUN and "Without a 'carry' value, never say the runner carried anything" in SYSTEM_RUN
 
 
 def test_three_sentences_pass_where_insights_would_not(engine, seeded):

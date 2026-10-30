@@ -234,7 +234,7 @@ function ariaFor(i: number): string {
 .hit:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
 .crosshair { stroke: var(--chart-axis); stroke-width: 1; pointer-events: none; }
 .grid-line { stroke: var(--chart-grid); stroke-width: 1; }
-.tick-label { fill: var(--ink-secondary); font-size: 10px; font-family: var(--font-body); }
+.tick-label { fill: var(--ink-secondary); font-size: 11px; font-family: var(--font-body); }
 /* The plot scales with its card; on a phone the viewBox shrinks to ~0.55×, so set type larger. */
 @media (max-width: 600px) { .tick-label { font-size: 15px; } .end-label { font-size: 19px; } }
 .end-label { font-size: 12px; font-weight: 700; font-family: var(--font-body); font-variant-numeric: tabular-nums; }

@@ -71,7 +71,21 @@ describe('RunDetailView', () => {
       expect(w.get(`[data-testid="${id}"]`).text()).toContain('not available')
     }
     const values = w.findAll('[data-testid="stat-value"]').map((v) => v.text())
-    expect(values.filter((v) => v === 'not available')).toHaveLength(4)
+    // avg HR, max HR, cadence, elevation gain and the training load the fixture lacks
+    expect(values.filter((v) => v === 'not available')).toHaveLength(5)
+  })
+
+  it('shows the training load with what it means, and keeps the workout controls off the map', async () => {
+    const { w } = await mountIt(workoutDetail({ training_load: 56.6, training_load_estimated: false, carry_kg: 11.3 }))
+    const tile = w.get('[data-testid="training-load"]')
+    expect(tile.text()).toContain('57')
+    expect(tile.text()).toContain('Heart rate × time')
+    const hero = w.get('[data-testid="run-hero"]')
+    for (const id of ['shoe-picker', 'carry-input', 'type-run']) {
+      expect(hero.find(`[data-testid="${id}"]`).exists()).toBe(false)
+      expect(w.get('[data-testid="workout-details"]').find(`[data-testid="${id}"]`).exists()).toBe(true)
+    }
+    expect(w.get('[data-testid="hero-carry"]').text()).toContain('Carrying 25 lb')
   })
 
   it('puts every chart behind a table twin', async () => {

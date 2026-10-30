@@ -83,6 +83,7 @@ def test_workout_detail_series_and_splits(engine, app_client):
     assert len(d["hr_series"]) == 40 and d["hr_series"][0]["avg"] == 150
     assert d["pace_series"] and d["elevation_series"] and d["display_geometry"]["segments"]
     assert d["zone_seconds"] is None or len(d["zone_seconds"]) == 5
+    assert d["training_load"] is not None and d["training_load"] > 0 and isinstance(d["training_load_estimated"], bool)
     assert app_client.get("/api/v1/workouts/nope").status_code == 404
 
 

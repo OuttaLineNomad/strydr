@@ -22,7 +22,7 @@ from strydr.store.generations import in_current
 from strydr.store.util import utcnow
 
 log = logging.getLogger("strydr.phrasing")
-SUMMARY_VERSION = "3"
+SUMMARY_VERSION = "4"
 MAX_TOKENS = 220
 MAX_SENTENCES = 3
 MAX_CHARS = 450
@@ -32,8 +32,10 @@ SYSTEM_RUN = (
     "Write two or three short plain sentences and nothing else. "
     "Link the pace or effort to at most two context factors from the JSON (such as the weather, sleep, training load or "
     "the comparison with similar runs), and say they are 'associated with' each other, never that one caused the other. "
-    "If the run has a 'carry' value, the runner carried that load: name it as a context factor, written as the word 'carrying' "
-    "followed by the carry value exactly as it appears in the JSON, and do not read a slower pace or higher heart rate on that run as a poor day. "
+    "Only when the 'run' group has a 'carry' value did the runner carry extra mass: then name it as a context factor, written as the "
+    "word 'carrying' followed by that value exactly as it appears in the JSON, and do not read a slower pace or higher heart rate on "
+    "that run as a poor day. Without a 'carry' value, never say the runner carried anything. "
+    "'run_load' and the other 'training' values are heart-rate training load scores, never carried mass: call them 'training load'. "
     "Use only numbers that appear in the JSON, written exactly the same way (14:04 stays 14:04) with the same units, "
     "and add no other numbers. "
     "Give no medical advice, no diagnosis and no injury, risk, calorie or weight talk. "
@@ -97,6 +99,8 @@ def summarize_runs(s: Session, provider: Provider, units: str, as_of: date, shou
             continue
         failures = 0
         text = validate(raw, allowed_numbers_run(payload), max_sentences=MAX_SENTENCES, max_chars=MAX_CHARS)
+        if text and "carry" not in payload.run and "carr" in text.lower():  # a carry the runner never logged
+            text = None
         counts["summarised" if text else "summaries_rejected"] += 1
         s.execute(delete(models.RunSummaryCache).where(
             models.RunSummaryCache.workout_id == wid, models.RunSummaryCache.context_hash != h))

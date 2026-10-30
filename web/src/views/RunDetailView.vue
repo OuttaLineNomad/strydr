@@ -8,9 +8,7 @@ import Button from '@/components/ui/Button.vue'
 import SplitsTable from '@/components/app/SplitsTable.vue'
 import NoteEditor from '@/components/app/NoteEditor.vue'
 import InsightList from '@/components/app/InsightList.vue'
-import TypePicker from '@/components/app/TypePicker.vue'
-import CarryField from '@/components/app/CarryField.vue'
-import ShoePicker from '@/components/app/ShoePicker.vue'
+import WorkoutDetails from '@/components/app/WorkoutDetails.vue'
 import RunSummary from '@/components/app/RunSummary.vue'
 import RunHero from '@/components/app/RunHero.vue'
 import ConditionsCard from '@/components/app/ConditionsCard.vue'
@@ -30,6 +28,8 @@ import {
   formatDuration,
   formatElevation,
   formatPace,
+  formatWeightValue,
+  weightUnit,
   metersToFeet,
   paceSeconds,
   paceUnit,
@@ -128,6 +128,7 @@ const elev = computed(() => {
       :date="formatLocalDate(run.local_date)"
       :conditions="conditionsLine(detail.conditions, s.units)"
       :sleep="sleepLine(detail.sleep)"
+      :carry="detail.carry_kg == null ? null : `Carrying ${formatWeightValue(detail.carry_kg, s.units)} ${weightUnit(s.units)}`"
       :stats="[
         { label: 'Distance', value: run.distance_m == null ? null : formatDistance(run.distance_m, s.units, 2), unit: du },
         { label: 'Time', value: run.duration_s == null ? null : formatDuration(run.duration_s) },
@@ -139,19 +140,32 @@ const elev = computed(() => {
         <Button small :to="{ name: backName }" data-testid="back-link"><Icons name="chevron" :size="16" class="flip" /> {{ run.type === 'run' ? 'Runs' : 'Other activities' }}</Button>
       </template>
       <template #end>
-        <TypePicker :workout-id="run.workout_id" :type="run.type" />
-        <CarryField :workout-id="run.workout_id" :carry-kg="detail.carry_kg ?? null" />
-        <ShoePicker :workout-id="run.workout_id" :shoe="detail.shoe ?? null" :chosen="detail.shoe_chosen" />
         <Button v-if="routeKey" small :to="{ name: 'route-detail', params: { routeKey } }" data-testid="route-link">Other runs on this route</Button>
       </template>
     </RunHero>
 
-    <RunSummary :summary="detail.summary" />
-
     <div class="canvas over">
-      <StatTile class="s4" label="Avg heart rate" :value="run.avg_hr == null ? null : String(Math.round(run.avg_hr))" unit="bpm" />
-      <StatTile class="s4" label="Max heart rate" :value="run.max_hr == null ? null : String(Math.round(run.max_hr))" unit="bpm" />
-      <StatTile class="s4" label="Cadence" :value="detail.avg_cadence == null ? null : String(Math.round(detail.avg_cadence))" unit="spm" />
+      <StatTile class="s3" label="Avg heart rate" :value="run.avg_hr == null ? null : String(Math.round(run.avg_hr))" unit="bpm" />
+      <StatTile class="s3" label="Max heart rate" :value="run.max_hr == null ? null : String(Math.round(run.max_hr))" unit="bpm" />
+      <StatTile class="s3" label="Cadence" :value="detail.avg_cadence == null ? null : String(Math.round(detail.avg_cadence))" unit="spm" />
+      <StatTile
+        class="s3"
+        label="Training load"
+        :value="detail.training_load == null ? null : String(Math.round(detail.training_load))"
+        :sub="detail.training_load == null ? null : detail.training_load_estimated ? 'Estimated: heart rate was patchy' : 'Heart rate × time'"
+        data-testid="training-load"
+      />
+
+      <RunSummary class="wide" :summary="detail.summary" />
+
+      <WorkoutDetails
+        class="wide"
+        :workout-id="run.workout_id"
+        :type="run.type"
+        :shoe="detail.shoe ?? null"
+        :shoe-chosen="detail.shoe_chosen"
+        :carry-kg="detail.carry_kg ?? null"
+      />
 
       <GlassPanel v-if="notes.length" class="notes" role="group" aria-label="Data quality notes">
         <h3 class="chart-title"><Icons name="warning" :size="16" /> Data notes</h3>
@@ -219,8 +233,10 @@ const elev = computed(() => {
 .notes ul { margin: 0; padding-left: var(--space-5); color: var(--ink-secondary); font-size: var(--body-sm-size); }
 .missing p { margin: 0; color: var(--ink-secondary); }
 .over { position: relative; z-index: 2; margin-top: -56px; }
-.over > :nth-child(-n+3) { min-height: 112px; }
-@media (max-width: 1079px) { .over { grid-template-columns: repeat(3, minmax(0, 1fr)); } .over > :nth-child(n+4) { grid-column: 1 / -1; } }
-@media (max-width: 1079px) { .over > :nth-child(-n+3) { padding: var(--space-3) var(--space-4); } .over > :nth-child(-n+3) :deep(.num--sm) { font-size: 22px; line-height: 26px; } }
+.over > :nth-child(-n+4) { min-height: 112px; align-self: stretch; }
+.over > .wide { grid-column: 1 / -1; }
+/* Below desktop the four figures sit two by two, so none is squeezed. */
+@media (max-width: 1079px) { .over { grid-template-columns: repeat(2, minmax(0, 1fr)); } .over > :nth-child(n+5) { grid-column: 1 / -1; } }
+@media (max-width: 1079px) { .over > :nth-child(-n+4) { padding: var(--space-3) var(--space-4); } .over > :nth-child(-n+4) :deep(.num--sm) { font-size: 24px; line-height: 28px; } }
 .flip { transform: rotate(180deg); }
 </style>

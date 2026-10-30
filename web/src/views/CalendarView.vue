@@ -197,7 +197,7 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 .multi { position: absolute; bottom: 5px; right: 7px; font-size: 11px; font-weight: 700; color: var(--ink-secondary); }
 .wk-total { align-self: center; text-align: right; font-size: 14px; font-weight: 600; color: var(--ink); white-space: nowrap; }
 .wk-total small { font-size: 11px; margin-left: 2px; color: var(--ink-secondary); }
-.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
 .legend { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: flex; gap: var(--space-4); flex-wrap: wrap; font-size: var(--body-sm-size); color: var(--ink-secondary); }
 .legend li { display: inline-flex; align-items: center; gap: 6px; }
 .legend .dot { width: 12px; height: 12px; animation: none; }

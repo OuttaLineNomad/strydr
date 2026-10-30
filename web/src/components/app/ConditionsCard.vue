@@ -93,7 +93,7 @@ const sources = computed(() => {
 .cell { min-width: 0; }
 .cell dt { font-size: var(--body-sm-size); color: var(--ink-secondary); }
 .cell dd { margin: 2px 0 0; font-size: 20px; font-weight: 600; color: var(--ink); white-space: nowrap; }
-.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
 .adjusted { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--divider); }
 .adj { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .adj-label { font-size: var(--body-sm-size); color: var(--ink-secondary); }

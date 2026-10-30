@@ -37,12 +37,13 @@ function onChange(e: Event) {
 
 <template>
   <label class="picker">
-    <span class="lbl" data-testid="shoe-current">Shoe: {{ shoe ? `${shoe.name}${shoe.retired ? ' (retired)' : ''}${shoe.source === 'default' ? ' (default)' : ''}` : 'none' }}</span>
+    <span class="lbl">Shoe</span>
     <select class="sel" :value="value" :disabled="w.shoeBusy" aria-label="Shoe" data-testid="shoe-picker" @change="onChange">
       <option v-for="o in options" :key="o.id" :value="String(o.id)">{{ o.name }}</option>
       <option :value="NONE">No shoe</option>
       <option :value="DEFAULT" data-testid="shoe-use-default">Use default</option>
     </select>
+    <span class="hint" data-testid="shoe-current">{{ shoe ? `${shoe.name}${shoe.retired ? ' (retired)' : ''}${shoe.source === 'default' ? ' (default)' : ''}` : 'No shoe' }}</span>
     <span v-if="shoes.error" class="err" role="alert" data-testid="shoe-list-error">{{ shoes.error }}</span>
     <span v-if="w.shoeError" class="err" role="alert" data-testid="shoe-error">{{ w.shoeError }}</span>
   </label>
@@ -50,8 +51,10 @@ function onChange(e: Event) {
 
 <style scoped>
 .picker { display: inline-flex; flex-direction: column; gap: 4px; }
-.lbl { font-size: 12px; opacity: 0.8; }
-.sel { min-height: 44px; border-radius: var(--radius-md); border: 1.5px solid var(--divider); background: color-mix(in srgb, var(--surface-1) 75%, transparent); color: var(--ink); padding: 0 var(--space-3); font: inherit; }
+.picker { min-width: 0; }
+.lbl { font-size: 13px; font-weight: 600; color: var(--ink-secondary); }
+.sel { min-height: 44px; width: 100%; max-width: 22rem; border-radius: var(--radius-md); border: 1.5px solid var(--divider); background: var(--surface-1); color: var(--ink); padding: 0 var(--space-3); font: inherit; }
+.hint { font-size: 13px; color: var(--ink-secondary); }
 .sel:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .err { color: var(--danger); font-size: 13px; }
 </style>

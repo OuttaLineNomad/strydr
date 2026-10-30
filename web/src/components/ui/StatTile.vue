@@ -53,7 +53,7 @@ const pillClass = computed(() => {
 <style scoped>
 .tile { padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); min-width: 0; }
 .tile--hero { padding: var(--space-5) var(--space-6); gap: var(--space-3); }
-.tile-label { font-size: 11px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; color: var(--ink-secondary); }
+.tile-label { font-size: 13px; font-weight: 600; color: var(--ink-secondary); }
 .value-row { display: flex; align-items: baseline; gap: var(--space-2); min-width: 0; }
 .num { font-family: var(--font-display); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 .num--hero { font-size: var(--metric-hero-size); line-height: var(--metric-hero-leading); }

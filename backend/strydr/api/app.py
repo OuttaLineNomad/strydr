@@ -121,6 +121,9 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
             shoe = shoes.shoe_out_for(s, workout_id, w)
             carry = s.get(models.WorkoutCarry, workout_id)
             carry_kg = carry.weight_kg if carry else None
+            load = s.execute(scoped(models.WorkoutLoad, models.WorkoutLoad.workout_id == workout_id)).scalar_one_or_none()
+            if load is not None and load.source == "none":
+                load = None
             served = summary_mod.serve(s, workout_id, default_tz)
             fb = s.get(models.InsightFeedback, f"run-summary/{workout_id}")
             # a thumb belongs to the summary it was given on: it resets when the context changes
@@ -140,6 +143,8 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
                 display_geometry=display.display_geometry if display else None,
                 quality_flags=w.quality_flags or {}, data_quality_issues=list(issues), note=_note_out(note), shoe=shoe,
                 shoe_chosen=s.get(models.WorkoutShoe, workout_id) is not None,
+                training_load=None if load is None else round(load.trimp, 1),
+                training_load_estimated=None if load is None else load.estimated,
             )
 
     @router.put("/workouts/{workout_id}/type", response_model=sc.WorkoutTypeOut, dependencies=auth)
