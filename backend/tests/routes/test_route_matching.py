@@ -32,7 +32,7 @@ def test_noisy_gps_still_matches():
 
 def test_loop_with_detour_still_matches():
     base = circle()
-    # a 120 m spur out and back adds ~240 m to ~3 km: inside the +-10% distance band
+    # a 120 m spur out and back adds ~240 m to ~3 km: inside the +-15% distance band
     detour = with_spur(base, at=len(base) // 4, length=120.0, direction=(-1.0, 0.0))
     ws = [make_workout("a", 1, base), make_workout("b", 2, detour), make_workout("c", 3, base)]
     out = cluster(ws)
@@ -140,3 +140,12 @@ def test_medoid_is_not_a_noisy_outlier():
     ws += [make_workout(f"w{i}", 1 + i, circle(), noise=1.0, seed=i) for i in range(1, 5)]
     out = cluster(ws)
     assert len(out) == 1 and out[0].reference_id != "w0"
+
+
+def test_watch_distance_up_to_15_percent_apart_still_matches():
+    import dataclasses
+    a = loop("a", 1)
+    near = dataclasses.replace(loop("b", 2), distance_m=build_path(a, TH).length_m * 1.12)
+    far = dataclasses.replace(loop("c", 3), distance_m=build_path(a, TH).length_m * 1.20)
+    assert match_paths(build_path(a, TH), build_path(near, TH), TH) is not None
+    assert match_paths(build_path(a, TH), build_path(far, TH), TH) is None

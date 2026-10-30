@@ -31,7 +31,7 @@ class RouteThresholds:
     min_gps_coverage: float = 0.80
     max_gps_gap_s: float = 60.0
     start_end_radius_m: float = 150.0
-    distance_tolerance_frac: float = 0.10
+    distance_tolerance_frac: float = 0.15
     distance_tolerance_floor_m: float = 250.0
     resample_spacing_m: float = 10.0
     corridor_m: float = 50.0
