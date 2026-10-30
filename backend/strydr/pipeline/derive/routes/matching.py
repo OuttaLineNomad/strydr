@@ -15,6 +15,7 @@ import shapely
 from shapely.geometry import LineString
 
 from strydr.pipeline.derive.routes import geo
+from strydr.pipeline.hr import active_clock
 from strydr.sources.canonical import Workout
 
 CONFIG_PATH = Path(__file__).resolve().parents[4] / "config" / "routes.toml"
@@ -101,7 +102,8 @@ class RoutePath:
     start_ll: tuple[float, float]
     end_ll: tuple[float, float]
     raw_xy: np.ndarray
-    t: np.ndarray  # seconds since workout start, per raw fix
+    t: np.ndarray  # active seconds per raw fix: pauses removed, so paused fixes share one t (dt = 0)
+    wall_t: np.ndarray  # wall-clock seconds per raw fix, for telling how long a stretch was paused
     xy: np.ndarray  # resampled to the configured spacing
     cum: np.ndarray  # distance along `xy`
     alt: np.ndarray  # resampled altitude, NaN when missing
@@ -128,7 +130,8 @@ def build_path(w: Workout, th: RouteThresholds) -> RoutePath | None:
     if series is None or series.n < 2:
         return None
     c = series.columns
-    t = np.asarray(c["t"], dtype=float)
+    # Coverage is judged on the active clock: the watch records no fixes while paused, and a pause is not a GPS gap.
+    t = np.asarray(active_clock(c), dtype=float)
     span = float(t[-1] - t[0])
     if span <= 0:
         return None
@@ -150,7 +153,7 @@ def build_path(w: Workout, th: RouteThresholds) -> RoutePath | None:
     return RoutePath(
         workout_id=w.workout_id, start_utc=w.start_utc, origin=origin,
         start_ll=(float(lat[0]), float(lon[0])), end_ll=(float(lat[-1]), float(lon[-1])),
-        raw_xy=raw, t=t, xy=xy, cum=cum, alt=alt_r, distance_m=distance,
+        raw_xy=raw, t=t, wall_t=np.asarray(c["t"], dtype=float), xy=xy, cum=cum, alt=alt_r, distance_m=distance,
     )
 
 

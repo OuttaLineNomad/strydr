@@ -10,6 +10,7 @@ import numpy as np
 
 from strydr.pipeline.derive.routes import geo
 from strydr.pipeline.derive.routes.matching import RoutePath, RouteThresholds, align_offset
+from strydr.pipeline.hr import active_clock
 from strydr.sources.canonical import Workout
 
 
@@ -79,8 +80,9 @@ def section_avg_hr(
 
 
 def hr_from_workout(w: Workout) -> tuple[list[float], list[float]] | None:
+    """(time, avg) on the active clock, the same clock as `RoutePath.t`, so a pause adds no section time or HR."""
     s = w.series.get("heart_rate")
-    return (s.columns["t"], s.columns["avg"]) if s is not None else None
+    return (active_clock(s.columns), s.columns["avg"]) if s is not None else None
 
 
 @dataclass(frozen=True)
@@ -140,7 +142,10 @@ def measure_run(
         if (off & inside).any():
             out[sec.section_id] = SectionMeasure(sec.section_id, t1 - t0, None, False, "detour")
             continue
-        if _longest_pause_s(t[inside], s[inside], th) > th.pause_s:
+        # A watch-recorded pause takes no active time, so it is measured as the gap between wall and active time.
+        wall_on = run.wall_t[on]
+        paused_s = (np.interp(sec.end_m, s_on, wall_on) - np.interp(sec.start_m, s_on, wall_on)) - (t1 - t0)
+        if paused_s > th.pause_s or _longest_pause_s(t[inside], s[inside], th) > th.pause_s:
             out[sec.section_id] = SectionMeasure(sec.section_id, t1 - t0, None, False, "pause")
             continue
         avg = section_avg_hr(hr[0], hr[1], t0, t1, th) if hr is not None else None

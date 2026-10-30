@@ -5,6 +5,7 @@ from strydr.pipeline.derive.routes import (
     build_path, detect_climbs, fixed_splits, hr_claim_allowed, hr_from_workout, load_thresholds,
     make_section_id, measure_run, route_climbs, section_avg_hr, split_unit_m,
 )
+from strydr.sources.canonical import SampleSeries
 from synth import line, make_workout, with_spur
 
 TH = load_thresholds()
@@ -153,3 +154,53 @@ def test_measure_run_marks_pause_and_short_run():
     short = make_workout("s", 3, line(1800.0), speed=3.0)
     out = measure_run(ref, build_path(short, TH), secs, None, TH)
     assert out["a/s1"].comparable and out["a/s3"].reason == "boundary not reached"
+
+
+
+def _watch_paused_run(pause_s: float):
+    """A watch-recorded pause of `pause_s` at 1500 m. Like Apple's GPX, no fixes are written while paused: wall-clock
+    `t` jumps and the active clock `at` runs on. Heart rate (10 s samples, offset from the pause edges) reads 100 bpm
+    while paused and 150 bpm while running."""
+    w = make_workout("p", 2, line(3000.0), speed=3.0)
+    t = np.array(w.series["route"].columns["t"])
+    at = t.copy()
+    t[501:] += pause_s
+    w.series["route"].columns["t"], w.series["route"].columns["at"] = t.tolist(), at.tolist()
+    pause0, pause1 = float(at[500]), float(at[500]) + pause_s
+    ht = np.arange(3.0, float(t[-1]) + 10.0, 10.0)
+    hat = np.where(ht < pause0, ht, np.where(ht < pause1, pause0, ht - pause_s))
+    w.series["heart_rate"] = SampleSeries("heart_rate", {
+        "t": ht.tolist(), "at": hat.tolist(), "avg": [100.0 if pause0 <= x < pause1 else 150.0 for x in ht],
+        "min": [0.0] * len(ht), "max": [0.0] * len(ht)})
+    return w
+
+
+def test_a_short_watch_pause_adds_no_section_time_and_little_hr():
+    ref = run_on("a", 1, 3.0)
+    secs = fixed_splits("a", ref.length_m, 1000.0, TH)
+    w = _watch_paused_run(20.0)
+    out = measure_run(ref, build_path(w, TH), secs, hr_from_workout(w), TH)
+    s2 = out["a/s2"]
+    assert s2.comparable and s2.time_s == pytest.approx(1000.0 / 3.0, abs=3)  # running time only
+    assert s2.avg_hr == pytest.approx(150.0, abs=3)  # paused readings take at most one sample step
+
+
+def test_a_long_watch_pause_still_marks_the_section_paused():
+    ref = run_on("a", 1, 3.0)
+    secs = fixed_splits("a", ref.length_m, 1000.0, TH)
+    out = measure_run(ref, build_path(_watch_paused_run(300.0), TH), secs, None, TH)
+    assert out["a/s2"].reason == "pause" and not out["a/s2"].comparable
+    assert out["a/s1"].comparable and out["a/s3"].comparable
+
+
+def test_a_paused_run_is_still_eligible_for_routes():
+    w = _watch_paused_run(360.0)  # a 6 minute pause in a ~17 minute run: under 80% coverage on the wall clock
+    p = build_path(w, TH)
+    assert p is not None and p.t[-1] < p.wall_t[-1]
+
+
+def test_without_an_active_clock_the_wall_clock_is_used():
+    w = _watch_paused_run(360.0)
+    for name in ("route", "heart_rate"):
+        del w.series[name].columns["at"]
+    assert build_path(w, TH) is None  # the 6 minute hole reads as a GPS gap
