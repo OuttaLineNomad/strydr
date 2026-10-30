@@ -12,6 +12,7 @@ const router = createRouter({
     { path: '/runs/:id', name: 'run-detail', component: () => import('@/views/RunDetailView.vue'), props: true },
     { path: '/weeks', name: 'weeks', component: () => import('@/views/WeeksView.vue') },
     { path: '/calendar', name: 'calendar', component: () => import('@/views/CalendarView.vue') },
+    { path: '/recap', name: 'recap', component: () => import('@/views/RecapView.vue') },
     { path: '/weeks/:id', name: 'week-detail', component: () => import('@/views/WeekDetailView.vue'), props: true },
     { path: '/settings', name: 'settings', component: () => import('@/views/SettingsView.vue') },
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { bare: true, public: true } },

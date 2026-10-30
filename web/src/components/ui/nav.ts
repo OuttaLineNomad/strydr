@@ -17,6 +17,7 @@ export const NAV_ITEMS: TabItem[] = [
   { label: 'Other activities', shortLabel: 'Activities', to: '/activities', icon: 'activities' },
   { label: 'Weeks', to: '/weeks', icon: 'weeks' },
   { label: 'Calendar', to: '/calendar', icon: 'calendar' },
+  { label: 'Recap', to: '/recap', icon: 'recap' },
   { label: 'Settings', to: '/settings', icon: 'settings' },
 ]
 

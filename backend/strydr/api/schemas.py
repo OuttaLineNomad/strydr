@@ -501,6 +501,57 @@ class CalendarOut(BaseModel):
     rest_days: int
 
 
+class RecapTotals(BaseModel):
+    period: str  # YYYY or YYYY-MM
+    distance_m: float  # runs only
+    duration_s: float
+    run_count: int
+    long_run_count: int
+    elevation_gain_m: float | None
+    active_days: int
+
+
+class RecapRoute(BaseModel):
+    route_key: str
+    distance_m: float
+    runs: int  # runs in the period, not all-time
+
+
+class RecapShoe(BaseModel):
+    id: int
+    name: str
+    retired: bool
+    distance_m: float
+    runs: int
+
+
+class RecapFitnessPoint(BaseModel):
+    local_date: str
+    fitness: float
+
+
+class RecapFitness(BaseModel):
+    start: float
+    end: float
+    series: list[RecapFitnessPoint]  # daily for a month, week-end values for a year
+
+
+class RecapOut(BaseModel):
+    period: str
+    kind: Literal["month", "year"]
+    start_date: str
+    end_date: str
+    as_of: str | None
+    is_current: bool  # the period contains as_of, so it is "so far"
+    totals: RecapTotals
+    previous: RecapTotals
+    longest_runs: list[WorkoutOut]
+    top_routes: list[RecapRoute]
+    shoes: list[RecapShoe]
+    fitness: RecapFitness | None
+    best_weeks: list[WeekSummaryOut]
+
+
 # --- Load (FR-24) ---------------------------------------------------------------------------------------------------
 
 class LoadTooltip(BaseModel):

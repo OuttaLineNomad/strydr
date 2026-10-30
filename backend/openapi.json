@@ -1786,6 +1786,256 @@
         "title": "QuarantinedPayload",
         "type": "object"
       },
+      "RecapFitness": {
+        "properties": {
+          "end": {
+            "title": "End",
+            "type": "number"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/RecapFitnessPoint"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "start": {
+            "title": "Start",
+            "type": "number"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "series"
+        ],
+        "title": "RecapFitness",
+        "type": "object"
+      },
+      "RecapFitnessPoint": {
+        "properties": {
+          "fitness": {
+            "title": "Fitness",
+            "type": "number"
+          },
+          "local_date": {
+            "title": "Local Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "local_date",
+          "fitness"
+        ],
+        "title": "RecapFitnessPoint",
+        "type": "object"
+      },
+      "RecapOut": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "best_weeks": {
+            "items": {
+              "$ref": "#/components/schemas/WeekSummaryOut"
+            },
+            "title": "Best Weeks",
+            "type": "array"
+          },
+          "end_date": {
+            "title": "End Date",
+            "type": "string"
+          },
+          "fitness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapFitness"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "is_current": {
+            "title": "Is Current",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "month",
+              "year"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "longest_runs": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutOut"
+            },
+            "title": "Longest Runs",
+            "type": "array"
+          },
+          "period": {
+            "title": "Period",
+            "type": "string"
+          },
+          "previous": {
+            "$ref": "#/components/schemas/RecapTotals"
+          },
+          "shoes": {
+            "items": {
+              "$ref": "#/components/schemas/RecapShoe"
+            },
+            "title": "Shoes",
+            "type": "array"
+          },
+          "start_date": {
+            "title": "Start Date",
+            "type": "string"
+          },
+          "top_routes": {
+            "items": {
+              "$ref": "#/components/schemas/RecapRoute"
+            },
+            "title": "Top Routes",
+            "type": "array"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/RecapTotals"
+          }
+        },
+        "required": [
+          "period",
+          "kind",
+          "start_date",
+          "end_date",
+          "as_of",
+          "is_current",
+          "totals",
+          "previous",
+          "longest_runs",
+          "top_routes",
+          "shoes",
+          "fitness",
+          "best_weeks"
+        ],
+        "title": "RecapOut",
+        "type": "object"
+      },
+      "RecapRoute": {
+        "properties": {
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "route_key": {
+            "title": "Route Key",
+            "type": "string"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "route_key",
+          "distance_m",
+          "runs"
+        ],
+        "title": "RecapRoute",
+        "type": "object"
+      },
+      "RecapShoe": {
+        "properties": {
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "retired": {
+            "title": "Retired",
+            "type": "boolean"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "retired",
+          "distance_m",
+          "runs"
+        ],
+        "title": "RecapShoe",
+        "type": "object"
+      },
+      "RecapTotals": {
+        "properties": {
+          "active_days": {
+            "title": "Active Days",
+            "type": "integer"
+          },
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "duration_s": {
+            "title": "Duration S",
+            "type": "number"
+          },
+          "elevation_gain_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elevation Gain M"
+          },
+          "long_run_count": {
+            "title": "Long Run Count",
+            "type": "integer"
+          },
+          "period": {
+            "title": "Period",
+            "type": "string"
+          },
+          "run_count": {
+            "title": "Run Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "period",
+          "distance_m",
+          "duration_s",
+          "run_count",
+          "long_run_count",
+          "elevation_gain_m",
+          "active_days"
+        ],
+        "title": "RecapTotals",
+        "type": "object"
+      },
       "RecordOut": {
         "properties": {
           "key": {
@@ -4764,6 +5014,48 @@
           }
         },
         "summary": "Put Profile"
+      }
+    },
+    "/api/v1/recap/{period}": {
+      "get": {
+        "operationId": "get_recap",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "period",
+            "required": true,
+            "schema": {
+              "title": "Period",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecapOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Recap",
+        "tags": [
+          "recap"
+        ]
       }
     },
     "/api/v1/records": {

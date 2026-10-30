@@ -238,6 +238,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/recap/{period}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Recap */
+        get: operations["get_recap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/records": {
         parameters: {
             query?: never;
@@ -1164,6 +1181,90 @@ export interface components {
             received_at: string;
             /** Size Bytes */
             size_bytes: number;
+        };
+        /** RecapFitness */
+        RecapFitness: {
+            /** End */
+            end: number;
+            /** Series */
+            series: components["schemas"]["RecapFitnessPoint"][];
+            /** Start */
+            start: number;
+        };
+        /** RecapFitnessPoint */
+        RecapFitnessPoint: {
+            /** Fitness */
+            fitness: number;
+            /** Local Date */
+            local_date: string;
+        };
+        /** RecapOut */
+        RecapOut: {
+            /** As Of */
+            as_of: string | null;
+            /** Best Weeks */
+            best_weeks: components["schemas"]["WeekSummaryOut"][];
+            /** End Date */
+            end_date: string;
+            fitness: components["schemas"]["RecapFitness"] | null;
+            /** Is Current */
+            is_current: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "month" | "year";
+            /** Longest Runs */
+            longest_runs: components["schemas"]["WorkoutOut"][];
+            /** Period */
+            period: string;
+            previous: components["schemas"]["RecapTotals"];
+            /** Shoes */
+            shoes: components["schemas"]["RecapShoe"][];
+            /** Start Date */
+            start_date: string;
+            /** Top Routes */
+            top_routes: components["schemas"]["RecapRoute"][];
+            totals: components["schemas"]["RecapTotals"];
+        };
+        /** RecapRoute */
+        RecapRoute: {
+            /** Distance M */
+            distance_m: number;
+            /** Route Key */
+            route_key: string;
+            /** Runs */
+            runs: number;
+        };
+        /** RecapShoe */
+        RecapShoe: {
+            /** Distance M */
+            distance_m: number;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Retired */
+            retired: boolean;
+            /** Runs */
+            runs: number;
+        };
+        /** RecapTotals */
+        RecapTotals: {
+            /** Active Days */
+            active_days: number;
+            /** Distance M */
+            distance_m: number;
+            /** Duration S */
+            duration_s: number;
+            /** Elevation Gain M */
+            elevation_gain_m: number | null;
+            /** Long Run Count */
+            long_run_count: number;
+            /** Period */
+            period: string;
+            /** Run Count */
+            run_count: number;
         };
         /** RecordOut */
         RecordOut: {
@@ -2299,6 +2400,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_recap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                period: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecapOut"];
                 };
             };
             /** @description Validation Error */

@@ -75,13 +75,13 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 .tab:active { transform: scale(.92); }
 .tab-label { font-size: 10px; font-weight: 600; letter-spacing: 0.2px; transition: opacity .2s ease, max-height var(--dur-morph) var(--ease-settle); max-height: 14px; }
 .minimized .tab-label { opacity: 0; max-height: 0; }
-@media (max-width: 400px) {
-  /* six tabs at 320px: tighter bar, no gaps, smaller labels */
+@media (max-width: 440px) {
+  /* seven tabs at 320px: tighter bar, no gaps, smaller labels */
   .bar { width: calc(100% - var(--space-4)); gap: 0; padding: 0 4px; }
   .tab { min-width: 0; }
   .tab-label { font-size: 9px; letter-spacing: 0; }
 }
-/* below 360px six labels cannot fit: icons only (each link keeps its aria-label) */
+/* below 360px seven labels cannot fit: icons only (each link keeps its aria-label) */
 @media (max-width: 359px) { .tab-label { display: none; } }
 @media (min-width: 1080px) { .bar { display: none; } }
 </style>

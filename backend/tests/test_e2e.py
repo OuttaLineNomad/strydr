@@ -169,7 +169,7 @@ def test_no_api_response_contains_a_coordinate_inside_a_privacy_zone(seeded, eng
     assert spec.status_code in (200, 404)
 
     paths = ["/api/v1/workouts?limit=200", "/api/v1/dashboard", "/api/v1/records", "/api/v1/profile", "/api/v1/sync-status",
-             "/api/v1/insights?limit=200", "/api/v1/weeks", "/api/v1/weeks/2026-W10", "/api/v1/load", "/api/v1/routes",
+             "/api/v1/insights?limit=200", "/api/v1/weeks", "/api/v1/weeks/2026-W10", "/api/v1/recap/2026", "/api/v1/load", "/api/v1/routes",
              "/api/v1/routes/overrides", "/api/v1/privacy-zones", "/api/v1/settings/ai", "/api/v1/settings/thresholds"]
     for w in c.get("/api/v1/workouts?limit=200").json():
         paths.append(f"/api/v1/workouts/{w['workout_id']}")
