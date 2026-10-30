@@ -30,6 +30,7 @@ def run(ctx: Context, profile, zones) -> None:
     with Session(ctx.engine) as s:
         overrides = [(o.workout_a, o.workout_b, o.action) for o in s.execute(select(models.RouteOverride)).scalars()]
         units = settings.read(s, ctx.tz.key).units
+        carried = {wid for (wid,) in s.execute(select(models.WorkoutCarry.workout_id).where(models.WorkoutCarry.weight_kg > 0))}
         has_route = select(models.SampleSeries.id).where(
             models.SampleSeries.workout_id == models.Workout.workout_id, models.SampleSeries.series == "route").exists()
         rows = s.execute(select(models.Workout).where(
@@ -51,14 +52,14 @@ def run(ctx: Context, profile, zones) -> None:
         return
     for c in clusters:
         try:
-            generations.add_rows(ctx.engine, _route_rows(ctx, rt, c, by_id, units, zones))
+            generations.add_rows(ctx.engine, _route_rows(ctx, rt, c, by_id, units, zones, carried))
         except Exception as e:
             log.warning("route skipped: %s", type(e).__name__)
             generations.add_rows(ctx.engine, [models.DataQualityIssue(
                 generation_id=gid, workout_id=c.route_key, stage="routes", error=type(e).__name__)])
 
 
-def _route_rows(ctx: Context, rt, c: matching.RouteCluster, by_id, units: str, zones) -> list:
+def _route_rows(ctx: Context, rt, c: matching.RouteCluster, by_id, units: str, zones, carried: frozenset | set = frozenset()) -> list:
     gid = ctx.generation_id
     ref_w = _canonical(ctx.engine, by_id[c.reference_id])
     ref = matching.build_path(ref_w, rt)
@@ -85,7 +86,9 @@ def _route_rows(ctx: Context, rt, c: matching.RouteCluster, by_id, units: str, z
                                  start_m=s.start_m, end_m=s.end_m, gain_m=s.gain_m) for s in sections]
     for wid, current in obs.items():
         # Each run is compared as of its own date, so the 180-day window and "earlier runs" mean what FR-23a says.
-        for cmp in compare.compare_run(current, history, date.fromisoformat(by_id[wid].local_date), rt):
+        # A carried run is compared only with carried runs, an uncarried run only with uncarried ones.
+        cohort = [o for o in history if (o.workout_id in carried) == (wid in carried)]
+        for cmp in compare.compare_run(current, cohort, date.fromisoformat(by_id[wid].local_date), rt):
             o = next(x for x in current if x.section_id == cmp.section_id)
             rows.append(models.SectionResult(
                 generation_id=gid, section_id=cmp.section_id, workout_id=wid, route_key=c.route_key,

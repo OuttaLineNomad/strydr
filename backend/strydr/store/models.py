@@ -483,7 +483,7 @@ class WorkoutShoe(Base):
 
 
 class WorkoutCarry(Base):
-    """Extra weight carried on a run, walk or hike (child carrier, weighted vest). Display only: never a pipeline input."""
+    """Extra weight carried on a run, walk or hike (child carrier, weighted vest). A pipeline input (cohorts for comparisons, hard days) and shown on the page."""
     __tablename__ = "workout_carry"
     workout_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     weight_kg: Mapped[float] = mapped_column(Float)

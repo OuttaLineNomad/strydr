@@ -46,7 +46,7 @@ def _mean(values: list[float]) -> float | None:
     return sum(values) / len(values) if values else None
 
 
-def _run(w: models.Workout, rpe: int | None, units: str, as_of: date) -> dict:
+def _run(w: models.Workout, rpe: int | None, units: str, as_of: date, carry_kg: float | None = None) -> dict:
     out: dict = {}
     _put(out, "type", w.type)
     _put(out, "when", _when(w.local_date, as_of))
@@ -60,6 +60,7 @@ def _run(w: models.Workout, rpe: int | None, units: str, as_of: date) -> dict:
     _put(out, "elevation_gain", fmt.elevation(w.elevation_gain_m, units))
     _put(out, "effort_score", fmt.whole(w.effort_score))
     _put(out, "rpe", None if rpe is None else str(int(rpe)))
+    _put(out, "carry", fmt.carry(carry_kg, units))
     return out
 
 
@@ -169,10 +170,15 @@ def _training(s: Session, w: models.Workout) -> dict:
 
 
 def _similar(s: Session, w: models.Workout) -> list[models.Workout]:
-    """Previous runs of the same type: on the same route when that gives enough, else within 20% of the distance."""
+    """Previous runs of the same type and carry status (carried runs only against carried ones): on the same route
+    when that gives enough, else within 20% of the distance."""
+    carried = select(models.WorkoutCarry.workout_id).where(models.WorkoutCarry.weight_kg > 0)
+    mine = s.execute(carried.where(models.WorkoutCarry.workout_id == w.workout_id)).first() is not None
     q = select(models.Workout).where(
         models.Workout.type == w.type, models.Workout.start_utc < w.start_utc,
-        models.Workout.workout_id != w.workout_id).order_by(models.Workout.start_utc.desc())
+        models.Workout.workout_id != w.workout_id,
+        models.Workout.workout_id.in_(carried) if mine else models.Workout.workout_id.not_in(carried),
+    ).order_by(models.Workout.start_utc.desc())
     key = s.execute(select(models.WorkoutRoute.route_key).where(
         in_current(models.WorkoutRoute), models.WorkoutRoute.workout_id == w.workout_id)).scalar_one_or_none()
     if key is not None:
@@ -225,9 +231,11 @@ def build_run_context(s: Session, workout_id: str, units: str, as_of: date) -> R
     detail = s.execute(select(models.WorkoutDetail).where(
         in_current(models.WorkoutDetail), models.WorkoutDetail.workout_id == workout_id)).scalar_one_or_none()
     rpe = s.execute(select(models.WorkoutNote.rpe).where(models.WorkoutNote.workout_id == workout_id)).scalar_one_or_none()
+    carry_kg = s.execute(select(models.WorkoutCarry.weight_kg).where(
+        models.WorkoutCarry.workout_id == workout_id)).scalar_one_or_none()
     splits = None if detail is None else (detail.splits_mi if units == "mi" else detail.splits_km)
     return RunContextPayload(
-        units=units, run=_run(w, rpe, units, as_of), splits=_splits(splits, units),
+        units=units, run=_run(w, rpe, units, as_of, carry_kg), splits=_splits(splits, units),
         terrain=_terrain(detail.gap if detail else None, units),
         conditions=_conditions(detail.conditions if detail else None, units),
         sleep=_sleep(detail.sleep if detail else None), training=_training(s, w),

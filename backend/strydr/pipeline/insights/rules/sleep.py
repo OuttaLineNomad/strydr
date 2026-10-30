@@ -50,7 +50,7 @@ def short_sleep_run(snap: DerivedSnapshot, thresholds: Thresholds, prior: list[I
 def effort_by_sleep(snap: DerivedSnapshot, thresholds: Thresholds, prior: list[InsightFact]) -> list[InsightFact]:
     th = thresholds.rule(PATTERN)
     short, good = [], []
-    for r in runs_between(snap, snap.as_of - timedelta(days=th["window_days"] - 1), snap.as_of):
+    for r in runs_between(snap, snap.as_of - timedelta(days=th["window_days"] - 1), snap.as_of, False):
         z = r.sleep
         if not z or not r.is_easy_intended or not r.avg_hr or not r.avg_speed_mps:
             continue

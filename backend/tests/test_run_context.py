@@ -283,3 +283,45 @@ def test_a_word_value_outside_its_closed_set_is_refused():
                             ("conditions", "rain", "hot"), ("sleep", "vs_usual", "good")):
         with pytest.raises(ValidationError):
             RunContextPayload(units="mi", **{group: {key: val}})
+
+
+# ---- carry (story 13) ---------------------------------------------------------------------------------------------
+
+def _carry(engine, *wids, kg=11.3):
+    with Session(engine) as s:
+        for wid in wids:
+            s.add(models.WorkoutCarry(workout_id=wid, weight_kg=kg, updated_at=datetime(2026, 10, 23)))
+        s.commit()
+
+
+def test_carried_run_context_has_carry_and_validates_reply(engine):
+    _seed(engine)
+    _carry(engine, "r")
+    recompute_now(engine, AS_OF)
+    p = _build(engine)
+    assert p.run["carry"] == "25 lb" and _build(engine, "km").run["carry"] == "11.3 kg"
+    assert RunContextPayload.model_validate(p.model_dump())
+    allowed = allowed_numbers_run(p)
+    assert validate("You ran this one carrying 25 lb.", allowed) == "You ran this one carrying 25 lb."
+    assert validate("You ran this one carrying 30 lb.", allowed) is None
+    assert [i.sentence for i in p.insights if i.rule_id == "carry"] == ["You ran this one carrying 11.3 kg."]  # recompute units: km
+
+
+def test_uncarried_run_has_no_carry_key(engine):
+    _seed(engine)
+    assert "carry" not in _build(engine).run
+
+
+def test_similar_runs_come_from_the_same_carry_cohort(engine):
+    _seed(engine, prior=3)  # p0..p2 and r
+    assert _build(engine).comparison["similar_runs"] == "3"
+    _carry(engine, "p0", "p1")
+    assert _build(engine).comparison == {}  # uncarried: only p2 is left, one is too few
+    _carry(engine, "r")
+    assert _build(engine).comparison["similar_runs"] == "2"  # carried: p0 and p1
+
+
+def test_carried_run_with_no_carried_history_has_no_comparison(engine):
+    _seed(engine, prior=3)
+    _carry(engine, "r")
+    assert _build(engine).comparison == {}

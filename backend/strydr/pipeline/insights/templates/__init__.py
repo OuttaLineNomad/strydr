@@ -8,7 +8,7 @@ from .definitions import TEMPLATES
 from .routes import ROUTE_TEMPLATES
 
 # Bump when any template wording changes: part of the phrasing-cache key (AD-9).
-TEMPLATE_VERSION = "2"
+TEMPLATE_VERSION = "3"
 
 # Health-wording guardrails (FR-21/21a). Case-insensitive substring match; the lint test enforces them.
 BANNED_TERMS = (

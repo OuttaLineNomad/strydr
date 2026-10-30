@@ -1,6 +1,7 @@
 """Cardiac drift (FR-18): pace:HR decoupling on a steady, easy run of 40+ minutes, first 10 minutes ignored.
 
 Notable above 5%, high above 10%; under 5% on a run of 60+ minutes is an attaboy. Exactly 5% is silent.
+A run with a carry (workout_carry) uses the `-carry` template instead and is also left out of a trend.
 With a workout temperature at or above 24 degC the run is tagged heat-affected (own template, and
 `in_trend: False` in the evidence so a trend leaves it out). Without weather data no tag is added and
 the heat caveat stays in the wording. Walks and hikes are never evaluated (they are not in `runs`).
@@ -34,7 +35,10 @@ def cardiac_drift(snap: DerivedSnapshot, thresholds: Thresholds, prior: list[Ins
             kind, template = "attaboy", "cardiac-drift-solid"
         else:
             continue
-        if heat and kind == "observation":
+        carry = run.carry_kg
+        if carry is not None:
+            template += "-carry"  # carry wins over heat: the load is the stronger explanation
+        elif heat and kind == "observation":
             template += "-heat"
         out.append(
             make_fact(
@@ -43,7 +47,8 @@ def cardiac_drift(snap: DerivedSnapshot, thresholds: Thresholds, prior: list[Ins
                     RULE_ID,
                     {"decoupling_pct": r1(pct), "ef_first_half": round(d.ef_first, 3), "ef_second_half": round(d.ef_second, 3),
                      "mean_hr": r1(d.mean_hr), "minutes_used": d.minutes_used, "duration_s": round(run.duration_s or 0),
-                     "temperature_c": run.temperature_c, "heat_affected": heat, "in_trend": not heat, "hill_gate": d.hill_gate},
+                     "temperature_c": run.temperature_c, "heat_affected": heat, "in_trend": not heat and carry is None, "hill_gate": d.hill_gate,
+                     **({"carried_kg": carry} if carry is not None else {})},
                     "Heat, hills, hydration and fuelling can all skew drift; it is one signal among several.",
                 ),
                 template,

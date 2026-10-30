@@ -162,7 +162,9 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
             row = s.get(models.WorkoutCarry, workout_id) or models.WorkoutCarry(workout_id=workout_id)
             row.weight_kg, row.updated_at = body.weight_kg, utcnow()
             s.add(row)
-            s.commit()  # display only: no recompute
+            recompute_enqueue(s)  # carry is a pipeline input: carried runs are compared only with carried runs
+            s.commit()
+        queue.wakeup.set()
         return sc.WorkoutCarryOut(carry_kg=body.weight_kg)
 
     @router.delete("/workouts/{workout_id}/carry", response_model=sc.WorkoutCarryOut, dependencies=auth)
@@ -173,7 +175,9 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
             row = s.get(models.WorkoutCarry, workout_id)
             if row is not None:
                 s.delete(row)
+                recompute_enqueue(s)
                 s.commit()
+        queue.wakeup.set()
         return sc.WorkoutCarryOut(carry_kg=None)
 
     @router.put("/workouts/{workout_id}/note", response_model=sc.NoteOut, dependencies=auth)

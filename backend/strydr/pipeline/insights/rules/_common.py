@@ -11,16 +11,22 @@ def lookback_start(snap: DerivedSnapshot, th: Thresholds) -> date:
     return snap.as_of - timedelta(days=th.section("engine")["run_lookback_days"] - 1)
 
 
-def recent_runs(snap: DerivedSnapshot, th: Thresholds) -> list[RunSummary]:
+def in_cohort(r: RunSummary, carried: bool | None) -> bool:
+    """Two cohorts: carried (a workout_carry row) and uncarried. None = both."""
+    return carried is None or (r.carry_kg is not None) == carried
+
+
+def recent_runs(snap: DerivedSnapshot, th: Thresholds, carried: bool | None = None) -> list[RunSummary]:
     lo = lookback_start(snap, th)
     return sorted(
-        (r for r in snap.runs if lo <= r.local_date <= snap.as_of), key=lambda r: (r.local_date, r.workout_id)
+        (r for r in snap.runs if lo <= r.local_date <= snap.as_of and in_cohort(r, carried)),
+        key=lambda r: (r.local_date, r.workout_id),
     )
 
 
-def runs_between(snap: DerivedSnapshot, first: date, last: date) -> list[RunSummary]:
-    """Runs with first <= local_date <= last."""
-    return [r for r in snap.runs if first <= r.local_date <= last]
+def runs_between(snap: DerivedSnapshot, first: date, last: date, carried: bool | None = None) -> list[RunSummary]:
+    """Runs with first <= local_date <= last, optionally only one cohort."""
+    return [r for r in snap.runs if first <= r.local_date <= last and in_cohort(r, carried)]
 
 
 def has_check_reading(prior: list[InsightFact]) -> bool:

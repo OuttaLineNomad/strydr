@@ -34,6 +34,7 @@ def run(ctx: Context, profile: Profile) -> None:
                              .order_by(models.Workout.start_utc, models.Workout.workout_id)).scalars().all()
         s.expunge_all()
         rpe = {wid: r for wid, r in s.execute(select(models.WorkoutNote.workout_id, models.WorkoutNote.rpe)) if r}
+        carried = {wid for (wid,) in s.execute(select(models.WorkoutCarry.workout_id).where(models.WorkoutCarry.weight_kg > 0))}
         rhr = {d: v for d, v in s.execute(select(models.DailyMetric.local_date, models.DailyMetric.value).where(
             models.DailyMetric.metric == "resting_heart_rate", models.DailyMetric.value.is_not(None)))}
         hrv = {d: v for d, v in s.execute(select(models.DailyMetric.local_date, models.DailyMetric.value).where(
@@ -65,7 +66,8 @@ def run(ctx: Context, profile: Profile) -> None:
             generations.add_rows(ctx.engine, rows)  # a workout's rows commit together or not at all
             inputs.append(inp)
             day_info[w.workout_id] = days_mod.DayWorkout(
-                w.type, w.duration_s or 0.0, 0.0, hard_s, fact.is_long_run if fact else False, w.effort_score, w.elevation_gain_m)
+                w.type, w.duration_s or 0.0, 0.0, hard_s, fact.is_long_run if fact else False, w.effort_score, w.elevation_gain_m,
+                w.workout_id in carried)
             if fact:  # counted in totals only once its rows are stored
                 facts.append(fact)
                 efforts[w.workout_id] = best
@@ -120,7 +122,7 @@ def _daily(ctx: Context, th, p: load_mod.LoadParams, loads: list[load_mod.Workou
     for wl in loads:
         w = day_info[wl.workout_id]
         by_day.setdefault(wl.local_date, []).append(
-            days_mod.DayWorkout(w.type, w.duration_s, wl.trimp, w.hard_s, w.is_long_run, w.effort_score, w.elevation_gain_m))
+            days_mod.DayWorkout(w.type, w.duration_s, wl.trimp, w.hard_s, w.is_long_run, w.effort_score, w.elevation_gain_m, w.carried))
     classes = days_mod.classify_days(by_day, start, ctx.as_of, days_mod.DayParams.from_mapping(th.section("days")))
     generations.add_rows(ctx.engine, (models.DayClass(
         generation_id=gid, local_date=c.local_date.isoformat(), has_run=c.has_run, is_hard=c.is_hard, is_rest=c.is_rest,

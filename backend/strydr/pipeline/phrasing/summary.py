@@ -22,7 +22,7 @@ from strydr.store.generations import in_current
 from strydr.store.util import utcnow
 
 log = logging.getLogger("strydr.phrasing")
-SUMMARY_VERSION = "2"
+SUMMARY_VERSION = "3"
 MAX_TOKENS = 220
 MAX_SENTENCES = 3
 MAX_CHARS = 450
@@ -32,6 +32,8 @@ SYSTEM_RUN = (
     "Write two or three short plain sentences and nothing else. "
     "Link the pace or effort to at most two context factors from the JSON (such as the weather, sleep, training load or "
     "the comparison with similar runs), and say they are 'associated with' each other, never that one caused the other. "
+    "If the run has a 'carry' value, the runner carried that load: name it as a context factor, written as the word 'carrying' "
+    "followed by the carry value exactly as it appears in the JSON, and do not read a slower pace or higher heart rate on that run as a poor day. "
     "Use only numbers that appear in the JSON, written exactly the same way (14:04 stays 14:04) with the same units, "
     "and add no other numbers. "
     "Give no medical advice, no diagnosis and no injury, risk, calorie or weight talk. "

@@ -23,7 +23,7 @@ TIER_1 = {
     "long-run-spike", "weekly-ramp", "attaboys-streaks", "intensity-mix", "easy-creep", "cardiac-drift",
     "resting-hr", "hrv", "pace-at-fixed-hr", "hard-day-stacking", "no-rest-day", "training-state",
 }
-TIER_2 = {"heat-adjusted-pace", "hill-adjusted-pace", "pace-by-conditions", "short-sleep-run", "effort-by-sleep"}
+TIER_2 = {"heat-adjusted-pace", "hill-adjusted-pace", "pace-by-conditions", "short-sleep-run", "effort-by-sleep", "carry"}
 
 
 # ---- registry and engine ----
@@ -210,7 +210,7 @@ DATA = {
     "baseline_weeks": 4, "period": "2026-09", "min_runs_per_week": 3, "easy_ceiling_bpm": 152, "recent_days": 14,
     "hr_higher_bpm": 4.0, "duration_s": 3600, "temperature_c": 26.0, "last_days_bpm": [56, 57, 58], "band_bpm": [135, 145],
     "form_pct": -31.0, "dew_point_c": 18.0, "adjusted_pace_s_per_unit": 560, "dew_split_c": 15.0, "warm_runs": 7,
-    "cool_runs": 9, "under_usual_h": 1.4, "short_runs": 6, "good_runs": 8,
+    "cool_runs": 9, "carried_kg": 11.3, "carried_days": ["2026-10-20"], "under_usual_h": 1.4, "short_runs": 6, "good_runs": 8,
     "events": [{"event": "x", "label": "5k", "distance_m": 5000, "time_s": 1500, "milestone": 100, "unit": "km"}],
 }
 UNITS = {"attaboys-streaks-best-effort": ("s", 1500.0), "attaboys-streaks-longest-run": ("m", 21097.0),
@@ -242,7 +242,8 @@ def test_template_lint(tid, units):
     assert re.search(r"\byou(r)?\b", low), f"{tid}: not second person"
     assert text.endswith(".") and not re.search(r"[.!?]\s", text), f"{tid}: not exactly one sentence: {text!r}"
     f = base_fields(fact, units)
-    assert any(f[k] in text for k in ("n", "n_abs", "n_signed")), f"{tid}: headline number missing"
+    if tid != "carry-run":  # its number is the carry, shown in the runner's unit ("25 lb") rather than as {n}
+        assert any(f[k] in text for k in ("n", "n_abs", "n_signed")), f"{tid}: headline number missing"
     assert "{" not in text and "}" not in text
 
 

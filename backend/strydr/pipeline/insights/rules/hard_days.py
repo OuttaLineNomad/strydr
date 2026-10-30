@@ -41,15 +41,18 @@ def hard_day_stacking(snap: DerivedSnapshot, thresholds: Thresholds, prior: list
         trig = _trigger(hard, d, th)
         if trig and not _trigger(hard, d - timedelta(days=1), th):
             days_in = [d - timedelta(days=k) for k in range(th["window_days"]) if hard.get(d - timedelta(days=k))]
+            data = {"trigger": trig, "hard_days": sorted(x.isoformat() for x in days_in), "window_days": th["window_days"]}
+            carried = sorted(x.isoformat() for x in days_in if x in snap.carried_run_dates)
+            if carried:
+                data["carried_days"] = carried
             out.append(
                 make_fact(
                     RULE_ID, ATHLETE, d, "observation", float(len(days_in)), "days",
                     make_evidence(
-                        RULE_ID,
-                        {"trigger": trig, "hard_days": sorted(x.isoformat() for x in days_in), "window_days": th["window_days"]},
+                        RULE_ID, data,
                         "Hard days are 20+ minutes near your maximum heart rate, or a long run. Easy days between them are a common pattern.",
                     ),
-                    f"hard-day-stacking-{trig}",
+                    f"hard-day-stacking-{trig}" + ("-carry" if carried else ""),
                 )
             )
         d += timedelta(days=1)

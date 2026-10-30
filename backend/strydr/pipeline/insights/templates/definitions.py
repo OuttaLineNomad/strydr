@@ -3,7 +3,7 @@
 Wording rules (FR-21/21a): no "!", "associated with" and never causal verbs, no diagnostic, injury-risk,
 calorie or weight framing. Attaboys never discourage rest. `test_templates` lints all of this.
 """
-from ._format import Template, clock, dist
+from ._format import Template, carry_text, clock, dist
 
 _LABELS = {"400m": "400 m", "1k": "1 km", "1mi": "1 mile", "5k": "5 km", "10k": "10 km", "half": "half-marathon", "marathon": "marathon"}
 
@@ -37,6 +37,19 @@ def _hr_centre(f, u):
 def _drift(f, u):
     d = f.evidence["data"]
     return {"minutes": round(d["duration_s"] / 60), "temp": round(d["temperature_c"]) if d["temperature_c"] is not None else ""}
+
+
+def _carry(f, u):
+    return {"carry": carry_text(f.evidence["data"]["carried_kg"], u)}
+
+
+def _drift_carry(f, u):
+    return {**_drift(f, u), **_carry(f, u)}
+
+
+def _stack_carry(f, u):
+    n = len(f.evidence["data"]["carried_days"])
+    return {"carried": "one of them a carried run" if n == 1 else f"{n} of them carried runs"}
 
 
 def _rhr(f, u):
@@ -104,6 +117,30 @@ _T = [
              "Your pace-to-heart-rate ratio drifted {n}% over this warm run ({temp} °C), and heat is associated with more drift.", _drift),
     Template("cardiac-drift-high-heat", "cardiac-drift",
              "Your pace-to-heart-rate ratio drifted {n}% over this warm run ({temp} °C), which is high, and heat is associated with more drift.", _drift),
+    Template("cardiac-drift-notable-carry", "cardiac-drift",
+             "Your pace-to-heart-rate ratio drifted {n}% over this run carrying {carry}, and the extra load is associated with more drift, though heat and hills can skew drift too.", _drift_carry),
+    Template("cardiac-drift-high-carry", "cardiac-drift",
+             "Your pace-to-heart-rate ratio drifted {n}% over this run carrying {carry}, which is high, and the extra load is associated with more drift, though heat and hills can skew drift too.",
+             _drift_carry),
+    Template("cardiac-drift-solid-carry", "cardiac-drift",
+             "Carrying {carry}, your pace held steady against your heart rate for {minutes} minutes, drifting only {n}%, though heat and hills can skew drift.", _drift_carry),
+    Template("carry-run", "carry", "You ran this one carrying {carry}.", _carry),
+    Template("pace-at-hr-faster-carry", "pace-at-fixed-hr",
+             "At about {hr} bpm, your carried runs are {n}% faster than in the 4 weeks before.", _hr_centre),
+    Template("pace-at-hr-slower-carry", "pace-at-fixed-hr",
+             "At about {hr} bpm, your carried runs are {n}% slower than in the 4 weeks before, and heat and tiredness can move it too.",
+             _hr_centre),
+    Template("easy-creep-ceiling-carry", "easy-creep",
+             "{n}% of your easy-intended carried runs in the last {d[recent_days]} days averaged above your easy ceiling of {d[easy_ceiling_bpm]} bpm."),
+    Template("easy-creep-pace-carry", "easy-creep",
+             "Your easy carried runs are {n}% faster than your 8-week norm for carried runs, at an average heart rate {d[hr_higher_bpm]} bpm higher."),
+    Template("pace-by-conditions-carry", "pace-by-conditions",
+             "Over the last {d[window_days]} days, your easy carried runs with a dew point of {dew} or more were typically {n}% slower than your cooler ones ({d[warm_runs]} against {d[cool_runs]} runs).",
+             _dew_split),
+    Template("hard-day-stacking-consecutive-carry", "hard-day-stacking",
+             "You have had {n} hard days in the last {d[window_days]} days, including two in a row, and {carried}.", _stack_carry),
+    Template("hard-day-stacking-window-carry", "hard-day-stacking",
+             "You have had {n} hard days in the last {d[window_days]} days, and {carried}.", _stack_carry),
     Template("cardiac-drift-solid", "cardiac-drift",
              "Your pace held steady against your heart rate for {minutes} minutes, drifting only {n}%, though heat and hills can skew drift.", _drift),
     Template("resting-hr-elevated", "resting-hr",
@@ -136,7 +173,7 @@ _T = [
     Template("effort-by-sleep", "effort-by-sleep",
              "Over the last {d[window_days]} days, your easy runs after short nights took {n}% more heartbeats per kilometre than after good nights ({d[short_runs]} against {d[good_runs]} runs)."),
     Template("hard-day-stacking-consecutive", "hard-day-stacking",
-             "You have had {n} hard days in the last {d[window_days]}, including two in a row."),
+             "You have had {n} hard days in the last {d[window_days]} days, including two in a row."),
     Template("hard-day-stacking-window", "hard-day-stacking", "You have had {n} hard days in the last {d[window_days]} days."),
     Template("hard-day-stacking-monotony", "hard-day-stacking",
              "Your daily load has varied very little this week (monotony {n}), and mixing harder and easier days is a common pattern."),

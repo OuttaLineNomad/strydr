@@ -29,8 +29,9 @@ def run(ctx: Context, profile: Profile) -> None:
         results = s.execute(select(models.SectionResult).where(models.SectionResult.generation_id == gid)).scalars().all()
         sections = {r.section_id: (r.kind, r.idx) for r in s.execute(
             select(models.RouteSection).where(models.RouteSection.generation_id == gid)).scalars()}
+        carried = {wid: kg for wid, kg in s.execute(select(models.WorkoutCarry.workout_id, models.WorkoutCarry.weight_kg)) if kg > 0}
     seen = {f.insight_key for f in facts}
-    for f in same_route.build(results, sections, units, lookback, rt.window_days, rt.hr_match_bpm):
+    for f in same_route.build(results, sections, units, lookback, rt.window_days, rt.hr_match_bpm, carried):
         if is_valid_key(f.insight_key) and f.insight_key not in seen:
             facts.append(f)
             seen.add(f.insight_key)

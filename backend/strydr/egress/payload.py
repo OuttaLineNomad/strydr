@@ -50,7 +50,7 @@ _CONTEXT_VALUE = re.compile(CONTEXT_VALUE)
 _SENTENCE = re.compile(r"^[A-Za-z0-9 .,:%/()'+°\u2212-]{1,400}$")
 
 RunKey = Literal["type", "when", "time_band", "distance", "active_time", "avg_pace", "avg_hr", "max_hr", "cadence",
-                 "elevation_gain", "effort_score", "rpe"]
+                 "elevation_gain", "effort_score", "rpe", "carry"]
 SplitKey = Literal["split", "distance", "pace", "gap_pace", "hr", "elevation_change"]
 TerrainKey = Literal["gap_pace", "relief", "relief_per_distance", "hilly"]
 ConditionsKey = Literal["temperature", "feels_like", "humidity", "dew_point", "wind", "rain", "cloud",

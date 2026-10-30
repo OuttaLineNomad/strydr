@@ -87,6 +87,10 @@ pace_faster_pct = 5.0
 hr_higher_bpm = 3.0
 min_hr_coverage = 0.80
 
+[carry]
+# Story 13: one fact per carried run; carried and uncarried runs are never compared with each other (no tunables).
+enabled = true
+
 [cardiac-drift]
 min_duration_min = 40
 warmup_min = 10

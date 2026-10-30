@@ -70,3 +70,18 @@ def test_effort_by_sleep_compares_heartbeats_per_km():
     facts = [f for f in run_rules(snapshot(runs=runs), th()) if f.rule_id == "effort-by-sleep"]
     assert len(facts) == 1 and facts[0].number == pytest.approx(7.1, abs=0.1)
     assert not [f for f in run_rules(snapshot(runs=runs[1:]), th()) if f.rule_id == "effort-by-sleep"]
+
+
+def test_effort_by_sleep_leaves_carried_runs_out():
+    def mk(carry):
+        return tuple(run(f"s{i}", AS_OF - timedelta(days=2 * i), 3.2, 30.0, is_easy_intended=True, avg_hr=150.0,
+                         sleep=_sleep(5.5), carry_kg=carry) for i in range(5)) + \
+            tuple(run(f"g{i}", AS_OF - timedelta(days=2 * i + 1), 3.2, 30.0, is_easy_intended=True, avg_hr=140.0,
+                      sleep=_sleep(7.8, quality="good"), carry_kg=carry) for i in range(5))
+
+    def facts(runs):
+        return [f for f in run_rules(snapshot(runs=runs), th()) if f.rule_id == "effort-by-sleep"]
+
+    assert facts(mk(None)) and not facts(mk(10.0))
+    assert facts(mk(None) + tuple(run(f"x{i}", AS_OF - timedelta(days=i), 3.2, 30.0, is_easy_intended=True, avg_hr=170.0,
+                                      sleep=_sleep(5.5), carry_kg=10.0) for i in range(5))) == facts(mk(None))

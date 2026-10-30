@@ -86,11 +86,14 @@ def test_carry_unknown_workout(c):
     assert c.delete(f"{API}/workouts/nope/carry").status_code == 404
 
 
-def test_carry_does_not_enqueue_recompute(engine, c):
-    before = _pending(engine)
-    c.put(f"{API}/workouts/w1/carry", json={"weight_kg": 5})
-    c.delete(f"{API}/workouts/w1/carry")
-    assert _pending(engine) == before
+def test_carry_set_and_clear_each_enqueue_a_recompute(engine, c):
+    assert c.put(f"{API}/workouts/w1/carry", json={"weight_kg": 5}).status_code == 200
+    assert _pending(engine) >= 1
+    with engine.begin() as conn:
+        conn.execute(models.Job.__table__.delete())
+    assert _pending(engine) == 0
+    assert c.delete(f"{API}/workouts/w1/carry").status_code == 200
+    assert _pending(engine) >= 1
 
 
 def _reparse(engine, worker):

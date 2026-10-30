@@ -2,6 +2,7 @@
 from . import (  # noqa: F401
     attaboys_streaks,
     cardiac_drift,
+    carry,
     conditions,
     hard_days,
     hrv,

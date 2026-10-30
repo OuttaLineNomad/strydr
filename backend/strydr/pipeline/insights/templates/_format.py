@@ -1,4 +1,5 @@
 """Template plumbing: the Template type and number/distance formatters (SI in, runner's units out)."""
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Literal
@@ -23,6 +24,15 @@ def clock(seconds: float) -> str:
     h, rem = divmod(s, 3600)
     m, sec = divmod(rem, 60)
     return f"{h}:{m:02d}:{sec:02d}" if h else f"{m}:{sec:02d}"
+
+
+def carry_text(kg: float, units: Units) -> str:
+    """The carry as the web's `formatWeightValue` shows it: whole pounds or kilograms to one decimal, never 0. "25 lb"."""
+    step = 1 if units == "mi" else 0.1
+    v = kg * 2.2046226218 if units == "mi" else kg
+    r = math.floor(v / step + 0.5) * step
+    r = step if v > 0 and r < step else r
+    return f"{num(r)} {'lb' if units == 'mi' else 'kg'}"
 
 
 EXTRA = Callable[[InsightFact, Units], dict[str, Any]]

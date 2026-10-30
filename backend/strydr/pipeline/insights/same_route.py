@@ -18,8 +18,10 @@ def section_label(kind: str, idx: int, units: str) -> str:
 
 
 def build(results: Iterable, sections: dict[str, tuple[str, int]], units: str, since: date, window_days: int,
-          hr_match_bpm: float) -> list[InsightFact]:
-    """`results` are SectionResult-like rows with `fires`; only runs on or after `since` produce facts."""
+          hr_match_bpm: float, carried: dict[str, float] | None = None) -> list[InsightFact]:
+    """`results` are SectionResult-like rows with `fires`; only runs on or after `since` produce facts.
+    `carried` maps a carried run's id to its carry (kg): its fact uses the `-carry` wording."""
+    carried = carried or {}
     by_run: dict[str, list] = {}
     for r in results:
         if r.fires and date.fromisoformat(r.local_date) >= since:
@@ -37,8 +39,11 @@ def build(results: Iterable, sections: dict[str, tuple[str, int]], units: str, s
                 "z": None if top.z is None else round(top.z, 1), "sections": listed}
         note = (f"Compared with earlier runs on this route in the last {window_days} days whose heart rate on the "
                 f"section was within {hr_match_bpm:g} bpm of this run's. Context, not a verdict.")
+        template = "same-route-hr-slower" if top.gap_s > 0 else "same-route-hr-faster"
+        if wid in carried:
+            data["carried_kg"] = round(carried[wid], 2)
+            template += "-carry"
         out.append(make_fact(
             SAME_ROUTE_RULE_ID, run_subject(wid), top.local_date, "observation", round(abs(top.gap_s), 1), "s",
-            make_evidence(SAME_ROUTE_RULE_ID, data, note),
-            "same-route-hr-slower" if top.gap_s > 0 else "same-route-hr-faster"))
+            make_evidence(SAME_ROUTE_RULE_ID, data, note), template))
     return out

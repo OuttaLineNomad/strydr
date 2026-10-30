@@ -49,6 +49,7 @@ class DayWorkout:
     is_long_run: bool = False  # from derive/summary
     effort_score: float | None = None
     elevation_gain_m: float | None = None
+    carried: bool = False  # has a workout_carry row; a carried walk or hike adds no hard time
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,7 +98,7 @@ def classify_days(
     while d <= end:
         ws = workouts_by_day.get(d, ())
         load = sum(w.load for w in ws)
-        hard_s = sum(w.hard_s for w in ws)
+        hard_s = sum(w.hard_s for w in ws if not (w.carried and w.type != "run"))
         has_run = any(w.type == "run" for w in ws)
         reasons = []
         if hard_s >= p.hard_minutes * 60:

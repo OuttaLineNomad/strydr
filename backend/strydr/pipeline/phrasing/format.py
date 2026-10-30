@@ -6,6 +6,8 @@ from `insights/templates/_format.py`, whose "84 °F" is template wording.
 """
 import math
 
+from strydr.pipeline.insights.templates._format import carry_text
+
 METERS_PER_MILE = 1609.344
 FEET_PER_METER = 3.280839895
 MINUS = "−"
@@ -121,6 +123,11 @@ def signed_whole(v: float | None, unit: str = "") -> str | None:
 
 def _sign(n: int, signed: bool) -> str:
     return (MINUS if n < 0 else "+" if n > 0 else "") if signed else ""
+
+
+def carry(kg: float | None, units: str) -> str | None:
+    """Carried mass as the run page's chip shows it, without the plus sign: '25 lb' or '11.3 kg'."""
+    return None if not finite(kg) or kg <= 0 else carry_text(kg, units)
 
 
 def pace_delta(seconds: float | None, units: str) -> str | None:

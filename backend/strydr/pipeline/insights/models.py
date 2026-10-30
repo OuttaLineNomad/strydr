@@ -66,6 +66,7 @@ class RunSummary:
     conditions: dict | None = None  # derive/conditions (dew point, heat adjustment, band); None indoors or unknown
     gap: dict | None = None  # derive/grade: whole-run grade adjusted pace and relief; None without altitude
     sleep: dict | None = None  # derive/sleep: the night before (hours, stages, quality, usual) and morning RHR/HRV
+    carry_kg: float | None = None  # workout_carry: extra mass carried (> 0); None = uncarried. Splits runs into two cohorts
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,6 +123,7 @@ class DerivedSnapshot:
       weekly / monthly derive/summary: running volume per ISO week / calendar month (runs only);
                        missing periods mean zero
       best_efforts     derive/records: best efforts on runs
+      carried_run_dates local dates with a carried run (workout_carry); a hard-day stack including one says so
       days             derive/days: DayClass for every local date up to as_of (zero-filled, with load)
       training_state   derive/load: TrainingStateDay for as_of (None = unavailable)
       resting_hr       daily_metric resting_heart_rate: the day's value, profile outliers already removed
@@ -145,3 +147,4 @@ class DerivedSnapshot:
     rhr_baseline: Baseline | None = None
     hrv_sdnn_ms: tuple[DailyValue, ...] = ()
     hrv_baseline: Baseline | None = None
+    carried_run_dates: frozenset[date] = frozenset()

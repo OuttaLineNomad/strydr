@@ -11,7 +11,7 @@ All three are estimates: the evidence note says so and the templates use "associ
 """
 from datetime import timedelta
 
-from ..keys import ATHLETE, make_evidence, make_fact, run_subject, week_id
+from ..keys import ATHLETE, make_evidence, make_fact, run_subject, week_id, week_subject
 from ..models import M_PER_UNIT, DerivedSnapshot, InsightFact, RunSummary
 from ..registry import rule
 from ..thresholds import Thresholds
@@ -81,8 +81,13 @@ def _speed(r: RunSummary) -> float | None:
 
 @rule(PATTERN)
 def pace_by_conditions(snap: DerivedSnapshot, thresholds: Thresholds, prior: list[InsightFact]) -> list[InsightFact]:
+    """Runs once per cohort (carried / uncarried). The carried fact is keyed on the week subject, the uncarried on `athlete`."""
+    return [f for carried in (False, True) for f in _pattern(snap, thresholds, carried)]
+
+
+def _pattern(snap: DerivedSnapshot, thresholds: Thresholds, carried: bool) -> list[InsightFact]:
     th = thresholds.rule(PATTERN)
-    runs = runs_between(snap, snap.as_of - timedelta(days=th["window_days"] - 1), snap.as_of)
+    runs = runs_between(snap, snap.as_of - timedelta(days=th["window_days"] - 1), snap.as_of, carried)
     warm, cool = [], []
     for r in runs:
         dew = (r.conditions or {}).get("dew_point_c")
@@ -97,10 +102,13 @@ def pace_by_conditions(snap: DerivedSnapshot, thresholds: Thresholds, prior: lis
     if slower < th["change_pct"]:
         return []
     wid = week_id(snap.as_of)
+    data = {
+        "window_days": th["window_days"], "dew_split_c": th["dew_split_c"], "warm_runs": len(warm), "cool_runs": len(cool),
+        "warm_speed_mps": round(med(warm), 3), "cool_speed_mps": round(med(cool), 3),
+    }
+    if carried:
+        data["carried"] = True
     return [make_fact(
-        PATTERN, ATHLETE, wid, "observation", r1(slower), "%",
-        make_evidence(PATTERN, {
-            "window_days": th["window_days"], "dew_split_c": th["dew_split_c"], "warm_runs": len(warm), "cool_runs": len(cool),
-            "warm_speed_mps": round(med(warm), 3), "cool_speed_mps": round(med(cool), 3),
-        }, "A pattern across your own runs, not a rule; route, tiredness and time of day differ between runs too."),
-        "pace-by-conditions")]
+        PATTERN, week_subject(wid) if carried else ATHLETE, wid, "observation", r1(slower), "%",
+        make_evidence(PATTERN, data, "A pattern across your own runs, not a rule; route, tiredness and time of day differ between runs too."),
+        "pace-by-conditions-carry" if carried else "pace-by-conditions")]

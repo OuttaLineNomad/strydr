@@ -44,6 +44,7 @@ def build(ctx: Context, profile: Profile) -> DerivedSnapshot:
         hard = {d for (d,) in s.execute(select(models.DayClass.local_date).where(
             models.DayClass.generation_id == gid, models.DayClass.is_hard.is_(True)))}
         rpe = {wid: r for wid, r in s.execute(select(models.WorkoutNote.workout_id, models.WorkoutNote.rpe)) if r}
+        carry = {wid: kg for wid, kg in s.execute(select(models.WorkoutCarry.workout_id, models.WorkoutCarry.weight_kg)) if kg and kg > 0}
         periods = s.execute(select(models.PeriodSummary).where(models.PeriodSummary.generation_id == gid)).scalars().all()
         effort_rows = s.execute(select(models.BestEffort).where(models.BestEffort.generation_id == gid)).scalars().all()
         day_rows = s.execute(select(models.DayClass).where(models.DayClass.generation_id == gid)
@@ -66,7 +67,8 @@ def build(ctx: Context, profile: Profile) -> DerivedSnapshot:
             w.workout_id, date.fromisoformat(w.local_date), w.distance_m, w.duration_s, w.avg_speed_mps, w.avg_hr,
             w.elevation_gain_m, w.temperature_c, w.is_indoor, sm.is_long_run,
             summary.is_easy_intended(sm.is_long_run, w.local_date in hard, rpe.get(w.workout_id)),
-            sm.hr_time_s, sm.easy_time_s, sm.hr_coverage, mins, *extra.get(w.workout_id, (None, None, None))))
+            sm.hr_time_s, sm.easy_time_s, sm.hr_coverage, mins, *extra.get(w.workout_id, (None, None, None)),
+            carry_kg=carry.get(w.workout_id)))
 
     vols = {"week": [], "month": []}
     for p in periods:
@@ -95,6 +97,7 @@ def build(ctx: Context, profile: Profile) -> DerivedSnapshot:
         rhr_baseline=_baseline(*(getattr(profile.rhr_baseline, f, None) for f in ("mean", "sd", "n_days"))),
         hrv_sdnn_ms=tuple(DailyValue(date.fromisoformat(d), v) for d, v in daily["heart_rate_variability"]),
         hrv_baseline=_baseline(*(getattr(profile.hrv_baseline, f, None) for f in ("mean", "sd", "n_days"))),
+        carried_run_dates=frozenset(r.local_date for r in runs if r.carry_kg),
     )
 
 

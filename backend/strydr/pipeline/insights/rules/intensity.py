@@ -9,7 +9,7 @@ Easy means HR at or below the easy ceiling (profile).
 """
 from datetime import timedelta
 
-from ..keys import make_evidence, make_fact, week_id, week_subject
+from ..keys import ATHLETE, make_evidence, make_fact, week_id, week_subject
 from ..models import DerivedSnapshot, InsightFact
 from ..registry import rule
 from ..thresholds import Thresholds
@@ -51,13 +51,18 @@ def intensity_mix(snap: DerivedSnapshot, thresholds: Thresholds, prior: list[Ins
 
 @rule(CREEP_ID)
 def easy_creep(snap: DerivedSnapshot, thresholds: Thresholds, prior: list[InsightFact]) -> list[InsightFact]:
+    """Runs once per cohort (carried / uncarried). The carried fact is keyed on `athlete` so it never collides with the uncarried one."""
+    return [f for carried in (False, True) for f in _creep(snap, thresholds, carried)]
+
+
+def _creep(snap: DerivedSnapshot, thresholds: Thresholds, carried: bool) -> list[InsightFact]:
     th = thresholds.rule(CREEP_ID)
     recent_start = snap.as_of - timedelta(days=th["recent_days"] - 1)
 
     def easy_runs(first, last):
         return [
             r
-            for r in runs_between(snap, first, last)
+            for r in runs_between(snap, first, last, carried)
             if r.is_easy_intended and r.avg_hr is not None and (r.hr_coverage or 0) >= th["min_hr_coverage"]
         ]
 
@@ -85,9 +90,12 @@ def easy_creep(snap: DerivedSnapshot, thresholds: Thresholds, prior: list[Insigh
     if pace_pct is not None:
         data.update({"pace_faster_pct": r1(pace_pct), "hr_higher_bpm": r1(hr_delta), "prior_runs": len(older)})
     number, unit, template = (r1(share), "%", "easy-creep-ceiling") if by_ceiling else (r1(pace_pct), "%", "easy-creep-pace")
+    if carried:
+        data["carried"] = True
+        template += "-carry"
     return [
         make_fact(
-            CREEP_ID, week_subject(wid), wid, "observation", number, unit,
+            CREEP_ID, ATHLETE if carried else week_subject(wid), wid, "observation", number, unit,
             make_evidence(CREEP_ID, data, "Easy days that drift above the easy ceiling blur the hard/easy pattern. Context, not a rule."),
             template,
         )

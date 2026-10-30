@@ -7,7 +7,7 @@ heat tag (>= 24 degC is left out). Needs >= 4 qualifying runs in each 4-week hal
 """
 from datetime import timedelta
 
-from ..keys import make_evidence, make_fact, week_id, week_subject
+from ..keys import ATHLETE, make_evidence, make_fact, week_id, week_subject
 from ..models import DerivedSnapshot, InsightFact, RunSummary
 from ..registry import rule
 from ..series import qualifying_speeds
@@ -24,11 +24,16 @@ def _easy_median_hr(runs: list[RunSummary], ceiling: float, warmup: int) -> floa
 
 @rule(RULE_ID, after=("resting-hr",))
 def pace_at_fixed_hr(snap: DerivedSnapshot, thresholds: Thresholds, prior: list[InsightFact]) -> list[InsightFact]:
+    """Runs once per cohort (carried / uncarried). The carried fact is keyed on `athlete` so it never collides with the uncarried one."""
+    return [f for carried in (False, True) for f in _cohort(snap, thresholds, prior, carried)]
+
+
+def _cohort(snap: DerivedSnapshot, thresholds: Thresholds, prior: list[InsightFact], carried: bool) -> list[InsightFact]:
     th = thresholds.rule(RULE_ID)
     w = th["window_days"]
     recent_start = snap.as_of - timedelta(days=w - 1)
     prior_start = recent_start - timedelta(days=w)
-    base_runs = runs_between(snap, snap.as_of - timedelta(days=th["easy_hr_window_days"] - 1), snap.as_of)
+    base_runs = runs_between(snap, snap.as_of - timedelta(days=th["easy_hr_window_days"] - 1), snap.as_of, carried)
     easy_hr = _easy_median_hr(base_runs, snap.easy_ceiling_bpm, th["warmup_min"])
     if easy_hr is None:
         return []
@@ -37,7 +42,7 @@ def pace_at_fixed_hr(snap: DerivedSnapshot, thresholds: Thresholds, prior: list[
 
     def run_speeds(first, last) -> list[float]:
         out = []
-        for r in runs_between(snap, first, last):
+        for r in runs_between(snap, first, last, carried):
             if r.temperature_c is not None and r.temperature_c >= th["heat_c"]:
                 continue
             speeds = qualifying_speeds(r, band, th)
@@ -56,15 +61,14 @@ def pace_at_fixed_hr(snap: DerivedSnapshot, thresholds: Thresholds, prior: list[
     if faster and has_check_reading(prior):
         return []
     wid = week_id(snap.as_of)
+    data = {"band_bpm": [band[0], band[1]], "recent_runs": len(recent), "prior_runs": len(older),
+            "recent_speed_mps": round(med(recent), 3), "prior_speed_mps": round(med(older), 3), "window_days": w}
+    if carried:
+        data["carried"] = True
     return [
         make_fact(
-            RULE_ID, week_subject(wid), wid, "attaboy" if faster else "observation", r1(abs(change)), "%",
-            make_evidence(
-                RULE_ID,
-                {"band_bpm": [band[0], band[1]], "recent_runs": len(recent), "prior_runs": len(older),
-                 "recent_speed_mps": round(med(recent), 3), "prior_speed_mps": round(med(older), 3), "window_days": w},
-                "Pace at the same heart rate is a common fitness marker; heat and tiredness move it too.",
-            ),
-            "pace-at-hr-faster" if faster else "pace-at-hr-slower",
+            RULE_ID, ATHLETE if carried else week_subject(wid), wid, "attaboy" if faster else "observation", r1(abs(change)), "%",
+            make_evidence(RULE_ID, data, "Pace at the same heart rate is a common fitness marker; heat and tiredness move it too."),
+            ("pace-at-hr-faster" if faster else "pace-at-hr-slower") + ("-carry" if carried else ""),
         )
     ]

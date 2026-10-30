@@ -103,7 +103,7 @@ def test_acwr_is_the_acute_to_chronic_ratio_and_needs_28_days():
 @pytest.mark.parametrize("tid", sorted(ROUTE_TEMPLATES))
 @pytest.mark.parametrize("units", ["km", "mi"])
 def test_same_route_templates_follow_the_wording_rules(tid, units):
-    data = {"label": "km 3", "hr_bpm": 150, "runs": 4}
+    data = {"label": "km 3", "hr_bpm": 150, "runs": 4, "carried_kg": 11.3}
     fact = make_fact("same-route-hr", "run/abc", "2026-10-24", "observation", 21.5, "s", make_evidence("same-route-hr", data, "n"), tid)
     text = render(fact, units)
     assert "21.5" in text and "!" not in text and re.search(r"\byou\b", text.lower())
