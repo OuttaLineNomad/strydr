@@ -251,3 +251,118 @@ def test_detail_reports_whether_the_shoe_is_chosen(engine, app_client):
     r = app_client.put(f"{API}/workouts/r1/shoe", json={"shoe_id": None})
     assert r.json() == {"shoe": None, "chosen": True} and detail()["shoe_chosen"] is True
     assert app_client.delete(f"{API}/workouts/r1/shoe").json() == {"shoe": None, "chosen": False}
+
+
+def _hist(c):
+    return [(h["from_date"], h["shoe_id"]) for h in c.get(f"{API}/shoes").json()["history"]]
+
+
+def _edit(c, old, shoe_id, new):
+    return c.put(f"{API}/shoes/default/{old}", json={"shoe_id": shoe_id, "from_date": new})
+
+
+def _rel(engine, days):
+    return (_home_today(engine) + timedelta(days=days)).isoformat()
+
+
+def test_history_lists_every_row_newest_first(engine, app_client):
+    login(app_client)
+    a, b, c = (_shoe(app_client, n) for n in "ABC")
+    p, n, f = _rel(engine, -30), _rel(engine, -1), _rel(engine, 20)
+    for sid, d in ((a, p), (b, n), (c, f)):
+        _default(app_client, sid, d)
+    body = app_client.get(f"{API}/shoes").json()
+    assert _hist(app_client) == [(f, c), (n, b), (p, a)]
+    assert body["default"] == {"shoe_id": b, "from_date": n}
+
+
+def test_move_a_default_date_and_change_its_shoe(engine, app_client):
+    _setup(engine, app_client, ("r1", "10-10", "run"), ("r2", "10-20", "run"))
+    a, b = _shoe(app_client, "A"), _shoe(app_client, "B")
+    _default(app_client, a, "2026-09-01")
+    _default(app_client, b, "2026-10-15")
+    assert _shoe_of(app_client, "r1")["id"] == a
+    r = _edit(app_client, "2026-10-15", b, "2026-10-05")
+    assert r.status_code == 200 and ("2026-10-05", b) in _hist(app_client)
+    assert "2026-10-15" not in [d for d, _ in _hist(app_client)]
+    assert _shoe_of(app_client, "r1")["id"] == b
+    assert _edit(app_client, "2026-10-05", a, "2026-10-05").status_code == 200
+    assert _shoe_of(app_client, "r1")["id"] == a and _totals(app_client)["A"][1] == 2
+    assert _edit(app_client, "2026-10-05", None, "2026-10-05").status_code == 200
+    assert ("2026-10-05", None) in _hist(app_client) and _shoe_of(app_client, "r1") is None
+
+
+def test_move_onto_another_row_is_a_conflict(engine, app_client):
+    login(app_client)
+    a, b = _shoe(app_client, "A"), _shoe(app_client, "B")
+    _default(app_client, a, "2026-09-01")
+    _default(app_client, b, "2026-10-01")
+    assert _edit(app_client, "2026-10-01", b, "2026-09-01").status_code == 409
+    assert _hist(app_client) == [("2026-10-01", b), ("2026-09-01", a)]
+
+
+def test_a_retired_shoe_stays_on_its_row_but_cannot_be_picked(engine, app_client):
+    login(app_client)
+    r, a = _shoe(app_client, "R"), _shoe(app_client, "A")
+    _default(app_client, r, "2026-09-01")
+    _default(app_client, a, "2026-10-01")
+    app_client.patch(f"{API}/shoes/{r}", json={"retired": True})
+    assert _edit(app_client, "2026-09-01", r, "2026-09-02").status_code == 200
+    assert _edit(app_client, "2026-10-01", r, "2026-10-01").status_code == 422
+    assert _edit(app_client, "2026-10-01", 999, "2026-10-01").status_code == 422
+
+
+def test_delete_a_default_row(engine, app_client):
+    login(app_client)
+    a = _shoe(app_client, "A")
+    f = _rel(engine, 20)
+    _default(app_client, a, f)
+    assert app_client.delete(f"{API}/shoes/default/{f}").status_code == 200
+    assert _hist(app_client) == []
+
+
+def test_default_row_unknown_and_bad_dates(engine, app_client):
+    login(app_client)
+    assert _edit(app_client, "2026-01-01", None, "2026-01-02").status_code == 404
+    assert app_client.delete(f"{API}/shoes/default/2026-01-01").status_code == 404
+    assert _edit(app_client, "2026-13-01", None, "2026-01-02").status_code == 422
+    assert app_client.delete(f"{API}/shoes/default/2026-13-01").status_code == 422
+    assert _edit(app_client, "2026-01-01", None, "2026-13-01").status_code == 422
+
+
+def test_default_row_edits_do_not_enqueue_a_recompute_and_need_login(engine, app_client):
+    assert app_client.delete(f"{API}/shoes/default/2026-10-01").status_code == 401
+    assert _edit(app_client, "2026-10-01", None, "2026-10-02").status_code == 401
+    login(app_client)
+    before = count(engine, models.Job, models.Job.type == "recompute")
+    a = _shoe(app_client, "A")
+    _default(app_client, a, "2026-10-01")
+    _edit(app_client, "2026-10-01", a, "2026-10-02")
+    app_client.delete(f"{API}/shoes/default/2026-10-02")
+    assert count(engine, models.Job, models.Job.type == "recompute") == before
+
+
+def test_a_retired_shoe_row_cannot_move_to_today_or_later(engine, app_client):
+    login(app_client)
+    r = _shoe(app_client, "R")
+    _default(app_client, r, "2026-09-01")
+    app_client.patch(f"{API}/shoes/{r}", json={"retired": True})
+    for d in (_rel(engine, 0), _rel(engine, 10)):
+        assert _edit(app_client, "2026-09-01", r, d).status_code == 422
+    assert _hist(app_client)[-1] == ("2026-09-01", r)
+
+
+def test_default_follows_a_moved_or_deleted_current_row(engine, app_client):
+    login(app_client)
+    a, b = _shoe(app_client, "A"), _shoe(app_client, "B")
+    p, n = _rel(engine, -30), _rel(engine, -1)
+    _default(app_client, a, p)
+    _default(app_client, b, n)
+    cur = lambda: app_client.get(f"{API}/shoes").json()["default"]
+    assert cur()["shoe_id"] == b
+    _edit(app_client, n, b, _rel(engine, 10))
+    assert cur() == {"shoe_id": a, "from_date": p}
+    _edit(app_client, _rel(engine, 10), b, n)
+    assert cur()["shoe_id"] == b
+    app_client.delete(f"{API}/shoes/default/{n}")
+    assert cur() == {"shoe_id": a, "from_date": p}

@@ -4,6 +4,7 @@ import GlassPanel from '@/components/ui/GlassPanel.vue'
 import Button from '@/components/ui/Button.vue'
 import { useShoesStore } from '@/stores/shoes'
 import { useSettingsStore } from '@/stores/settings'
+import { formatLocalDate } from '@/lib/format'
 import { distanceUnit, formatDistance } from '@/lib/units'
 
 const store = useShoesStore()
@@ -42,6 +43,35 @@ function startEdit(id: number, name: string) {
 async function saveEdit() {
   if (editing.value == null || !editName.value.trim()) return
   if (await store.rename(editing.value, editName.value.trim())) editing.value = null
+}
+const shoeName = (id: number | null) =>
+  id == null ? 'No default shoe' : (store.shoes.find((x) => x.id === id)?.name ?? 'Unknown shoe')
+const isScheduled = (d: string) => d > (store.current?.from_date ?? today())
+// close an edit or confirm whose row a refresh removed
+watch(() => store.history, (h) => {
+  if (editRow.value && !h.some((x) => x.from_date === editRow.value)) editRow.value = null
+  if (confirmRow.value && !h.some((x) => x.from_date === confirmRow.value)) confirmRow.value = null
+})
+const editRow = ref<string | null>(null)
+const rowShoe = ref('')
+const rowDate = ref('')
+const confirmRow = ref<string | null>(null)
+function startRow(d: { shoe_id: number | null; from_date: string }) {
+  confirmRow.value = null
+  editRow.value = d.from_date
+  rowShoe.value = d.shoe_id == null ? '' : String(d.shoe_id)
+  rowDate.value = d.from_date
+}
+// the row's own shoe stays pickable even when retired
+function rowShoes(d: { shoe_id: number | null }) {
+  return store.shoes.filter((x) => !x.retired || x.id === d.shoe_id)
+}
+async function saveRow() {
+  if (editRow.value == null || !rowDate.value) return
+  if (await store.editDefault(editRow.value, { shoe_id: rowShoe.value === '' ? null : Number(rowShoe.value), from_date: rowDate.value })) editRow.value = null
+}
+async function removeRow(d: string) {
+  if (await store.deleteDefault(d)) confirmRow.value = null
 }
 async function saveDefault() {
   if (!fromDate.value) return
@@ -104,6 +134,38 @@ async function saveDefault() {
       </label>
       <Button :disabled="store.busy || !fromDate" data-testid="shoe-default-save" @click="saveDefault">Set default</Button>
     </div>
+    <h3 class="chart-title">Default shoe history</h3>
+    <ul v-if="store.history.length" class="shoes" data-testid="shoe-history">
+      <li v-for="h in store.history" :key="h.from_date" class="shoe" data-testid="shoe-history-row">
+        <template v-if="editRow === h.from_date">
+          <select v-model="rowShoe" class="input" aria-label="Shoe" data-testid="shoe-history-select">
+            <option value="">No default shoe</option>
+            <option v-for="x in rowShoes(h)" :key="x.id" :value="String(x.id)">{{ x.name }}</option>
+          </select>
+          <input v-model="rowDate" type="date" class="input" aria-label="From" data-testid="shoe-history-date" />
+          <Button small :disabled="store.busy || !rowDate" data-testid="shoe-history-save" @click="saveRow">Save</Button>
+          <Button small :disabled="store.busy" data-testid="shoe-history-cancel" @click="editRow = null">Cancel</Button>
+        </template>
+        <template v-else>
+          <span class="name">
+            <span data-testid="shoe-history-date-text">{{ formatLocalDate(h.from_date) }}</span>:
+            <span data-testid="shoe-history-name">{{ shoeName(h.shoe_id) }}</span>
+            <span v-if="h.from_date === store.current?.from_date" class="row-meta" data-testid="shoe-history-now"> Now</span>
+            <span v-else-if="isScheduled(h.from_date)" class="row-meta" data-testid="shoe-history-scheduled"> Scheduled</span>
+          </span>
+          <template v-if="confirmRow === h.from_date">
+            <span class="row-meta">Delete this change? Runs from this date will use the change before it.</span>
+            <Button small :disabled="store.busy" :aria-label="`Yes, delete the change from ${formatLocalDate(h.from_date)}`" data-testid="shoe-history-confirm" @click="removeRow(h.from_date)">Yes</Button>
+            <Button small :disabled="store.busy" data-testid="shoe-history-confirm-cancel" @click="confirmRow = null">Cancel</Button>
+          </template>
+          <template v-else>
+            <Button small :disabled="store.busy" data-testid="shoe-history-edit" @click="startRow(h)">Edit</Button>
+            <Button small :disabled="store.busy" data-testid="shoe-history-delete" @click="confirmRow = h.from_date; editRow = null">Delete</Button>
+          </template>
+        </template>
+      </li>
+    </ul>
+    <p v-else class="row-meta" data-testid="shoe-history-empty">No default shoe changes yet.</p>
     <p v-if="store.error" class="err" role="alert" data-testid="shoes-error">{{ store.error }}</p>
   </GlassPanel>
 </template>

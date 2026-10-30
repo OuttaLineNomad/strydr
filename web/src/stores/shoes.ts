@@ -7,12 +7,14 @@ import type { ShoeDefault, ShoeOut, ShoesOut } from '@/api/types'
 export const useShoesStore = defineStore('shoes', () => {
   const shoes = ref<ShoeOut[]>([])
   const current = ref<ShoeDefault | null>(null)
+  const history = ref<ShoeDefault[]>([])
   const error = ref<string | null>(null)
   const busy = ref(false)
 
   function apply(d: ShoesOut) {
     shoes.value = d.shoes
     current.value = d.default ?? null
+    history.value = d.history
   }
 
   async function load() {
@@ -27,19 +29,27 @@ export const useShoesStore = defineStore('shoes', () => {
   }
 
   /** Runs one write; on failure keeps the list as it was and shows `fail`. */
-  async function write(call: () => Promise<{ data?: ShoesOut; error?: unknown }>, fail: string): Promise<boolean> {
+  async function write(
+    call: () => Promise<{ data?: ShoesOut; error?: unknown; response?: { status: number } }>,
+    fail: string | ((status?: number) => string),
+  ): Promise<boolean> {
+    const msg = (status?: number) => (typeof fail === 'string' ? fail : fail(status))
     busy.value = true
     error.value = null
     try {
-      const { data } = await call()
+      const { data, response } = await call()
       if (!data) {
-        error.value = fail
+        error.value = msg(response?.status)
+        if (response?.status === 404 && typeof fail !== 'string') {
+          await load() // the row is gone: refresh the list, then keep the message
+          error.value = msg(404)
+        }
         return false
       }
       apply(data)
       return true
     } catch {
-      error.value = `${fail} Check your connection.`
+      error.value = `${msg()} Check your connection.`
       return false
     } finally {
       busy.value = false
@@ -54,6 +64,16 @@ export const useShoesStore = defineStore('shoes', () => {
     write(() => api.PATCH('/api/v1/shoes/{shoe_id}', { params: { path: { shoe_id: id } }, body: { retired } }), 'The shoe was not updated. Try again.')
   const setDefault = (shoe_id: number | null, from_date: string) =>
     write(() => api.PUT('/api/v1/shoes/default', { body: { shoe_id, from_date } }), 'The default was not saved. Try again.')
+  function defaultFail(verb: string, status?: number): string {
+    if (status === 409) return 'The change was not saved. Another change is already on that date.'
+    if (status === 422) return 'The change was not saved. Pick another shoe.'
+    if (status === 404) return 'That change is already gone. The list is refreshed.'
+    return `The change was not ${verb}. Try again.`
+  }
+  const editDefault = (fromDate: string, body: { shoe_id: number | null; from_date: string }) =>
+    write(() => api.PUT('/api/v1/shoes/default/{from_date}', { params: { path: { from_date: fromDate } }, body }), (st) => defaultFail('saved', st))
+  const deleteDefault = (fromDate: string) =>
+    write(() => api.DELETE('/api/v1/shoes/default/{from_date}', { params: { path: { from_date: fromDate } } }), (st) => defaultFail('deleted', st))
 
-  return { shoes, current, error, busy, load, add, rename, setRetired, setDefault }
+  return { shoes, current, history, error, busy, load, add, rename, setRetired, setDefault, editDefault, deleteDefault }
 })

@@ -19,6 +19,11 @@ const list = (over: object = {}) => ({
     { id: 2, name: 'Old Ghost', retired: true, distance_m: 8046.72, runs: 1 },
   ],
   default: { shoe_id: 1, from_date: '2026-10-01' },
+  history: [
+    { shoe_id: null, from_date: '2999-01-01' },
+    { shoe_id: 1, from_date: '2026-10-01' },
+    { shoe_id: 2, from_date: '2026-09-01' },
+  ],
   ...over,
 })
 const ok = (data: unknown) => ({ data, response: { ok: true, status: 200 } })
@@ -109,6 +114,108 @@ describe('ShoesPanel', () => {
     await w.get('[data-testid="shoe-default-save"]').trigger('click')
     await flushPromises()
     expect(put).toHaveBeenCalledWith('/api/v1/shoes/default', { body: { shoe_id: 1, from_date: '2026-09-01' } })
+  })
+
+  it('lists the default history with Now and Scheduled marks', async () => {
+    const w = await mountPanel()
+    const rows = w.findAll('[data-testid="shoe-history-row"]')
+    expect(rows).toHaveLength(3)
+    expect(rows[0]!.text()).toContain('No default shoe')
+    expect(rows[0]!.text()).toContain('Scheduled')
+    expect(rows[1]!.text()).toContain('Pegasus')
+    expect(rows[1]!.text()).toContain('Now')
+    expect(rows[2]!.text()).toContain('Old Ghost')
+    expect(rows[2]!.text()).not.toMatch(/Now|Scheduled/)
+  })
+
+  it('edits a history row', async () => {
+    const w = await mountPanel()
+    put.mockResolvedValue(ok(list()))
+    await w.findAll('[data-testid="shoe-history-edit"]')[1]!.trigger('click')
+    await w.get('[data-testid="shoe-history-date"]').setValue('2026-09-20')
+    await w.get('[data-testid="shoe-history-save"]').trigger('click')
+    await flushPromises()
+    expect(put).toHaveBeenCalledWith('/api/v1/shoes/default/{from_date}', {
+      params: { path: { from_date: '2026-10-01' } },
+      body: { shoe_id: 1, from_date: '2026-09-20' },
+    })
+    expect(w.find('[data-testid="shoe-history-save"]').exists()).toBe(false)
+  })
+
+  it('deletes a history row only after the inline confirm', async () => {
+    const w = await mountPanel()
+    del.mockResolvedValue(ok(list()))
+    await w.findAll('[data-testid="shoe-history-delete"]')[0]!.trigger('click')
+    expect(del).not.toHaveBeenCalled()
+    expect(w.text()).toContain('Delete this change?')
+    await w.get('[data-testid="shoe-history-confirm"]').trigger('click')
+    await flushPromises()
+    expect(del).toHaveBeenCalledWith('/api/v1/shoes/default/{from_date}', { params: { path: { from_date: '2999-01-01' } } })
+  })
+
+  it('cancelling the confirm does not call the API', async () => {
+    const w = await mountPanel()
+    await w.findAll('[data-testid="shoe-history-delete"]')[0]!.trigger('click')
+    await w.get('[data-testid="shoe-history-confirm-cancel"]').trigger('click')
+    expect(del).not.toHaveBeenCalled()
+    expect(w.text()).not.toContain('Delete this change?')
+  })
+
+  it('shows the error when a history edit fails and keeps the row open', async () => {
+    const w = await mountPanel()
+    put.mockResolvedValue({ data: undefined, response: { ok: false, status: 409 } })
+    await w.findAll('[data-testid="shoe-history-edit"]')[1]!.trigger('click')
+    await w.get('[data-testid="shoe-history-save"]').trigger('click')
+    await flushPromises()
+    expect(w.get('[data-testid="shoes-error"]').text()).toContain('not saved')
+    expect(w.find('[data-testid="shoe-history-save"]').exists()).toBe(true)
+  })
+
+  it('editing the retired-shoe row offers that shoe and sends its id', async () => {
+    const w = await mountPanel()
+    put.mockResolvedValue(ok(list()))
+    await w.findAll('[data-testid="shoe-history-edit"]')[2]!.trigger('click')
+    expect(w.findAll('[data-testid="shoe-history-select"] option').map((o) => o.text())).toEqual(['No default shoe', 'Pegasus', 'Old Ghost'])
+    await w.get('[data-testid="shoe-history-date"]').setValue('2026-09-02')
+    await w.get('[data-testid="shoe-history-save"]').trigger('click')
+    await flushPromises()
+    expect(put).toHaveBeenCalledWith('/api/v1/shoes/default/{from_date}', {
+      params: { path: { from_date: '2026-09-01' } },
+      body: { shoe_id: 2, from_date: '2026-09-02' },
+    })
+  })
+
+  it('editing the no-default row sends shoe_id null', async () => {
+    const w = await mountPanel()
+    put.mockResolvedValue(ok(list()))
+    await w.findAll('[data-testid="shoe-history-edit"]')[0]!.trigger('click')
+    await w.get('[data-testid="shoe-history-save"]').trigger('click')
+    await flushPromises()
+    expect(put).toHaveBeenCalledWith('/api/v1/shoes/default/{from_date}', {
+      params: { path: { from_date: '2999-01-01' } },
+      body: { shoe_id: null, from_date: '2999-01-01' },
+    })
+  })
+
+  it.each([[409, 'already on that date'], [422, 'another shoe']])('says why a %s edit failed', async (status, text) => {
+    const w = await mountPanel()
+    put.mockResolvedValue({ data: undefined, response: { ok: false, status } })
+    await w.findAll('[data-testid="shoe-history-edit"]')[1]!.trigger('click')
+    await w.get('[data-testid="shoe-history-save"]').trigger('click')
+    await flushPromises()
+    expect(w.get('[data-testid="shoes-error"]').text()).toContain(text)
+  })
+
+  it('a 404 reloads the list, closes the row and says the change is gone', async () => {
+    const w = await mountPanel()
+    put.mockResolvedValue({ data: undefined, response: { ok: false, status: 404 } })
+    await w.findAll('[data-testid="shoe-history-edit"]')[1]!.trigger('click')
+    get.mockResolvedValue(ok(list({ history: [{ shoe_id: 2, from_date: '2026-09-01' }] })))
+    await w.get('[data-testid="shoe-history-save"]').trigger('click')
+    await flushPromises()
+    expect(w.get('[data-testid="shoes-error"]').text()).toContain('already gone')
+    expect(w.find('[data-testid="shoe-history-save"]').exists()).toBe(false)
+    expect(w.findAll('[data-testid="shoe-history-row"]')).toHaveLength(1)
   })
 
   it('shows an error and keeps the list when a write fails', async () => {

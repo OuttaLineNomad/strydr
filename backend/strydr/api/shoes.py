@@ -40,7 +40,9 @@ def router(api: Api) -> APIRouter:
         return sc.ShoesOut(
             shoes=[sc.ShoeOut(id=x.id, name=x.name, retired=x.retired, distance_m=tot.get(x.id, (0.0, 0))[0],
                               runs=tot.get(x.id, (0.0, 0))[1]) for x in rows],
-            default=None if d is None else sc.ShoeDefaultOut(shoe_id=d.shoe_id, from_date=d.from_date))
+            default=None if d is None else sc.ShoeDefaultOut(shoe_id=d.shoe_id, from_date=d.from_date),
+            history=[sc.ShoeDefaultOut(shoe_id=h.shoe_id, from_date=h.from_date) for h in s.execute(
+                select(models.ShoeDefault).order_by(models.ShoeDefault.from_date.desc())).scalars()])
 
     def name_taken(s: Session, name: str, except_id: int | None = None) -> bool:
         # casefold in Python: SQLite lower() folds ASCII only
@@ -81,6 +83,52 @@ def router(api: Api) -> APIRouter:
             row = s.get(models.ShoeDefault, body.from_date) or models.ShoeDefault(from_date=body.from_date)
             row.shoe_id = body.shoe_id
             s.add(row)
+            s.commit()
+            return listing(s)
+
+    def path_date(from_date: str) -> str:
+        try:
+            return sc.ShoeDefaultIn(shoe_id=None, from_date=from_date).from_date
+        except ValueError:
+            raise HTTPException(status_code=422, detail="from_date must be a real date, YYYY-MM-DD") from None
+
+    @r.put("/shoes/default/{from_date}", response_model=sc.ShoesOut)
+    def edit_default(from_date: str, body: sc.ShoeDefaultIn) -> sc.ShoesOut:
+        old = path_date(from_date)
+        with Session(api.engine) as s:
+            row = s.get(models.ShoeDefault, old)
+            if row is None:
+                raise HTTPException(status_code=404, detail="default not found")
+            if body.from_date != old and s.get(models.ShoeDefault, body.from_date) is not None:
+                raise HTTPException(status_code=409, detail="another change is already on that date")
+            if body.shoe_id is not None:
+                shoe = s.get(models.Shoe, body.shoe_id)
+                if shoe is None:
+                    raise HTTPException(status_code=422, detail="unknown shoe")
+                # an old row keeps its retired shoe, but only while the row stays in the past
+                if shoe.retired and (body.shoe_id != row.shoe_id or body.from_date >= today(s)):
+                    raise HTTPException(status_code=422, detail="a retired shoe cannot be the default")
+            if body.from_date == old:
+                row.shoe_id = body.shoe_id
+            else:
+                s.delete(row)
+                s.flush()
+                s.add(models.ShoeDefault(from_date=body.from_date, shoe_id=body.shoe_id))
+            try:
+                s.commit()
+            except IntegrityError:  # a concurrent insert took the new date
+                s.rollback()
+                raise HTTPException(status_code=409, detail="another change is already on that date") from None
+            return listing(s)
+
+    @r.delete("/shoes/default/{from_date}", response_model=sc.ShoesOut)
+    def delete_default(from_date: str) -> sc.ShoesOut:
+        old = path_date(from_date)
+        with Session(api.engine) as s:
+            row = s.get(models.ShoeDefault, old)
+            if row is None:
+                raise HTTPException(status_code=404, detail="default not found")
+            s.delete(row)
             s.commit()
             return listing(s)
 

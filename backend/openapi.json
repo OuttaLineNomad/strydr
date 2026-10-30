@@ -2824,6 +2824,13 @@
               }
             ]
           },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/ShoeDefaultOut"
+            },
+            "title": "History",
+            "type": "array"
+          },
           "shoes": {
             "items": {
               "$ref": "#/components/schemas/ShoeOut"
@@ -2834,7 +2841,8 @@
         },
         "required": [
           "shoes",
-          "default"
+          "default",
+          "history"
         ],
         "title": "ShoesOut",
         "type": "object"
@@ -5573,6 +5581,98 @@
           }
         },
         "summary": "Set Default",
+        "tags": [
+          "shoes"
+        ]
+      }
+    },
+    "/api/v1/shoes/default/{from_date}": {
+      "delete": {
+        "operationId": "delete_default",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "from_date",
+            "required": true,
+            "schema": {
+              "title": "From Date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Default",
+        "tags": [
+          "shoes"
+        ]
+      },
+      "put": {
+        "operationId": "edit_default",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "from_date",
+            "required": true,
+            "schema": {
+              "title": "From Date",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShoeDefaultIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Edit Default",
         "tags": [
           "shoes"
         ]

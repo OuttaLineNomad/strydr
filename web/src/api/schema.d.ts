@@ -434,6 +434,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/shoes/default/{from_date}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edit Default */
+        put: operations["edit_default"];
+        post?: never;
+        /** Delete Default */
+        delete: operations["delete_default"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/shoes/{shoe_id}": {
         parameters: {
             query?: never;
@@ -1495,6 +1513,8 @@ export interface components {
         /** ShoesOut */
         ShoesOut: {
             default: components["schemas"]["ShoeDefaultOut"] | null;
+            /** History */
+            history: components["schemas"]["ShoeDefaultOut"][];
             /** Shoes */
             shoes: components["schemas"]["ShoeOut"][];
         };
@@ -2846,6 +2866,72 @@ export interface operations {
                 "application/json": components["schemas"]["ShoeDefaultIn"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShoesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_default: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                from_date: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShoeDefaultIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShoesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_default: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                from_date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

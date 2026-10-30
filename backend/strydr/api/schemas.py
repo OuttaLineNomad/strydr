@@ -149,6 +149,7 @@ class ShoeDefaultOut(BaseModel):
 class ShoesOut(BaseModel):
     shoes: list[ShoeOut]
     default: ShoeDefaultOut | None
+    history: list[ShoeDefaultOut]
 
 
 class ShoeIn(BaseModel):
