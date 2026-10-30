@@ -62,4 +62,7 @@ const pillClass = computed(() => {
 .tile--hero .unit { font-size: 17px; font-weight: 600; }
 .na { font-size: var(--body-size); color: var(--ink-secondary); }
 .sub { font-size: 12px; color: var(--ink-secondary); }
+/* A long trend ("+2.9 mi vs September so far") wraps inside the tile instead of running past it. */
+.tile .pill { white-space: normal; height: auto; min-height: 24px; padding-block: 3px; max-width: 100%; flex-shrink: 1; line-height: 1.3; border-radius: 12px; align-items: flex-start; }
+.tile .pill :deep(svg) { margin-top: 2px; flex: none; }
 </style>

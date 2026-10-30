@@ -7,14 +7,17 @@ import { api } from '@/api'
 import InsightCard from '../InsightCard.vue'
 import { insight, insightDetail } from '@/mocks/insightFixtures'
 import type { InsightOut } from '@/api/types'
+import { useSettingsStore } from '@/stores/settings'
+import { profile } from '@/mocks/fixtures'
 
 const get = vi.mocked(api.GET) as unknown as ReturnType<typeof vi.fn>
 const put = vi.mocked(api.PUT) as unknown as ReturnType<typeof vi.fn>
 const del = vi.mocked(api.DELETE) as unknown as ReturnType<typeof vi.fn>
 
-function mountIt(i: InsightOut = insight()) {
+function mountIt(i: InsightOut = insight(), units: 'imperial' | 'metric' = 'imperial') {
   const pinia = createPinia()
   setActivePinia(pinia)
+  useSettingsStore().profile = profile({}, { units })
   return mount(InsightCard, { props: { insight: i }, global: { plugins: [pinia] } })
 }
 
@@ -26,6 +29,19 @@ describe('InsightCard', () => {
     expect(w.get('[data-testid="insight-number"]').text()).toBe('8.2 mi')
     expect(w.get('[data-testid="insight-text"]').text()).toContain('Your long run was 8.2 mi')
     expect(w.find('[data-testid="insight-ai"]').exists()).toBe(false)
+  })
+
+  it.each([
+    ['m', 21097, 'imperial', '13.1 mi'],
+    ['m', 21097, 'metric', '21.1 km'],
+    ['m', 10000, 'metric', '10 km'],
+    ['kg', 11.3, 'imperial', '25 lb'],
+    ['kg', 11.3, 'metric', '11.3 kg'],
+    ['s', 844, 'imperial', '14:04'],
+    ['%', 38.2, 'imperial', '38.2 %'],
+  ] as const)('shows a %s fact of %s in %s as %s', (unit, number, units, shown) => {
+    const w = mountIt(insight({ unit, number }), units)
+    expect(w.get('[data-testid="insight-number"]').text().replace(/\s+/g, ' ')).toBe(shown)
   })
 
   it('marks AI-phrased text with a label', () => {

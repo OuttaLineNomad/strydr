@@ -4,25 +4,37 @@ import GlassPanel from '@/components/ui/GlassPanel.vue'
 import Icons from '@/components/ui/Icons.vue'
 import { useInsightsStore } from '@/stores/insights'
 import { formatLocalDate } from '@/lib/format'
-import { formatClock } from '@/lib/units'
+import { distanceUnit, formatClock, formatDistance, formatWeightValue, weightUnit } from '@/lib/units'
+import { useSettingsStore } from '@/stores/settings'
 import type { InsightDetail, InsightOut, Thumb } from '@/api/types'
 
 const props = defineProps<{ insight: InsightOut }>()
 const store = useInsightsStore()
+const settings = useSettingsStore()
 const uid = useId()
 
 const thumb = computed(() => store.thumbOf(props.insight))
 const err = computed(() => store.feedbackError[props.insight.insight_key] ?? null)
 
-// Durations arrive in seconds; show them as a clock (844 s reads 14:04), never as raw seconds.
+// Durations show as a clock (844 s reads 14:04). Facts stored in metres or kilograms show in the runner's units,
+// with the same rounding as the sentence (one decimal, no trailing .0). Facts already in mi/km keep their unit,
+// which matches their sentence; a units change recomputes both.
 const isDuration = computed(() => props.insight.unit === 's')
 const number = computed(() => {
   const n = props.insight.number
   if (n == null) return null
   if (isDuration.value) return formatClock(n)
+  if (props.insight.unit === 'm') return formatDistance(n, settings.units, 1).replace(/\.0$/, '')
+  if (props.insight.unit === 'kg') return formatWeightValue(n, settings.units)
   return Number.isInteger(n) ? String(n) : n.toFixed(1)
 })
-const unit = computed(() => (isDuration.value ? null : props.insight.unit))
+const unit = computed(() => {
+  const u = props.insight.unit
+  if (isDuration.value) return null
+  if (u === 'm') return distanceUnit(settings.units)
+  if (u === 'kg') return weightUnit(settings.units)
+  return u
+})
 
 /** Kind drives a text label and an icon; colour only reinforces it. */
 const kindLabel = computed(() => (props.insight.kind === 'attaboy' ? 'Nice work' : props.insight.kind === 'check-reading' ? 'Check this reading' : null))
