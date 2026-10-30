@@ -53,6 +53,12 @@ describe('RecapView', () => {
     for (const k of Object.keys(query)) delete query[k]
   })
 
+  it('renders the history switch with Recap pressed', async () => {
+    const w = await mountIt(recap())
+    expect(w.get('[data-testid="history-recap"]').attributes('aria-pressed')).toBe('true')
+    expect(w.get('[data-testid="history-weeks"]').attributes('aria-pressed')).toBe('false')
+  })
+
   it('has a Recap nav item after Calendar', () => {
     const i = NAV_ITEMS.findIndex((n) => n.to === '/recap')
     expect(NAV_ITEMS[i - 1]!.to).toBe('/calendar')

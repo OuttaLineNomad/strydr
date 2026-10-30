@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import HistorySwitch from '@/components/app/HistorySwitch.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import Icons from '@/components/ui/Icons.vue'
 import Button from '@/components/ui/Button.vue'
@@ -24,6 +25,7 @@ function otherActivities(wk: WeekSummary): string[] {
 </script>
 
 <template>
+  <HistorySwitch current="weeks" />
   <header class="title-row">
     <div>
       <h1 class="page-title">Weeks</h1>

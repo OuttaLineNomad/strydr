@@ -9,6 +9,8 @@ export interface TabItem {
   shortLabel?: string
   to: string
   icon: IconName
+  /** Path prefixes that light this item instead of `to` (the phone History tab covers three pages). */
+  match?: string[]
 }
 
 export const NAV_ITEMS: TabItem[] = [
@@ -21,13 +23,23 @@ export const NAV_ITEMS: TabItem[] = [
   { label: 'Settings', to: '/settings', icon: 'settings' },
 ]
 
+/** The phone tab bar: five tabs. History opens Weeks and also owns Calendar and Recap. */
+export const PHONE_NAV_ITEMS: TabItem[] = [
+  { label: 'Dashboard', shortLabel: 'Home', to: '/', icon: 'dashboard' },
+  { label: 'Runs', to: '/runs', icon: 'runs' },
+  { label: 'Other activities', shortLabel: 'Activities', to: '/activities', icon: 'activities' },
+  { label: 'History', to: '/weeks', icon: 'history', match: ['/weeks', '/calendar', '/recap'] },
+  { label: 'Settings', to: '/settings', icon: 'settings' },
+]
+
 const WORKOUT_PAGE = /^\/runs\/(?!routes(?:\/|$))[^/]+$/
 
 /**
  * '/' is active only on the dashboard; the others own their sub-paths.
  * A workout page lives at /runs/:id, so its tab follows the workout's type: walks and hikes belong to /activities.
  */
-export function isActive(to: string, path: string, workoutType?: string | null): boolean {
+export function isActive(to: string, path: string, workoutType?: string | null, match?: string[]): boolean {
+  if (match) return match.some((m) => path === m || path.startsWith(`${m}/`))
   if (WORKOUT_PAGE.test(path) && workoutType && (to === '/runs' || to === '/activities')) {
     return to === (workoutType === 'run' ? '/runs' : '/activities')
   }

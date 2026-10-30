@@ -1,3 +1,4 @@
+import { rememberHistoryRoute } from '@/lib/historyNav'
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -29,5 +30,7 @@ router.beforeEach(async (to) => {
   if (!auth.signedIn) return { name: 'login', query: to.fullPath === '/' ? {} : { redirect: to.fullPath } }
   return true
 })
+
+router.afterEach((to) => rememberHistoryRoute(to.fullPath))
 
 export default router

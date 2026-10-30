@@ -38,6 +38,7 @@ export const GLYPHS = {
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.300 5.300l1.400 1.400M17.300 17.300l1.400 1.400M5.300 18.700l1.400-1.400M17.300 6.700l1.400-1.400"/>',
   moon: '<path d="M19.500 14.500A8 8 0 0 1 9.500 4.500a8 8 0 1 0 10 10Z"/>',
   calendar: '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/><path d="M8.500 14h.01M12 14h.01M15.500 14h.01M8.500 17h.01M12 17h.01"/>',
+  history: '<path d="M3.500 12a8.500 8.500 0 1 0 2.500-6"/><path d="M3.500 4v4.500H8"/><path d="M12 7.500V12l3 2"/>',
   recap: '<path d="M5 20V11M12 20V5M19 20v-6"/><path d="M3.500 20h17"/>',
   info: '<circle cx="12" cy="12" r="8.500"/><path d="M12 11v5M12 7.800v.2"/>',
 } as const

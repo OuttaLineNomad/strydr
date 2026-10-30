@@ -2,13 +2,14 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import Icons from './Icons.vue'
-import { NAV_ITEMS, isActive, useNavWorkoutType, type TabItem } from './nav'
+import { PHONE_NAV_ITEMS, isActive, useNavWorkoutType, type TabItem } from './nav'
+import { lastHistory } from '@/lib/historyNav'
 import { useLens } from '@/lib/useLens'
 import { vPress } from '@/directives/press'
 
 export type { TabItem }
 
-withDefaults(defineProps<{ items?: TabItem[] }>(), { items: () => NAV_ITEMS })
+withDefaults(defineProps<{ items?: TabItem[] }>(), { items: () => PHONE_NAV_ITEMS })
 
 const route = useRoute()
 const navType = useNavWorkoutType()
@@ -31,7 +32,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 <template>
   <nav ref="bar" class="bar glass glass--sm glass--refract" :class="{ minimized }" aria-label="Main">
     <span class="lens" :style="lens" aria-hidden="true" />
-    <RouterLink v-for="t in items" :key="t.to" v-press :to="t.to" class="tab" :class="{ active: isActive(t.to, route.path, navType) }" :aria-current="isActive(t.to, route.path, navType) ? 'page' : undefined" :aria-label="t.label">
+    <RouterLink v-for="t in items" :key="t.to" v-press :to="t.match ? lastHistory : t.to" class="tab" :class="{ active: isActive(t.to, route.path, navType, t.match) }" :aria-current="isActive(t.to, route.path, navType, t.match) ? 'page' : undefined" :aria-label="t.label">
       <Icons :name="t.icon" :size="22" />
       <span class="tab-label">{{ t.shortLabel ?? t.label }}</span>
     </RouterLink>
@@ -73,15 +74,10 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 .tab > * { position: relative; z-index: 1; }
 .tab.active { color: var(--accent-text); }
 .tab:active { transform: scale(.92); }
+.tab { min-width: 0; }
 .tab-label { font-size: 10px; font-weight: 600; letter-spacing: 0.2px; transition: opacity .2s ease, max-height var(--dur-morph) var(--ease-settle); max-height: 14px; }
 .minimized .tab-label { opacity: 0; max-height: 0; }
-@media (max-width: 440px) {
-  /* seven tabs at 320px: tighter bar, no gaps, smaller labels */
-  .bar { width: calc(100% - var(--space-4)); gap: 0; padding: 0 4px; }
-  .tab { min-width: 0; }
-  .tab-label { font-size: 9px; letter-spacing: 0; }
-}
-/* below 360px seven labels cannot fit: icons only (each link keeps its aria-label) */
+/* below 360px five labels cannot fit: icons only (each link keeps its aria-label) */
 @media (max-width: 359px) { .tab-label { display: none; } }
 @media (min-width: 1080px) { .bar { display: none; } }
 </style>

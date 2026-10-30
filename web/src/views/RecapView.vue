@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import HistorySwitch from '@/components/app/HistorySwitch.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import StatTile, { type Trend } from '@/components/ui/StatTile.vue'
 import LineChart from '@/components/ui/LineChart.vue'
@@ -83,6 +84,7 @@ const fitnessSeries = computed(() => [{ label: 'Fitness', role: 'emphasis' as co
 </script>
 
 <template>
+  <HistorySwitch current="recap" />
   <header class="title-row">
     <div>
       <h1 class="page-title">Recap</h1>

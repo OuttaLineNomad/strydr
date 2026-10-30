@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import HistorySwitch from '@/components/app/HistorySwitch.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import StatTile, { type Trend } from '@/components/ui/StatTile.vue'
 import Icons from '@/components/ui/Icons.vue'
@@ -97,6 +98,7 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 </script>
 
 <template>
+  <HistorySwitch current="calendar" />
   <header class="title-row">
     <div>
       <h1 class="page-title">Calendar</h1>
