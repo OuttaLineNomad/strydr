@@ -9,11 +9,12 @@ import { usePlansStore } from '@/stores/plans'
 import { useSettingsStore } from '@/stores/settings'
 import { displayToKg, weightUnit } from '@/lib/units'
 import { planWeight } from '@/lib/plans'
+import { LADDERS, LADDER_IDS, rungName, type LadderId } from '@/lib/ladders'
 import type { PlanIn, PlanOut } from '@/api/types'
 
 type Format = PlanOut['format']
 /** `origKg` and `origText` are what was loaded: an untouched weight is saved back as exactly `origKg`. */
-interface MoveRow { key: number; name: string; mode: 'reps' | 'seconds'; amount: string; weight: string; origKg: number | null; origText: string }
+interface MoveRow { key: number; name: string; mode: 'reps' | 'seconds'; amount: string; weight: string; origKg: number | null; origText: string; ladder: LadderId | null; rung: number | null }
 
 const props = defineProps<{ id?: string }>()
 const store = usePlansStore()
@@ -26,7 +27,7 @@ const editingId = computed(() => (props.id == null ? null : /^\d+$/.test(props.i
 const invalidId = computed(() => editingId.value != null && Number.isNaN(editingId.value))
 
 let nextKey = 1
-const blankMove = (): MoveRow => ({ key: nextKey++, name: '', mode: 'reps', amount: '', weight: '', origKg: null, origText: '' })
+const blankMove = (): MoveRow => ({ key: nextKey++, name: '', mode: 'reps', amount: '', weight: '', origKg: null, origText: '', ladder: null, rung: null })
 
 const name = ref('')
 const format = ref<Format>('amrap')
@@ -66,6 +67,8 @@ function fill(p: PlanOut) {
     weight: m.weight_kg == null ? '' : planWeight(m.weight_kg, s.units),
     origKg: m.weight_kg ?? null,
     origText: m.weight_kg == null ? '' : planWeight(m.weight_kg, s.units),
+    ladder: m.ladder ?? null,
+    rung: m.rung ?? null,
   })))
 }
 
@@ -170,7 +173,8 @@ const errors = computed(() => {
   for (const m of moves) {
     const nm = m.name.trim()
     let msg: string | undefined
-    if (!nm || nm.length > 40) msg = 'Name the move in 40 characters or fewer.'
+    if (m.ladder && m.rung == null) msg = 'Pick a rung for the level.'
+    else if (!nm || nm.length > 40) msg = 'Name the move in 40 characters or fewer.'
     else if (m.mode === 'reps' ? !inRange(int(m.amount), 1, 500) : !inRange(int(m.amount), 5, 600)) {
       msg = m.mode === 'reps' ? 'Reps is 1 to 500.' : 'Seconds is 5 to 600.'
     } else if (weightKg(m.weight) === undefined) msg = `Bell is ${minWeight.value} to ${maxWeight.value} ${unit.value}, or blank for bodyweight.`
@@ -198,6 +202,28 @@ function applySame() {
 const sameOk = computed(() => weightKg(same.value) != null)
 const anyWeighted = computed(() => moves.some((m) => str(m.weight)))
 
+/** The Level control belongs to a move with no bell, counted in reps. */
+const canLevel = (m: MoveRow) => m.ladder != null || (m.mode === 'reps' && !str(m.weight))
+function pickLadder(m: MoveRow, id: LadderId | null) {
+  if (m.ladder !== id && m.ladder != null && m.rung != null && m.name === rungName(m.ladder, m.rung)) m.name = '' // drop the old auto name
+  if (id == null) {
+    m.ladder = m.rung = null
+    return
+  }
+  if (m.ladder !== id) {
+    m.ladder = id
+    m.rung = null
+  }
+  m.mode = 'reps'
+  m.weight = ''
+  m.origKg = null
+}
+function pickRung(m: MoveRow, rung: number) {
+  if (m.ladder == null) return
+  m.rung = rung
+  m.name = rungName(m.ladder, rung)
+}
+
 function addMove() {
   if (moves.length < 12) moves.push(blankMove())
 }
@@ -222,7 +248,8 @@ function body(): PlanIn {
       name: m.name.trim(),
       reps: m.mode === 'reps' ? int(m.amount) : null,
       seconds: m.mode === 'seconds' ? int(m.amount) : null,
-      weight_kg: m.origKg != null && m.weight === m.origText ? m.origKg : (weightKg(m.weight) ?? null),
+      weight_kg: m.ladder ? null : m.origKg != null && m.weight === m.origText ? m.origKg : (weightKg(m.weight) ?? null),
+      ...(m.ladder != null && m.rung != null ? { ladder: m.ladder, rung: m.rung } : {}),
     })),
     video_url: video.value.trim() || null,
   }
@@ -317,19 +344,32 @@ const nameMsg = computed(() => (tried.value ? errors.value.name : undefined) ?? 
         <li v-for="(m, i) in moves" :key="m.key" class="move" data-testid="move-row">
           <label class="field">
             <span class="lbl">Move {{ i + 1 }}</span>
-            <input v-model="m.name" class="input" list="move-names" maxlength="40" autocomplete="off" :aria-label="`Move ${i + 1} name`" data-testid="move-name" />
+            <input v-model="m.name" class="input" list="move-names" maxlength="40" autocomplete="off" :readonly="m.ladder != null && m.rung != null" :aria-label="`Move ${i + 1} name`" data-testid="move-name" />
           </label>
           <div class="amount">
-            <div class="toggle" role="group" :aria-label="`Move ${i + 1} counts`">
+            <div v-if="!m.ladder" class="toggle" role="group" :aria-label="`Move ${i + 1} counts`">
               <button type="button" class="tg" :class="{ on: m.mode === 'reps' }" :aria-pressed="m.mode === 'reps'" data-testid="move-mode-reps" @click="m.mode = 'reps'">Reps</button>
               <button type="button" class="tg" :class="{ on: m.mode === 'seconds' }" :aria-pressed="m.mode === 'seconds'" data-testid="move-mode-seconds" @click="m.mode = 'seconds'">Seconds</button>
             </div>
+            <div class="field">
+              <span v-if="m.ladder" class="lbl">Reps</span>
             <input v-model="m.amount" class="input num" type="number" inputmode="numeric" :min="m.mode === 'reps' ? 1 : 5" :aria-label="`Move ${i + 1} ${m.mode}`" data-testid="move-amount" />
+            </div>
           </div>
-          <label class="field">
+          <label v-if="!m.ladder" class="field">
             <span class="lbl">Bell ({{ unit }})</span>
             <input v-model="m.weight" class="input num" type="number" inputmode="decimal" step="any" placeholder="bodyweight" :aria-label="`Move ${i + 1} bell weight`" data-testid="move-weight" />
           </label>
+          <div v-if="canLevel(m)" class="field level" data-testid="move-level">
+            <span :id="`level-${m.key}`" class="lbl">Level (optional)</span>
+            <div class="chips" role="group" :aria-labelledby="`level-${m.key}`">
+              <button type="button" class="chip" :class="{ on: m.ladder == null }" :aria-pressed="m.ladder == null" data-testid="level-none" @click="pickLadder(m, null)">None</button>
+              <button v-for="id in LADDER_IDS" :key="id" type="button" class="chip" :class="{ on: m.ladder === id }" :aria-pressed="m.ladder === id" :data-testid="`level-ladder-${id}`" @click="pickLadder(m, id)">{{ id === 'push-up' ? 'Push-up' : 'Pull-up' }}</button>
+            </div>
+            <div v-if="m.ladder" class="chips" role="group" :aria-label="`Move ${i + 1} rung`">
+              <button v-for="(r, ri) in LADDERS[m.ladder]" :key="r" type="button" class="chip" :class="{ on: m.rung === ri }" :aria-pressed="m.rung === ri" :data-testid="`level-rung-${ri}`" @click="pickRung(m, ri)">{{ r }}</button>
+            </div>
+          </div>
           <span v-if="tried && errors.rows[i]" class="err" role="alert" data-testid="move-error">{{ errors.rows[i] }}</span>
           <div class="tools">
             <button type="button" class="tool" :disabled="i === 0" :aria-label="`Move ${i + 1} up`" data-testid="move-up" @click="shift(i, -1)"><Icons name="arrow-up" :size="20" /></button>
@@ -396,6 +436,10 @@ const nameMsg = computed(() => (tried.value ? errors.value.name : undefined) ?? 
 .tg { min-height: 44px; padding: 0 var(--space-4); border: 0; border-radius: var(--radius-full); background: transparent; color: var(--ink-secondary); font: inherit; font-weight: 600; cursor: pointer; }
 .tg.on { background: color-mix(in srgb, var(--accent) 16%, var(--surface-2)); color: var(--accent-text); }
 .tg:focus-visible, .tool:focus-visible, .del:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.chip { min-height: 44px; padding: 0 var(--space-4); border: 1.5px solid var(--divider); border-radius: var(--radius-full); background: transparent; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.chip.on { background: color-mix(in srgb, var(--accent) 16%, var(--surface-2)); color: var(--accent-text); border-color: var(--accent); }
+.chip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .tools { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .tool { min-height: 44px; min-width: 44px; padding: 0 var(--space-3); border: 1.5px solid var(--divider); border-radius: var(--radius-full); background: transparent; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 .tool:disabled { opacity: .4; cursor: not-allowed; }

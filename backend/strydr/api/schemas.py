@@ -9,6 +9,8 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field, JsonValue, field_validator, model_validator
 
+from strydr import progress as pg
+
 
 class LoginIn(BaseModel):
     username: str
@@ -767,6 +769,8 @@ class MoveIn(BaseModel):
     reps: int | None = Field(None, ge=1, le=500)
     seconds: int | None = Field(None, ge=5, le=600)
     weight_kg: float | None = Field(None, ge=0.5, le=100)  # None = bodyweight
+    ladder: Literal["push-up", "pull-up"] | None = None  # a bodyweight ladder this move follows (CAP-13)
+    rung: int | None = Field(None, ge=0, le=20)  # 0-based position on that ladder, easiest first
 
     @field_validator("name", mode="before")
     @classmethod
@@ -777,6 +781,19 @@ class MoveIn(BaseModel):
     def _one_of_reps_or_seconds(self):
         if (self.reps is None) == (self.seconds is None):
             raise ValueError("a move needs exactly one of reps or seconds")
+        return self
+
+    @model_validator(mode="after")
+    def _ladder_move(self):
+        if (self.ladder is None) != (self.rung is None):
+            raise ValueError("a ladder move needs both a ladder and a rung")
+        if self.ladder is None:
+            return self
+        if self.weight_kg is not None or self.seconds is not None:
+            raise ValueError("a ladder move has no weight and counts reps, not seconds")
+        if self.rung >= len(pg.LADDERS[self.ladder]):
+            raise ValueError("that rung is not on the ladder")
+        self.name = pg.rung_name(self.ladder, self.rung)
         return self
 
 
@@ -838,6 +855,13 @@ class LastSessionOut(BaseModel):
     date: str  # RFC 3339 UTC start of the latest session
 
 
+class UnlockOut(BaseModel):
+    move_index: int
+    ladder: Literal["push-up", "pull-up"]
+    from_rung: int
+    to_rung: int
+
+
 class PlanOut(BaseModel):
     id: int
     name: str
@@ -852,6 +876,7 @@ class PlanOut(BaseModel):
     last_session: LastSessionOut | None = None
     strength_score: int | None = None  # the latest session's score; None with fewer than 2 sessions
     strength_change: int | None = None  # score - 100
+    unlocks: list[UnlockOut] = Field(default_factory=list)  # ladder moves whose next rung the latest session earned
 
 
 # --- Home-workout sessions (persistent tier) ---------------------------------------------------------------------
@@ -936,6 +961,23 @@ class SessionRoundRow(BaseModel):
     avg_hr: float | None
 
 
+class LadderSetOut(BaseModel):
+    move_index: int  # 0-based
+    instance: int  # 0-based: the n-th time the move was done
+    move: str
+    ladder: Literal["push-up", "pull-up"]
+    planned_rung: int
+    rung: int  # the rung done (lower than planned when stepped down)
+    reps: int
+
+
+class LadderPointOut(BaseModel):
+    session_id: int
+    date: str  # RFC 3339 UTC start
+    rung: int
+    reps: int
+
+
 class SessionSummaryOut(BaseModel):
     session: SessionOut
     matched_workout_id: str | None  # the strength workout whose HR and effort this summary borrows
@@ -948,6 +990,8 @@ class SessionSummaryOut(BaseModel):
     zone_seconds: list[float] | None
     zone_bounds_bpm: list[float] | None
     fell_short: list[SessionShortRow]
+    ladder_sets: list[LadderSetOut] = Field(default_factory=list)
+    unlocked: list[str] = Field(default_factory=list)  # names of the rungs this session earned ("Full push-up")
 
 
 class ProgressSessionOut(BaseModel):

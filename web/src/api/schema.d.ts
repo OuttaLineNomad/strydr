@@ -168,6 +168,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ladders/{ladder}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ladder History
+         * @description One point per session with a set on this ladder, oldest first: its best set (highest rung, then most reps).
+         */
+        get: operations["ladder_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/load": {
         parameters: {
             query?: never;
@@ -484,6 +504,27 @@ export interface paths {
         get?: never;
         /** Set Effort */
         put: operations["set_effort"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions/{session_id}/rungs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Set Rungs
+         * @description Records a lower rung actually done for a set ("move:instance"); null restores the planned one. User content:
+         *     nothing here enqueues a recompute.
+         */
+        put: operations["set_set_rungs"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1285,6 +1326,37 @@ export interface components {
             zone_seconds: number[] | null;
         };
         JsonValue: unknown;
+        /** LadderPointOut */
+        LadderPointOut: {
+            /** Date */
+            date: string;
+            /** Reps */
+            reps: number;
+            /** Rung */
+            rung: number;
+            /** Session Id */
+            session_id: number;
+        };
+        /** LadderSetOut */
+        LadderSetOut: {
+            /** Instance */
+            instance: number;
+            /**
+             * Ladder
+             * @enum {string}
+             */
+            ladder: "push-up" | "pull-up";
+            /** Move */
+            move: string;
+            /** Move Index */
+            move_index: number;
+            /** Planned Rung */
+            planned_rung: number;
+            /** Reps */
+            reps: number;
+            /** Rung */
+            rung: number;
+        };
         /** LastSessionOut */
         LastSessionOut: {
             /** Date */
@@ -1360,10 +1432,14 @@ export interface components {
         };
         /** MoveIn */
         MoveIn: {
+            /** Ladder */
+            ladder?: ("push-up" | "pull-up") | null;
             /** Name */
             name: string;
             /** Reps */
             reps?: number | null;
+            /** Rung */
+            rung?: number | null;
             /** Seconds */
             seconds?: number | null;
             /** Weight Kg */
@@ -1449,6 +1525,8 @@ export interface components {
             strength_change?: number | null;
             /** Strength Score */
             strength_score?: number | null;
+            /** Unlocks */
+            unlocks?: components["schemas"]["UnlockOut"][];
             /** Updated At */
             updated_at: string;
             /** Video Url */
@@ -1990,6 +2068,8 @@ export interface components {
             effort_source: ("watch" | "manual") | null;
             /** Fell Short */
             fell_short: components["schemas"]["SessionShortRow"][];
+            /** Ladder Sets */
+            ladder_sets?: components["schemas"]["LadderSetOut"][];
             /** Matched Workout Id */
             matched_workout_id: string | null;
             /** Moves */
@@ -1997,6 +2077,8 @@ export interface components {
             /** Rounds */
             rounds: components["schemas"]["SessionRoundRow"][];
             session: components["schemas"]["SessionOut"];
+            /** Unlocked */
+            unlocked?: string[];
             /** Zone Bounds Bpm */
             zone_bounds_bpm: number[] | null;
             /** Zone Seconds */
@@ -2211,6 +2293,20 @@ export interface components {
             since: string | null;
             /** State */
             state: ("Building" | "Holding" | "Easing" | "Overreaching") | null;
+        };
+        /** UnlockOut */
+        UnlockOut: {
+            /** From Rung */
+            from_rung: number;
+            /**
+             * Ladder
+             * @enum {string}
+             */
+            ladder: "push-up" | "pull-up";
+            /** Move Index */
+            move_index: number;
+            /** To Rung */
+            to_rung: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -2839,6 +2935,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ladder_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ladder: "push-up" | "pull-up";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LadderPointOut"][];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -3584,6 +3711,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EffortOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_set_rungs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: number | null;
+                    };
                 };
             };
             /** @description Validation Error */

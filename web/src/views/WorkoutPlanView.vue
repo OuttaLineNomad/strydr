@@ -2,16 +2,20 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import Button from '@/components/ui/Button.vue'
+import StepChart from '@/components/ui/StepChart.vue'
 import { usePlansStore } from '@/stores/plans'
+import { useSessionsStore } from '@/stores/sessions'
+import { LADDER_IDS, isLadderMove, rungName, type LadderId } from '@/lib/ladders'
 import { useSettingsStore } from '@/stores/settings'
 import { planSummary } from '@/lib/plans'
 import { unlockAudio } from '@/lib/useTone'
 import { formatClock } from '@/lib/units'
 import { bellText, better, measureComparable, effortText, gainLine, headline, roundsFigure, SCORE_EXPLAINER, scoreLine, scoreText, sessionLine, shortDate, type Field } from '@/lib/progress'
-import type { PlanProgress } from '@/api/types'
+import type { LadderPoint, PlanProgress, Unlock } from '@/api/types'
 
 const props = defineProps<{ id: string }>()
 const store = usePlansStore()
+const sessionsStore = useSessionsStore()
 const settings = useSettingsStore()
 
 const data = ref<PlanProgress | null>(null)
@@ -32,7 +36,65 @@ async function load() {
   data.value = typeof got === 'object' && got ? got : null
   failed.value = !data.value && !missing.value
   loading.value = false
+  later.value = readLater()
+  if (data.value) void loadHistory(mine)
 }
+
+// --- Levels: the unlock offer and the staircase (CAP-13) ---
+const history = ref<Partial<Record<LadderId, LadderPoint[]>>>({})
+async function loadHistory(mine: number) {
+  const ids = LADDER_IDS.filter((id) => data.value?.plan.moves.some((m) => m.ladder === id))
+  const got = await Promise.all(ids.map(async (id) => [id, await sessionsStore.ladderHistory(id)] as const))
+  if (mine === seq) history.value = Object.fromEntries(got)
+}
+/** "Not yet" is kept per plan, per latest session and per move: [move_index, ...]. */
+const laterKey = () => `strydr.unlockLater.${props.id}.${data.value?.sessions[0]?.id ?? 0}`
+const later = ref<number[]>([])
+function readLater(): number[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(laterKey()) ?? '[]')
+    return Array.isArray(v) ? v.filter((x) => Number.isInteger(x)) : []
+  } catch {
+    return []
+  }
+}
+/** "Not yet" hides the offer until the next session. */
+const offers = computed(() => {
+  return (plan.value?.unlocks ?? []).filter((u) => !later.value.includes(u.move_index)).map((u) => ({ u, text: `Unlocked: ${rungName(u.ladder, u.to_rung)}. Use it from now on?` }))
+})
+function notYet(u: Unlock) {
+  if (data.value?.sessions[0]?.id == null) return
+  later.value = [...later.value, u.move_index]
+  try {
+    localStorage.setItem(laterKey(), JSON.stringify(later.value))
+  } catch {
+    /* hidden for this visit only */
+  }
+}
+const offerError = ref(false)
+async function accept(u: Unlock) {
+  if (!plan.value || !data.value) return
+  offerError.value = false
+  if (plan.value.moves[u.move_index]?.rung !== u.from_rung) { // the plan moved on since this offer was drawn
+    await load()
+    return
+  }
+  const got = await store.acceptUnlock(plan.value, u)
+  if (!got) {
+    offerError.value = true
+    return
+  }
+  if (data.value) data.value = { ...data.value, plan: { ...data.value.plan, moves: got.moves, unlocks: got.unlocks } }
+  void loadHistory(seq)
+}
+const stairs = computed(() =>
+  LADDER_IDS.filter((id) => plan.value?.moves.some((m) => m.ladder === id) && (history.value[id]?.length ?? 0) > 0).map((id) => ({
+    id,
+    title: `${id === 'push-up' ? 'Push-up' : 'Pull-up'} levels`,
+    points: history.value[id]!.map((p) => ({ label: new Date(p.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), rung: p.rung, reps: p.reps })),
+  })),
+)
+const hasLadder = computed(() => !!plan.value?.moves.some(isLadderMove))
 onMounted(load)
 watch(() => props.id, load)
 
@@ -98,6 +160,15 @@ const rows = computed<CompareRow[]>(() => {
       </div>
     </header>
 
+    <GlassPanel v-for="o in offers" :key="o.u.move_index" class="block offer" role="group" aria-label="Level unlocked" data-testid="unlock-offer">
+      <p class="headline" data-testid="unlock-text">{{ o.text }}</p>
+      <div class="offer-actions">
+        <Button variant="primary" :disabled="store.busy" data-testid="unlock-yes" @click="accept(o.u)">Yes</Button>
+        <Button data-testid="unlock-later" @click="notYet(o.u)">Not yet</Button>
+      </div>
+      <p v-if="offerError" class="err" role="alert" data-testid="unlock-error">The change was not saved. Try again.</p>
+    </GlassPanel>
+
     <template v-if="then && now">
       <section class="lead" data-testid="progress-lead">
         <p class="headline" data-testid="progress-headline">{{ head }}</p>
@@ -129,6 +200,10 @@ const rows = computed<CompareRow[]>(() => {
     <GlassPanel v-else class="block" data-testid="progress-empty">
       <p class="body">Do it once more to see progress.</p>
     </GlassPanel>
+
+    <section v-if="hasLadder && stairs.length" class="stairs" aria-label="Levels over time" data-testid="stairs">
+      <StepChart v-for="st in stairs" :key="st.id" :title="st.title" :ladder="st.id" :points="st.points" caption="Best set per session, reps" />
+    </section>
 
     <section v-if="data.sessions.length" class="sessions" aria-labelledby="sessions-h">
       <h2 id="sessions-h" class="section-title">Sessions</h2>
@@ -169,6 +244,10 @@ const rows = computed<CompareRow[]>(() => {
 .dash { color: var(--ink-secondary); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .changed { margin-bottom: var(--space-3); }
+.offer { margin-top: var(--space-4); }
+.offer-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.err { color: var(--danger); }
+.stairs { margin-top: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
 .sessions { margin-top: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
 .section-title { margin: 0; font-family: var(--font-display); font-size: 20px; line-height: 26px; font-weight: 700; }
 .list-panel { padding: 0; overflow: hidden; }

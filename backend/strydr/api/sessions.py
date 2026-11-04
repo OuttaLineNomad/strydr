@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from strydr.api import schemas as sc
+from strydr import progress as pg
 from strydr import sessions_summary as ss
 from strydr.api.common import Api, rfc3339
 from strydr.store import models
@@ -84,6 +85,10 @@ def session_effort(m: models.WorkoutSession, w: models.Workout | None) -> tuple[
     return None, None, estimated
 
 
+def session_ladder_sets(m: models.WorkoutSession) -> list[pg.LadderSet]:
+    return pg.ladder_sets(m.plan, m.rounds_done, m.partial_moves, m.fell_short, m.short_reps, m.set_rungs)
+
+
 def build_summary(s: Session, m: models.WorkoutSession) -> sc.SessionSummaryOut:
     """Built on every read from the saved session and the strength workout it overlaps most, so a watch workout that
     syncs later attaches on its own. Nothing here is stored."""
@@ -106,7 +111,13 @@ def build_summary(s: Session, m: models.WorkoutSession) -> sc.SessionSummaryOut:
         for minute in m.fell_short or []:
             mv = moves[(minute - 1) % len(moves)]
             rows.append(sc.SessionShortRow(minute=minute, move=mv["name"], target_reps=mv.get("reps"), short_reps=short.get(str(minute))))
+    lsets = session_ladder_sets(m)
+    unlocked = [pg.rung_name(u["ladder"], u["to_rung"]) for u in pg.unlocks(moves, pg.ladder_sets(
+        plan, m.rounds_done, m.partial_moves, m.fell_short, m.short_reps, m.set_rungs))]
     return sc.SessionSummaryOut(
+        ladder_sets=[sc.LadderSetOut(move_index=x.move, instance=x.instance, move=moves[x.move]["name"], ladder=x.ladder,
+                                     planned_rung=x.planned, rung=x.rung, reps=x.reps) for x in lsets],
+        unlocked=unlocked,
         session=session_out(m), matched_workout_id=w.workout_id if w is not None else None, avg_hr=got.avg_hr,
         effort=effort, effort_source=source, effort_estimated=estimated,
         moves=[sc.SessionMoveHr(name=x.name, avg_hr=x.avg_hr, instances=x.instances) for x in got.moves],
@@ -184,6 +195,34 @@ def router(api: Api) -> APIRouter:
                     raise HTTPException(status_code=422, detail="reps must be between 0 and 500")
             merged = {**(m.short_reps or {}), **{str(int(k)): v for k, v in body.items()}}
             m.short_reps = merged  # a new dict: SQLAlchemy does not see an in-place JSON change
+            s.commit()
+            return merged
+
+    @r.put("/sessions/{session_id}/rungs", response_model=dict[str, int | None])
+    def set_set_rungs(session_id: int, body: dict[str, int | None]) -> dict[str, int | None]:
+        """Records a lower rung actually done for a set ("move:instance"); null restores the planned one. User content:
+        nothing here enqueues a recompute."""
+        with Session(api.engine) as s:
+            m = s.get(models.WorkoutSession, session_id)
+            if m is None:
+                raise HTTPException(status_code=404, detail="session not found")
+            moves = m.plan["moves"]
+            norm: dict[str, int | None] = {}
+            for k, v in body.items():
+                a, _, b = k.partition(":")
+                if not all(x.isascii() and x.isdigit() and len(x) <= 3 for x in (a, b)):
+                    raise HTTPException(status_code=422, detail=f"{k} is not a set (use move:instance)")
+                i, inst = int(a), int(b)
+                planned = moves[i].get("rung") if i < len(moves) and moves[i].get("ladder") is not None else None
+                if planned is None:
+                    raise HTTPException(status_code=422, detail=f"move {i} is not a ladder move")
+                if inst >= m.rounds_done + (1 if i < m.partial_moves else 0):
+                    raise HTTPException(status_code=422, detail=f"move {i} has no set {inst}")
+                if v is not None and not 0 <= v <= planned:
+                    raise HTTPException(status_code=422, detail="a set can only step down to a lower rung")
+                norm[f"{i}:{inst}"] = None if v == planned else v  # the planned rung is the default
+            merged = {k: v for k, v in {**(m.set_rungs or {}), **norm}.items() if v is not None}
+            m.set_rungs = merged or None  # a new dict: SQLAlchemy does not see an in-place JSON change
             s.commit()
             return merged
 

@@ -1338,6 +1338,81 @@
         "type": "object"
       },
       "JsonValue": {},
+      "LadderPointOut": {
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "reps": {
+            "title": "Reps",
+            "type": "integer"
+          },
+          "rung": {
+            "title": "Rung",
+            "type": "integer"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id",
+          "date",
+          "rung",
+          "reps"
+        ],
+        "title": "LadderPointOut",
+        "type": "object"
+      },
+      "LadderSetOut": {
+        "properties": {
+          "instance": {
+            "title": "Instance",
+            "type": "integer"
+          },
+          "ladder": {
+            "enum": [
+              "push-up",
+              "pull-up"
+            ],
+            "title": "Ladder",
+            "type": "string"
+          },
+          "move": {
+            "title": "Move",
+            "type": "string"
+          },
+          "move_index": {
+            "title": "Move Index",
+            "type": "integer"
+          },
+          "planned_rung": {
+            "title": "Planned Rung",
+            "type": "integer"
+          },
+          "reps": {
+            "title": "Reps",
+            "type": "integer"
+          },
+          "rung": {
+            "title": "Rung",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "move_index",
+          "instance",
+          "move",
+          "ladder",
+          "planned_rung",
+          "rung",
+          "reps"
+        ],
+        "title": "LadderSetOut",
+        "type": "object"
+      },
       "LastSessionOut": {
         "properties": {
           "date": {
@@ -1572,6 +1647,21 @@
       },
       "MoveIn": {
         "properties": {
+          "ladder": {
+            "anyOf": [
+              {
+                "enum": [
+                  "push-up",
+                  "pull-up"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ladder"
+          },
           "name": {
             "maxLength": 40,
             "minLength": 1,
@@ -1590,6 +1680,19 @@
               }
             ],
             "title": "Reps"
+          },
+          "rung": {
+            "anyOf": [
+              {
+                "maximum": 20.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rung"
           },
           "seconds": {
             "anyOf": [
@@ -1920,6 +2023,13 @@
               }
             ],
             "title": "Strength Score"
+          },
+          "unlocks": {
+            "items": {
+              "$ref": "#/components/schemas/UnlockOut"
+            },
+            "title": "Unlocks",
+            "type": "array"
           },
           "updated_at": {
             "title": "Updated At",
@@ -3745,6 +3855,13 @@
             "title": "Fell Short",
             "type": "array"
           },
+          "ladder_sets": {
+            "items": {
+              "$ref": "#/components/schemas/LadderSetOut"
+            },
+            "title": "Ladder Sets",
+            "type": "array"
+          },
           "matched_workout_id": {
             "anyOf": [
               {
@@ -3772,6 +3889,13 @@
           },
           "session": {
             "$ref": "#/components/schemas/SessionOut"
+          },
+          "unlocked": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unlocked",
+            "type": "array"
           },
           "zone_bounds_bpm": {
             "anyOf": [
@@ -4567,6 +4691,38 @@
           "since"
         ],
         "title": "TrainingStateOut",
+        "type": "object"
+      },
+      "UnlockOut": {
+        "properties": {
+          "from_rung": {
+            "title": "From Rung",
+            "type": "integer"
+          },
+          "ladder": {
+            "enum": [
+              "push-up",
+              "pull-up"
+            ],
+            "title": "Ladder",
+            "type": "string"
+          },
+          "move_index": {
+            "title": "Move Index",
+            "type": "integer"
+          },
+          "to_rung": {
+            "title": "To Rung",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "move_index",
+          "ladder",
+          "from_rung",
+          "to_rung"
+        ],
+        "title": "UnlockOut",
         "type": "object"
       },
       "ValidationError": {
@@ -6127,6 +6283,57 @@
         ]
       }
     },
+    "/api/v1/ladders/{ladder}/history": {
+      "get": {
+        "description": "One point per session with a set on this ladder, oldest first: its best set (highest rung, then most reps).",
+        "operationId": "ladder_history",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ladder",
+            "required": true,
+            "schema": {
+              "enum": [
+                "push-up",
+                "pull-up"
+              ],
+              "title": "Ladder",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LadderPointOut"
+                  },
+                  "title": "Response Ladder History",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ladder History",
+        "tags": [
+          "ladders"
+        ]
+      }
+    },
     "/api/v1/load": {
       "get": {
         "operationId": "get_load",
@@ -7095,6 +7302,81 @@
           }
         },
         "summary": "Set Effort",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_id}/rungs": {
+      "put": {
+        "description": "Records a lower rung actually done for a set (\"move:instance\"); null restores the planned one. User content:\nnothing here enqueues a recompute.",
+        "operationId": "set_set_rungs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "title": "Response Set Set Rungs",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Set Rungs",
         "tags": [
           "sessions"
         ]

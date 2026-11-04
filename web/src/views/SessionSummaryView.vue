@@ -7,7 +7,8 @@ import { useSettingsStore } from '@/stores/settings'
 import { planWeight } from '@/lib/plans'
 import { formatClock, weightUnit } from '@/lib/units'
 import { roundsText } from '@/lib/workoutEngine'
-import type { SessionSummary } from '@/api/types'
+import { LADDERS, rungLabel } from '@/lib/ladders'
+import type { LadderSet, SessionSummary } from '@/api/types'
 
 const props = defineProps<{ id: string }>()
 const store = useSessionsStore()
@@ -127,6 +128,33 @@ async function saveOther(minute: number) {
   if (await answer(minute, n)) otherText.value = { ...otherText.value, [minute]: '' }
 }
 
+// --- Ladder sets: one optional tap records an easier level (CAP-13) ---
+const ladderSets = computed(() => sm.value?.ladder_sets ?? [])
+const unlocked = computed(() => sm.value?.unlocked ?? [])
+const opening = ref<string | null>(null)
+const saving = ref(false)
+const rungError = ref(false)
+const setKey = (x: LadderSet) => `${x.move_index}:${x.instance}`
+const setTitle = (x: LadderSet) => `${x.move} set ${x.instance + 1}`
+async function stepTo(x: LadderSet, rung: number | null) {
+  if (!sm.value) return
+  if (saving.value) return
+  rungError.value = false
+  saving.value = true
+  try {
+    const ok = await store.setRung(sm.value.session.id, setKey(x), rung)
+    if (!ok) {
+      rungError.value = true
+      return
+    }
+    opening.value = null
+    const fresh = await store.summary(sm.value.session.id) // the unlocked line may no longer hold
+    if (typeof fresh === 'object' && fresh) sm.value = fresh
+  } finally {
+    saving.value = false
+  }
+}
+
 const again = computed(() => {
   const s = session.value
   if (!s || s.plan_id == null) return null
@@ -216,6 +244,35 @@ const again = computed(() => {
         </li>
       </ul>
       <p v-if="shortError" class="err" role="alert" data-testid="short-error">That answer was not saved. Try again.</p>
+    </GlassPanel>
+
+    <p v-for="n in unlocked" :key="n" class="unlocked" data-testid="summary-unlocked">You unlocked {{ n }}.</p>
+
+    <GlassPanel v-if="ladderSets.length" class="block" data-testid="ladder-block">
+      <h2 class="section-title">Sets by level</h2>
+      <ul class="shorts">
+        <li v-for="x in ladderSets" :key="setKey(x)" class="short" data-testid="ladder-row">
+          <p class="short-head">
+            <span>{{ setTitle(x) }} · {{ x.reps }} reps</span>
+            <span class="short-state" :data-testid="`ladder-state-${setKey(x)}`">{{ x.rung < x.planned_rung ? `Did ${rungLabel(x.ladder, x.rung)}` : rungLabel(x.ladder, x.rung) }}</span>
+          </p>
+          <div v-if="opening === setKey(x)" class="chips" role="group" :aria-label="`Easier levels for ${setTitle(x)}`">
+            <button
+              v-for="r in x.planned_rung" :key="r" type="button" class="chip" :class="{ on: x.rung === r - 1 }" :aria-pressed="x.rung === r - 1" :disabled="saving"
+              :data-testid="`ladder-pick-${setKey(x)}-${r - 1}`" @click="stepTo(x, r - 1)"
+            >{{ LADDERS[x.ladder][r - 1] }}</button>
+          </div>
+          <div class="ladder-actions">
+            <button v-if="x.rung < x.planned_rung" type="button" class="text-action" :disabled="saving" :data-testid="`ladder-undo-${setKey(x)}`" @click="stepTo(x, null)">Undo</button>
+            <button
+              v-if="x.planned_rung > 0 && opening !== setKey(x)" type="button" class="text-action" :aria-expanded="false"
+              :data-testid="`ladder-easier-${setKey(x)}`" @click="opening = setKey(x)"
+            >Did an easier level?</button>
+            <button v-else-if="opening === setKey(x)" type="button" class="text-action" :data-testid="`ladder-close-${setKey(x)}`" @click="opening = null">Close</button>
+          </div>
+        </li>
+      </ul>
+      <p v-if="rungError" class="err" role="alert" data-testid="ladder-error">That was not saved. Try again.</p>
     </GlassPanel>
 
     <GlassPanel v-if="sm.moves.length" class="block" data-testid="hr-moves">
@@ -316,6 +373,13 @@ const again = computed(() => {
 .tbl .num-col { text-align: right; font-variant-numeric: tabular-nums; }
 .tbl tbody td.num-col { font-family: var(--font-display); font-weight: 600; }
 
+.unlocked { margin: 0 0 var(--space-4); font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 26px; color: var(--success-text); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.chip { min-height: 44px; padding: 0 var(--space-4); border: 1px solid var(--divider); border-radius: var(--radius-md, 12px); background: transparent; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--ink-on-accent); }
+.chip:focus-visible, .text-action:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.ladder-actions { display: flex; flex-wrap: wrap; gap: var(--space-4); }
+.text-action { min-height: 44px; padding: 0; border: 0; background: none; color: var(--accent-text); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
 .again { margin: var(--space-5) 0 var(--space-6); }
 .again :deep(.btn) { width: 100%; min-height: 52px; }
 </style>

@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from strydr import progress as pg
 from strydr import sessions_summary as ss
 from strydr.api import schemas as sc
-from strydr.api.sessions import build_summary, last_sessions, session_effort
+from strydr.api.sessions import build_summary, last_sessions, session_effort, session_ladder_sets
 from strydr.api.common import Api, rfc3339
 from strydr.egress import EgressError, PlanImportPayload, resolve, youtube
 from strydr.store import models, settings
@@ -62,8 +62,8 @@ TAKEN = "a workout with that name exists"
 
 
 def plan_out(p: models.WorkoutPlan, last: sc.LastSessionOut | None = None, score: int | None = None,
-             change: int | None = None) -> sc.PlanOut:
-    return sc.PlanOut(strength_score=score, strength_change=change, id=p.id, name=p.name, format=p.format, cap_min=p.cap_min, emom_min=p.emom_min, rounds=p.rounds,
+             change: int | None = None, unlocks: list[dict] | None = None) -> sc.PlanOut:
+    return sc.PlanOut(unlocks=[sc.UnlockOut(**u) for u in unlocks or []], strength_score=score, strength_change=change, id=p.id, name=p.name, format=p.format, cap_min=p.cap_min, emom_min=p.emom_min, rounds=p.rounds,
                       moves=[sc.MoveIn(**m) for m in p.moves], video_url=p.video_url,
                       created_at=p.created_at.isoformat(), updated_at=p.updated_at.isoformat(), last_session=last)
 
@@ -81,6 +81,23 @@ def _missed_reps(m: models.WorkoutSession) -> int | None:
         target = moves[(minute - 1) % len(moves)].get("reps") if moves else None
         total += max(0, target - answer) if target is not None else 0
     return total
+
+
+def _unlocks(s: Session, plans: list[models.WorkoutPlan]) -> dict[int, list[dict]]:
+    """The next rungs each plan's latest session earned, computed on read (nothing stored)."""
+    ladder_plans = [p for p in plans if any(m.get("ladder") for m in p.moves)]
+    out: dict[int, list[dict]] = {}
+    if not ladder_plans:
+        return out
+    rows = s.execute(select(models.WorkoutSession).where(models.WorkoutSession.plan_id.in_([p.id for p in ladder_plans]))
+                     .order_by(models.WorkoutSession.start_utc.desc(), models.WorkoutSession.id.desc())).scalars()
+    latest: dict[int, models.WorkoutSession] = {}
+    for m in rows:
+        latest.setdefault(m.plan_id, m)
+    for p in ladder_plans:
+        if p.id in latest:
+            out[p.id] = pg.unlocks(p.moves, session_ladder_sets(latest[p.id]))
+    return out
 
 
 def _shape(moves: list[dict]) -> list[tuple]:
@@ -101,7 +118,7 @@ def _scores(rows: list[models.WorkoutSession], efforts: dict[int, float | None])
     """Strength score by session id for the sessions of ONE plan (any order)."""
     ordered = sorted(rows, key=lambda m: (m.start_utc, m.id))
     got = pg.scores([pg.ScoreInput(m.plan, m.weight_kg, m.rounds_done, m.partial_moves, m.fell_short, m.short_reps,
-                                   m.active_s, efforts.get(m.id)) for m in ordered])
+                                   m.active_s, efforts.get(m.id), m.set_rungs) for m in ordered])
     return {m.id: sc_ for m, sc_ in zip(ordered, got)}
 
 
@@ -164,7 +181,8 @@ def router(api: Api) -> APIRouter:
             plans = list(rows)
             last = last_sessions(s, [p.id for p in plans])
             sc_ = _plan_scores(s, [p.id for p in plans])
-            return sorted((plan_out(p, last.get(p.id), *sc_.get(p.id, (None, None))) for p in plans), key=lambda p: p.name.casefold())
+            un = _unlocks(s, plans)
+            return sorted((plan_out(p, last.get(p.id), *sc_.get(p.id, (None, None)), un.get(p.id)) for p in plans), key=lambda p: p.name.casefold())
 
     @r.post("/plans/import-youtube", response_model=sc.PlanDraftOut)
     def import_youtube(body: sc.YoutubeImportIn) -> sc.PlanDraftOut:
@@ -202,7 +220,8 @@ def router(api: Api) -> APIRouter:
     def get_plan(plan_id: int) -> sc.PlanOut:
         with Session(api.engine) as s:
             p = get_or_404(s, plan_id)
-            return plan_out(p, last_sessions(s, [p.id]).get(p.id), *_plan_scores(s, [p.id]).get(p.id, (None, None)))
+            return plan_out(p, last_sessions(s, [p.id]).get(p.id), *_plan_scores(s, [p.id]).get(p.id, (None, None)),
+                            _unlocks(s, [p]).get(p.id))
 
     @r.get("/plans/{plan_id}/progress", response_model=sc.PlanProgressOut)
     def plan_progress(plan_id: int) -> sc.PlanProgressOut:
@@ -221,7 +240,7 @@ def router(api: Api) -> APIRouter:
             if len(rows) >= 2:  # the HR series is read for these two only
                 now = sc.ProgressCompareOut(**sessions[0], avg_hr=build_summary(s, rows[0]).avg_hr)
                 then = sc.ProgressCompareOut(**sessions[-1], avg_hr=build_summary(s, rows[-1]).avg_hr)
-            return sc.PlanProgressOut(plan=plan_out(p, last_sessions(s, [p.id]).get(p.id), *head),
+            return sc.PlanProgressOut(plan=plan_out(p, last_sessions(s, [p.id]).get(p.id), *head, _unlocks(s, [p]).get(p.id)),
                                       sessions=[sc.ProgressSessionOut(**x) for x in sessions], then=then, now=now)
 
     @r.post("/plans", response_model=sc.PlanOut, status_code=201)
@@ -245,7 +264,7 @@ def router(api: Api) -> APIRouter:
             fill(p, body)
             p.updated_at = utcnow()
             commit_unique(s)
-            return plan_out(p, last_sessions(s, [p.id]).get(p.id))
+            return plan_out(p, last_sessions(s, [p.id]).get(p.id), unlocks=_unlocks(s, [p]).get(p.id))
 
     @r.delete("/plans/{plan_id}", status_code=204)
     def delete_plan(plan_id: int) -> Response:

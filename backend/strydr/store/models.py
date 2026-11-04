@@ -507,6 +507,7 @@ class WorkoutSession(Base):
     matched_workout_id: Mapped[str | None] = mapped_column(String(64))
     effort: Mapped[int | None] = mapped_column(Integer)
     short_reps: Mapped[dict | None] = mapped_column(JSON)  # {"minute": reps|null} for flagged EMOM minutes
+    set_rungs: Mapped[dict | None] = mapped_column(JSON)  # {"move:instance": rung} for sets done at an easier level
     created_at: Mapped[datetime] = mapped_column(DateTime)
 
 

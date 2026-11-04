@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { api } from '@/api'
-import type { SessionIn, SessionOut, SessionSummary } from '@/api/types'
+import type { LadderPoint, SessionIn, SessionOut, SessionSummary } from '@/api/types'
 
 const KEY = 'strydr.sessionOutbox'
 /** Records the server refused as invalid (422). Kept, never retried and never deleted. */
@@ -123,5 +123,25 @@ export const useSessionsStore = defineStore('sessions', () => {
     }
   }
 
-  return { pending, save, flush, list, summary, setEffort, setShort }
+  /** Records the lower rung done for one set ("move:instance"); null restores the planned one. True when the server took it. */
+  async function setRung(id: number, key: string, rung: number | null): Promise<boolean> {
+    try {
+      const { data } = await api.PUT('/api/v1/sessions/{session_id}/rungs', { params: { path: { session_id: id } }, body: { [key]: rung } })
+      return !!data
+    } catch {
+      return false
+    }
+  }
+
+  /** The staircase of a ladder: the best set of each session, oldest first. Empty when it could not load. */
+  async function ladderHistory(ladder: 'push-up' | 'pull-up'): Promise<LadderPoint[]> {
+    try {
+      const { data } = await api.GET('/api/v1/ladders/{ladder}/history', { params: { path: { ladder } } })
+      return data ?? []
+    } catch {
+      return []
+    }
+  }
+
+  return { pending, save, flush, list, summary, setEffort, setShort, setRung, ladderHistory }
 })

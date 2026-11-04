@@ -12,7 +12,7 @@ API = "/api/v1"
 
 
 def mv(name="Swing", **kw):
-    d = {"name": name, "reps": 10, "seconds": None, "weight_kg": 16.0}
+    d = {"name": name, "reps": 10, "seconds": None, "weight_kg": 16.0, "ladder": None, "rung": None}
     d.update(kw)
     return d
 
