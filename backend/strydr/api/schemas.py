@@ -946,3 +946,15 @@ class SessionSummaryOut(BaseModel):
     zone_seconds: list[float] | None
     zone_bounds_bpm: list[float] | None
     fell_short: list[SessionShortRow]
+
+
+class StreakWeekOut(BaseModel):
+    week_start: str  # the Monday, YYYY-MM-DD
+    counted: bool
+
+
+class StreakOut(BaseModel):
+    weeks: int
+    this_week: bool
+    last_streak: int
+    recent: list[StreakWeekOut]  # last 8 weeks, oldest first, the current week last

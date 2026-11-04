@@ -25,11 +25,24 @@ async function mountIt(plans: PlanOut[], units: 'imperial' | 'metric' = 'imperia
   const pinia = createPinia()
   setActivePinia(pinia)
   useSettingsStore().profile = profile({}, { units }) as never
-  get.mockImplementation(async (url: string) => ({ data: url === '/api/v1/sessions' ? recent : plans, response: { status: 200 } }))
+  get.mockImplementation(async (url: string) => ({
+    data: url === '/api/v1/sessions' ? recent : url === '/api/v1/streak' ? { weeks: 2, this_week: true, last_streak: 2, recent: [] } : plans,
+    response: { status: 200 },
+  }))
   const w = mount(WorkoutsView, { global: { plugins: [pinia], stubs: { RouterLink: RouterLinkStub } } })
   await flushPromises()
   return w
 }
+
+describe('streak block', () => {
+  it('mounts under the title row, above the library', async () => {
+    const w = await mountIt([plan()])
+    const html = w.html()
+    expect(w.find('[data-testid="streak"]').exists()).toBe(true)
+    expect(html.indexOf('data-testid="streak"')).toBeGreaterThan(html.indexOf('class="title-row"'))
+    expect(html.indexOf('data-testid="streak"')).toBeLessThan(html.indexOf('data-testid="workouts-list"'))
+  })
+})
 
 describe('From a video', () => {
   it('links to the new-workout editor in import mode', async () => {

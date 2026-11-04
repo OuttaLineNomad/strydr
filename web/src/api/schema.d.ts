@@ -647,6 +647,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/streak": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Streak */
+        get: operations["get_streak"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sync-status": {
         parameters: {
             query?: never;
@@ -2021,6 +2038,24 @@ export interface components {
             partial: boolean;
             /** Speed Mps */
             speed_mps: number | null;
+        };
+        /** StreakOut */
+        StreakOut: {
+            /** Last Streak */
+            last_streak: number;
+            /** Recent */
+            recent: components["schemas"]["StreakWeekOut"][];
+            /** This Week */
+            this_week: boolean;
+            /** Weeks */
+            weeks: number;
+        };
+        /** StreakWeekOut */
+        StreakWeekOut: {
+            /** Counted */
+            counted: boolean;
+            /** Week Start */
+            week_start: string;
         };
         /** SyncStatus */
         SyncStatus: {
@@ -3913,6 +3948,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_streak: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreakOut"];
                 };
             };
         };

@@ -3996,6 +3996,55 @@
         "title": "SplitOut",
         "type": "object"
       },
+      "StreakOut": {
+        "properties": {
+          "last_streak": {
+            "title": "Last Streak",
+            "type": "integer"
+          },
+          "recent": {
+            "items": {
+              "$ref": "#/components/schemas/StreakWeekOut"
+            },
+            "title": "Recent",
+            "type": "array"
+          },
+          "this_week": {
+            "title": "This Week",
+            "type": "boolean"
+          },
+          "weeks": {
+            "title": "Weeks",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "weeks",
+          "this_week",
+          "last_streak",
+          "recent"
+        ],
+        "title": "StreakOut",
+        "type": "object"
+      },
+      "StreakWeekOut": {
+        "properties": {
+          "counted": {
+            "title": "Counted",
+            "type": "boolean"
+          },
+          "week_start": {
+            "title": "Week Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "week_start",
+          "counted"
+        ],
+        "title": "StreakWeekOut",
+        "type": "object"
+      },
       "SyncStatus": {
         "properties": {
           "last_processed_at": {
@@ -7319,6 +7368,27 @@
           }
         },
         "summary": "Put Sleep Correction"
+      }
+    },
+    "/api/v1/streak": {
+      "get": {
+        "operationId": "get_streak",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreakOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Streak",
+        "tags": [
+          "streak"
+        ]
       }
     },
     "/api/v1/sync-status": {

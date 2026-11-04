@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import Button from '@/components/ui/Button.vue'
+import StreakBlock from '@/components/app/StreakBlock.vue'
 import { usePlansStore } from '@/stores/plans'
 import { useSettingsStore } from '@/stores/settings'
 import { planSummary, lastLine } from '@/lib/plans'
@@ -47,6 +48,8 @@ async function remove(id: number) {
       <Button v-if="plans.length" variant="primary" to="/workouts/new" data-testid="new-workout">New workout</Button>
     </div>
   </header>
+
+  <StreakBlock class="streak-block" />
 
   <p v-if="!store.loaded && !store.error" class="body" role="status" data-testid="workouts-loading">Loading workouts.</p>
 
@@ -109,6 +112,7 @@ async function remove(id: number) {
 </template>
 
 <style scoped>
+.streak-block { margin-bottom: var(--space-4); }
 .block { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); align-items: flex-start; }
 .block h2, .block p { margin: 0; }
 .body { margin: 0; color: var(--ink); font-size: var(--body-md-size, 16px); }

@@ -6,6 +6,7 @@ import GlassPanel from '@/components/ui/GlassPanel.vue'
 import Button from '@/components/ui/Button.vue'
 import Icons from '@/components/ui/Icons.vue'
 import Segmented from '@/components/ui/Segmented.vue'
+import StreakBlock from '@/components/app/StreakBlock.vue'
 import InsightList from '@/components/app/InsightList.vue'
 import SyncStatusLine from '@/components/app/SyncStatusLine.vue'
 import { useSettingsStore } from '@/stores/settings'
@@ -114,6 +115,8 @@ const caption = computed(() => {
         <StatTile :label="`Last ${d.weeks} weeks`" :value="weeks.length ? rangeTotal.toFixed(1) : null" :unit="du" :sub="weeks.length ? `${runsInRange} ${runsInRange === 1 ? 'run' : 'runs'}` : null" />
       </div>
     </div>
+
+    <StreakBlock compact />
 
     <InsightList class="s7" title="Insights" />
 
