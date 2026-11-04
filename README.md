@@ -18,6 +18,7 @@
   <img alt="Vue 3" src="https://img.shields.io/badge/vue-3-42b883.svg">
   <img alt="Docker" src="https://img.shields.io/badge/docker-ready-2496ED.svg">
   <img alt="No telemetry" src="https://img.shields.io/badge/telemetry-none-success.svg">
+  <a href="#about-this-project"><img alt="Built with AI" src="https://img.shields.io/badge/built%20with-AI-8A2BE2.svg"></a>
 </p>
 
 <p align="center">
@@ -35,6 +36,9 @@
 </p>
 
 > All screenshots use a made-up runner in Central Park, generated from synthetic data. No real person's data appears anywhere in this repository.
+
+> **Built with AI.** Nearly all of Strydr's code, tests and documentation were written by AI coding tools, not by hand.
+> It is one person's hobby project, made for their own training. See [About this project](#about-this-project).
 
 ## Why Strydr
 
@@ -115,6 +119,23 @@ Then [connect your iPhone](docs/importing-data.md) and open `http://<server>:808
 **Backend:** Python 3.14, FastAPI, SQLAlchemy and Alembic, SQLCipher, NumPy and Shapely, managed with uv.
 **Frontend:** Vue 3, TypeScript, Vite, Pinia, MapLibre GL with OpenFreeMap tiles.
 **Runs on:** Docker (x86_64 and arm64), Windows via WSL 2, or bare macOS/Linux.
+
+## About this project
+
+Strydr started as a personal experiment. I'm a developer, but I'm also a busy dad with a full-time job, and I wanted
+to see how far I could get by "vibe coding" a self-hosted app to help with my own runs and home workouts.
+
+To be clear about who did what:
+
+- **AI wrote it.** Nearly all of the code, tests and documentation in this repository were written by AI coding tools.
+  I did not write it by hand, and I don't want to take credit as if I had.
+- **My part** was the idea, deciding what it should do and how it should feel, checking the results, and using it every
+  day on my own training to see what broke.
+- **It is built for one person.** It fits my watch, my runs and my workouts. It works for me, but expect rough edges.
+- **Review it like any code you didn't write.** Read it before you trust it with your health data, and keep the
+  database key and backups somewhere safe.
+
+Issues and pull requests are welcome, but this is a hobby project, so replies may be slow.
 
 ## Contributing
 

@@ -4,6 +4,9 @@ Strydr is a self-hosted web app that turns Apple Watch workouts and Apple Health
 home-workout tracking. These pages cover setting it up, getting data in, what every screen does, and how the numbers are
 worked out.
 
+> Strydr, including these docs, was built almost entirely with AI coding tools as a personal hobby project. See
+> [About this project](../README.md#about-this-project).
+
 ## Start here
 
 1. [Getting started](getting-started.md): what you need and the shortest path to your first synced run.
