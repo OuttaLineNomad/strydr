@@ -16,6 +16,8 @@ ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never \
 WORKDIR /app/backend
 COPY backend/pyproject.toml backend/uv.lock backend/README.md ./
 COPY backend/strydr ./strydr
+# thresholds.toml and routes.toml, read from /app/backend/config at runtime
+COPY backend/config ./config
 RUN uv sync --frozen --no-dev
 # Served by the app port via STRYDR_WEB_DIST (default /app/web/dist).
 COPY --from=web /web/dist /app/web/dist
