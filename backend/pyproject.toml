@@ -16,6 +16,7 @@ dependencies = [
   "shapely==2.2.*",
   "numpy==2.5.*",
   "httpx==0.28.*",
+  "yt-dlp>=2026.10.26",
 ]
 
 [dependency-groups]

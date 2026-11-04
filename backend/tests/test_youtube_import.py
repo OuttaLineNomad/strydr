@@ -1,5 +1,7 @@
-"""YouTube import: the fetcher against a mock transport, the closed AI payload and the route. No real network."""
+"""YouTube import: the fetcher against a fake yt-dlp, the closed AI payload and the route. No real network."""
 import json
+import subprocess
+from pathlib import Path
 
 import httpx
 import pytest
@@ -31,51 +33,37 @@ with a 25 lb bell &amp; rest
 """
 
 
-def page(tracks, title="Five move AMRAP", desc="25 lb bell", status=None):
-    pr = {"videoDetails": {"title": title, "shortDescription": desc}}
-    if status:
-        pr["playabilityStatus"] = {"status": status}
-    if tracks is not None:
-        pr["captions"] = {"playerCaptionsTracklistRenderer": {"captionTracks": tracks}}
-    return f"<html><script>var ytInitialPlayerResponse = {json.dumps(pr)};var meta = 1;</script></html>"
-
-
-def track(lang="en", kind=None, host="www.youtube.com"):
-    t = {"baseUrl": f"https://{host}/api/timedtext?v={VID}&lang={lang}&k={kind or 'manual'}", "languageCode": lang}
-    if kind:
-        t["kind"] = kind
-    return t
+def track(lang="en", kind=None):
+    return (lang, kind)
 
 
 class Site:
-    """A fake youtube.com. `consent` makes the first watch request redirect to the consent page."""
-    def __init__(self, tracks=None, vtt=VTT, consent=False, fail=False, status=None, inline_consent=False,
-                 always_consent=False, set_cookie=False, caption_redirect=None, title="Five move AMRAP"):
-        self.tracks, self.vtt, self.consent, self.fail = tracks, vtt, consent, fail
-        self.status, self.inline_consent, self.always_consent = status, inline_consent, always_consent
-        self.set_cookie, self.caption_redirect, self.title = set_cookie, caption_redirect, title
-        self.requests: list[httpx.Request] = []
+    """A fake yt-dlp. Records each run's arguments; `tracks` are (lang, kind) pairs, kind "asr" for auto captions."""
+    def __init__(self, tracks=None, vtt=VTT, fail=False, stderr=None, availability=None, title="Five move AMRAP"):
+        self.tracks, self.vtt, self.fail, self.stderr = tracks, vtt, fail, stderr
+        self.availability, self.title = availability, title
+        self.requests: list[list[str]] = []
 
-    def handler(self, req: httpx.Request) -> httpx.Response:
-        self.requests.append(req)
+    def run(self, args, timeout):
+        self.requests.append(args)
         if self.fail:
-            raise (self.fail if isinstance(self.fail, Exception) else httpx.ConnectTimeout("slow"))
-        if req.url.path == "/watch":
-            if self.always_consent or (self.consent and "cookie" not in req.headers):
-                return httpx.Response(303, headers={"location": "https://consent.youtube.com/m?continue=x"})
-            if self.inline_consent and "cookie" not in req.headers:
-                return httpx.Response(200, text="<html>Before you continue to YouTube</html>")
-            return httpx.Response(200, text=page(self.tracks, title=self.title, status=self.status),
-                                  headers={"set-cookie": "VISITOR_INFO1_LIVE=abc; Path=/"} if self.set_cookie else {})
-        if self.caption_redirect:
-            return httpx.Response(302, headers={"location": self.caption_redirect})
-        return httpx.Response(200, text=self.vtt)
-
-    def transport(self):
-        return httpx.MockTransport(self.handler)
+            raise (self.fail if isinstance(self.fail, BaseException) else subprocess.TimeoutExpired("yt-dlp", timeout))
+        if self.stderr:
+            return subprocess.CompletedProcess(args, 1, "", self.stderr)
+        if "-J" in args:
+            info = {"title": self.title, "description": "25 lb bell"}
+            if self.tracks is not None:
+                info["subtitles"] = {l: [{"ext": "vtt"}] for l, k in self.tracks if k != "asr"}
+                info["automatic_captions"] = {l: [{"ext": "vtt"}] for l, k in self.tracks if k == "asr"}
+            if self.availability:
+                info["availability"] = self.availability
+            return subprocess.CompletedProcess(args, 0, json.dumps(info), "")
+        lang = args[args.index("--sub-langs") + 1]
+        Path(args[args.index("-o") + 1].replace("%(ext)s", f"{lang}.vtt")).write_text(self.vtt)
+        return subprocess.CompletedProcess(args, 0, "", "")
 
     def fetch(self, vid):
-        return youtube.fetch(vid, transport=self.transport())
+        return youtube.fetch(vid, run=self.run)
 
 
 PLAN = {"name": "Five move AMRAP", "format": "amrap", "cap_min": 20, "emom_min": None, "rounds": None,
@@ -134,16 +122,27 @@ def test_rejected_links(url):
 
 
 # --- fetcher ----------------------------------------------------------------------------------------------------
+def opt(args, flag):
+    return args[args.index(flag) + 1]
+
+
 def test_manual_english_track_beats_auto():
     site = Site([track(kind="asr"), track(lang="de"), track()])
     v = site.fetch(VID)
-    assert "k=manual" in str(site.requests[1].url) and "fmt=vtt" in str(site.requests[1].url)
+    dl = site.requests[1]
+    assert "--write-subs" in dl and opt(dl, "--sub-langs") == "en" and opt(dl, "--sub-format") == "vtt"
     assert v.title == "Five move AMRAP" and v.description == "25 lb bell"
 
 
 def test_auto_track_used_when_no_manual():
     site = Site([track(kind="asr")])
-    assert site.fetch(VID) is not None and "k=asr" in str(site.requests[1].url)
+    assert site.fetch(VID) is not None and "--write-auto-subs" in site.requests[1]
+
+
+def test_original_english_auto_track_beats_the_translation():
+    site = Site([track(kind="asr"), track(lang="en-orig", kind="asr")])
+    site.fetch(VID)
+    assert opt(site.requests[1], "--sub-langs") == "en-orig"
 
 
 def test_vtt_is_cleaned_and_deduped():
@@ -151,31 +150,24 @@ def test_vtt_is_cleaned_and_deduped():
     assert t == "Do five moves for twenty minutes with a 25 lb bell & rest"
 
 
-@pytest.mark.parametrize("tracks", [None, [], [track(lang="de")]])
+@pytest.mark.parametrize("tracks", [None, [], [track(lang="de")], [track(lang="de", kind="asr")]])
 def test_no_captions_is_none(tracks):
-    assert Site(tracks).fetch(VID) is None
+    site = Site(tracks)
+    assert site.fetch(VID) is None and len(site.requests) == 1
 
 
-def test_requests_carry_no_cookies_or_identity():
+def test_empty_caption_file_is_none():
+    assert Site([track()], vtt="WEBVTT\n\n").fetch(VID) is None
+
+
+def test_runs_carry_only_the_video_url_and_no_identity():
     site = Site([track()])
     site.fetch(VID)
     assert len(site.requests) == 2
-    for r in site.requests:
-        assert r.url.host == "www.youtube.com" and not {"cookie", "authorization"} & set(r.headers)
-    assert dict(site.requests[0].url.params) == {"v": VID}
-
-
-def test_consent_page_retries_with_a_fixed_cookie():
-    site = Site([track()], consent=True)
-    assert site.fetch(VID) is not None
-    assert site.requests[1].headers["cookie"] == youtube.CONSENT_COOKIE
-
-
-def test_caption_host_must_be_on_youtube():
-    with pytest.raises(EgressError):
-        Site([track(host="evil.example")]).fetch(VID)
-    with pytest.raises(EgressError):
-        Site([track(host="notyoutube.com")]).fetch(VID)
+    for args in site.requests:
+        assert {"--ignore-config", "--no-cookies", "--no-cookies-from-browser", "--no-cache-dir", "--skip-download"} <= set(args)
+        assert args[-2:] == ["--", f"{youtube.WATCH_URL}?v={VID}"]
+    assert "-J" in site.requests[0] and "--load-info-json" in site.requests[1]
 
 
 def test_long_transcript_is_capped():
@@ -183,9 +175,26 @@ def test_long_transcript_is_capped():
     assert len(Site([track()], vtt=big).fetch(VID).transcript) <= 12000
 
 
-def test_transport_failure_is_an_egress_error():
+def test_timeout_is_an_egress_error():
     with pytest.raises(EgressError):
         Site(fail=True).fetch(VID)
+
+
+def test_a_failed_run_is_an_egress_error():
+    with pytest.raises(EgressError):
+        Site([track()], stderr="ERROR: unable to download video subtitles for 'en': HTTP Error 429: Too Many Requests").fetch(VID)
+
+
+def test_missing_yt_dlp_is_an_egress_error(monkeypatch):
+    monkeypatch.delenv("STRYDR_YTDLP", raising=False)
+    monkeypatch.setattr(youtube.shutil, "which", lambda name: None)
+    with pytest.raises(EgressError):
+        youtube.fetch(VID)
+
+
+def test_only_a_video_id_is_accepted():
+    with pytest.raises(TypeError):
+        youtube.fetch("https://evil.example/x", run=Site([track()]).run)
 
 
 # --- the AI payload and provider --------------------------------------------------------------------------------
@@ -230,7 +239,7 @@ def test_short_with_captions_builds_a_draft_and_saves_nothing(engine, make):
 def test_youtu_be_is_the_same_as_watch(make):
     c, site, _ = make()
     assert imp(c, f"https://youtu.be/{VID}").status_code == 200
-    assert dict(site.requests[0].url.params) == {"v": VID} and site.requests[0].url.path == "/watch"
+    assert site.requests[0][-1] == f"{youtube.WATCH_URL}?v={VID}"
 
 
 def test_no_captions_is_422_without_an_ai_call(make):
@@ -311,7 +320,7 @@ def test_bad_ports_and_hosts_are_not_links(url):
     assert youtube.video_id(url) is None
 
 
-@pytest.mark.parametrize("exc", [httpx.InvalidURL("bad"), RecursionError()])
+@pytest.mark.parametrize("exc", [OSError("exec format"), RecursionError()])
 def test_odd_failures_are_egress_errors(exc):
     with pytest.raises(EgressError):
         Site(fail=exc).fetch(VID)
@@ -319,37 +328,13 @@ def test_odd_failures_are_egress_errors(exc):
 
 def test_unavailable_video_is_not_reported_as_no_transcript(make):
     with pytest.raises(youtube.Unavailable):
-        Site([track()], status="LOGIN_REQUIRED").fetch(VID)
-    c, _, prov = make(Site([track()], status="UNPLAYABLE"))
+        Site([track()], stderr="ERROR: [youtube] abcdEFGhi_0: Private video. Sign in if you've been granted access").fetch(VID)
+    with pytest.raises(youtube.Unavailable):
+        Site([track()], availability="needs_auth").fetch(VID)
+    c, _, prov = make(Site([track()], stderr="ERROR: [youtube] abcdEFGhi_0: Sign in to confirm your age."))
     r = imp(c)
     assert r.status_code == 422 and r.json()["detail"] == "This video isn't available to Strydr (private, removed or age-restricted)."
     assert prov.payloads == []
-
-
-def test_set_cookie_is_not_replayed():
-    site = Site([track()], set_cookie=True)
-    assert site.fetch(VID) is not None
-    assert len(site.requests) == 2 and "cookie" not in site.requests[1].headers
-
-
-def test_caption_redirect_off_youtube_is_not_followed():
-    site = Site([track()], caption_redirect="https://evil.example/steal")
-    with pytest.raises(EgressError):
-        site.fetch(VID)
-    assert all(r.url.host == "www.youtube.com" for r in site.requests)
-
-
-def test_inline_consent_page_is_retried_with_the_cookie():
-    site = Site([track()], inline_consent=True)
-    assert site.fetch(VID) is not None
-    assert site.requests[1].headers["cookie"] == youtube.CONSENT_COOKIE
-
-
-def test_persistent_consent_is_an_egress_error():
-    site = Site([track()], always_consent=True)
-    with pytest.raises(EgressError):
-        site.fetch(VID)
-    assert len(site.requests) == 2
 
 
 def test_reply_wrapped_in_prose_and_think_text_is_read(make):
