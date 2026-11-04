@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { replay, roundsText, stepBell, nextMoveIndex, type InputEvent, type PlanShape } from '../workoutEngine'
+import { replay, roundsText, stepBell, nextMoveIndex, undoable, withoutInput, type InputEvent, type PlanShape } from '../workoutEngine'
 
 const mv = (name: string, o: { reps?: number; seconds?: number } = { reps: 10 }) => ({ name, reps: o.reps ?? null, seconds: o.seconds ?? null, weight_kg: 11.3398 })
 const five = ['A', 'B', 'C', 'D', 'E'].map((n) => mv(n))
@@ -181,5 +181,73 @@ describe('helpers', () => {
     const p = amrap()
     expect(nextMoveIndex(p, replay(p, [], 1 * S).state)).toBe(1)
     expect(nextMoveIndex(p, replay(p, taps(1 * S, 2 * S, 3 * S, 4 * S), 5 * S).state)).toBe(0)
+  })
+})
+
+describe('undoable (Back)', () => {
+  const back = (p: PlanShape, inputs: InputEvent[], now: number) => {
+    const i = undoable(p, inputs, now)
+    return i == null ? null : replay(p, withoutInput(inputs, i), now)
+  }
+  it('undoes an accidental next and keeps the clock', () => {
+    const p = amrap()
+    const base = replay(p, taps(1 * S, 2 * S), 5 * S).state
+    const r = back(p, taps(1 * S, 2 * S, 4 * S), 5 * S)!
+    expect(r.state).toMatchObject({ move: base.move, round: 0, clockMs: base.clockMs })
+  })
+  it('two backs return to the original move', () => {
+    const p = amrap()
+    const inputs = taps(1 * S, 2 * S)
+    const i1 = undoable(p, inputs, 3 * S)!
+    const once = withoutInput(inputs, i1)
+    const i2 = undoable(p, once, 3 * S)!
+    expect(replay(p, withoutInput(once, i2), 3 * S).state.move).toBe(0)
+    expect(undoable(p, withoutInput(once, i2), 3 * S)).toBeNull()
+  })
+  it('crosses a round boundary back to the last move', () => {
+    const p = amrap()
+    const t = [1, 2, 3, 4, 5, 6].map((n) => n * S)
+    expect(replay(p, taps(...t), 7 * S).state).toMatchObject({ round: 1, move: 0 })
+    expect(back(p, taps(...t), 7 * S)!.state).toMatchObject({ phase: 'rest', roundsDone: 1 })
+    expect(back(p, taps(...t.slice(0, 5)), 7 * S)!.state).toMatchObject({ round: 0, move: 4 })
+  })
+  it('removes the latest EMOM flag', () => {
+    const p = emom()
+    const inputs: InputEvent[] = [{ t_ms: 4 * 60 * S + 5 * S, kind: 'flag' }]
+    expect(replay(p, inputs, 4 * 60 * S + 10 * S).state.fellShort).toEqual([5])
+    expect(back(p, inputs, 4 * 60 * S + 10 * S)!.state.fellShort).toEqual([])
+  })
+  it('is null once an auto advance came after the tap', () => {
+    const p = amrap(20, [mv('A'), mv('Plank', { seconds: 30 }), mv('C')])
+    expect(undoable(p, taps(1 * S), 10 * S)).toBe(0)
+    expect(undoable(p, taps(1 * S), 40 * S)).toBeNull()
+    const e = emom()
+    expect(undoable(e, [{ t_ms: 5 * S, kind: 'flag' }], 61 * S)).toBeNull()
+  })
+  it('while paused removes the tap before the pause and stays paused', () => {
+    const p = amrap()
+    const inputs: InputEvent[] = [{ t_ms: 1 * S, kind: 'next' }, { t_ms: 2 * S, kind: 'pause' }]
+    const i = undoable(p, inputs, 3 * S)
+    expect(i).toBe(0)
+    const r = replay(p, withoutInput(inputs, i!), 3 * S)
+    expect(r.state).toMatchObject({ phase: 'paused', move: 0 })
+    expect(r.log.some((e) => e.kind === 'pause')).toBe(true)
+    expect(r.log.some((e) => e.kind === 'next')).toBe(false)
+  })
+  it('is null with nothing to undo, in Get ready, and after the end', () => {
+    const p = amrap()
+    expect(undoable(p, [], 3 * S)).toBeNull()
+    expect(undoable(p, [{ t_ms: 1 * S, kind: 'pause' }], 3 * S)).toBeNull()
+    expect(undoable(p, taps(1 * S), -2 * S)).toBeNull()
+    expect(undoable(p, [...taps(1 * S), { t_ms: 2 * S, kind: 'end' }], 3 * S)).toBeNull()
+  })
+  it('the saved log loses the removed tap', () => {
+    const p = amrap()
+    const inputs = [...taps(1 * S, 2 * S), { t_ms: 3 * S, kind: 'end' as const }]
+    const noEnd = taps(1 * S, 2 * S)
+    const i = undoable(p, noEnd, 2.5 * S)!
+    const r = replay(p, [...withoutInput(noEnd, i), { t_ms: 3 * S, kind: 'end' }], 4 * S)
+    expect(r.log.filter((e) => e.kind === 'next')).toHaveLength(1)
+    expect(inputs).toHaveLength(3)
   })
 })

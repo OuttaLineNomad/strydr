@@ -54,5 +54,9 @@ export function useTone() {
     beep(520, 0, 0.16, 0.4)
     beep(390, 0.18, 0.22, 0.4)
   }
-  return { unlock, tap, chime, get ready() { return ctx != null } }
+  /** Back: one short note lower than the tap. */
+  function low() {
+    beep(440, 0, 0.07, 0.35)
+  }
+  return { unlock, tap, low, chime, get ready() { return ctx != null } }
 }

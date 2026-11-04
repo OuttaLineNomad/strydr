@@ -702,4 +702,51 @@ describe('End by keyboard and sound unlock', () => {
     await advance(61_000)
     expect(oscillators.length).toBeGreaterThan(0) // the minute chime, with no tap on the field
   })
+
+  describe('Back', () => {
+    const back = (w: W) => w.get('[data-testid="live-back"]')
+    const remount = async () => {
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      useSettingsStore().profile = profile({}, { units: 'imperial' }) as never
+      const w = mount(LiveWorkoutView, { props: { id: '1' }, attachTo: document.body, global: { plugins: [pinia] } })
+      open.push(w)
+      await flushPromises()
+      return w
+    }
+    it('is disabled with nothing to undo and does not move the field', async () => {
+      const w = await mountIt()
+      await start(w)
+      expect(back(w).attributes('aria-disabled')).toBe('true')
+      expect(back(w).attributes('aria-label')).toBe('Back: undo the last tap')
+      await back(w).trigger('click')
+      expect(t(w, 'live-move')).toBe('Swing')
+    })
+    it('has no Back on Get ready', async () => {
+      const w = await mountIt()
+      expect(w.find('[data-testid="live-back"]').exists()).toBe(false)
+    })
+    it('undoes the last next without tapping the field, plays a lower tone and saves the draft', async () => {
+      const w = await mountIt()
+      await start(w)
+      await tapN(w, 2)
+      expect(t(w, 'live-move')).toBe('Press')
+      expect(back(w).attributes('aria-disabled')).toBe('false')
+      oscillators.length = 0
+      await back(w).trigger('click')
+      expect(t(w, 'live-move')).toBe('Squat')
+      expect(oscillators).toEqual([440])
+      w.unmount()
+      const w2 = await remount()
+      expect(t(w2, 'live-move')).toBe('Squat')
+    })
+    it('does not reach the field', async () => {
+      const w = await mountIt()
+      await start(w)
+      await tapN(w, 1)
+      await back(w).trigger('pointerdown')
+      await back(w).trigger('click')
+      expect(t(w, 'live-move')).toBe('Swing')
+    })
+  })
 })

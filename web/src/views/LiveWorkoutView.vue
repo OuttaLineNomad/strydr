@@ -6,7 +6,7 @@ import { useSessionsStore } from '@/stores/sessions'
 import { useSettingsStore } from '@/stores/settings'
 import { planWeight } from '@/lib/plans'
 import { weightUnit, formatClock } from '@/lib/units'
-import { nextMoveIndex, READY_MS, replay, roundsText, stepBell, type InputEvent, type PlanShape } from '@/lib/workoutEngine'
+import { nextMoveIndex, READY_MS, replay, roundsText, stepBell, undoable, withoutInput, type InputEvent, type PlanShape } from '@/lib/workoutEngine'
 import { useWakeLock } from '@/lib/useWakeLock'
 import { useTone } from '@/lib/useTone'
 import { useLongPress } from '@/lib/useLongPress'
@@ -86,6 +86,19 @@ function push(kind: InputEvent['kind']) {
   // Never later than the server's 4 h cap, even if a throttled timer woke up late.
   inputs.value = [...inputs.value, { t_ms: Math.min(Math.max(0, clock()), MAX_RUN_MS - 1000), kind }]
   persist()
+}
+const undoAt = computed(() => (plan.value && running.value ? undoable(plan.value as PlanShape, inputs.value, now.value - startAt.value) : null))
+const canBack = computed(() => undoAt.value != null)
+function back(e?: Event) {
+  e?.stopPropagation()
+  tone.unlock()
+  const i = undoAt.value
+  if (i == null) return
+  now.value = Date.now()
+  inputs.value = withoutInput(inputs.value, i)
+  persist()
+  tone.low()
+  flash()
 }
 function flash() {
   flashOn.value = true
@@ -457,6 +470,19 @@ function done() {
         <i class="flash" :class="{ on: flashOn }" aria-hidden="true" data-testid="live-flash" />
       </div>
 
+      <button
+        type="button"
+        class="back"
+        :class="{ off: !canBack }"
+        :aria-disabled="!canBack"
+        aria-label="Back: undo the last tap"
+        data-testid="live-back"
+        @pointerdown.stop
+        @click.stop="back"
+      >
+        Back
+      </button>
+
       <p v-if="wakeNote" class="notice" role="status" data-testid="wake-notice">Screen may sleep — keep it on in Settings</p>
 
       <button
@@ -529,6 +555,13 @@ function done() {
   background: transparent; color: inherit; font: inherit; font-weight: 700; font-size: 18px; cursor: pointer; overflow: hidden;
   touch-action: manipulation; -webkit-touch-callout: none;
 }
+.back {
+  position: absolute; top: calc(env(safe-area-inset-top, 0px) + var(--space-3)); left: var(--space-3); z-index: 2;
+  min-width: 88px; min-height: 52px; padding: 0 var(--space-5); border: 0; background: transparent; color: inherit;
+  font: inherit; font-weight: 700; font-size: 18px; cursor: pointer; touch-action: manipulation;
+}
+.back.off { opacity: .4; cursor: default; }
+.back:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 .end:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 .end-fill { position: absolute; inset: 0; background: currentColor; opacity: .25; transform: scaleX(0); transform-origin: left; }
 .end.holding .end-fill { animation: endfill 1000ms linear forwards; }
@@ -541,7 +574,7 @@ function done() {
 }
 .cancel:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 
-.notice { position: absolute; top: calc(env(safe-area-inset-top, 0px) + var(--space-3)); left: var(--space-4); right: 120px; margin: 0; z-index: 2; font-size: 15px; line-height: 20px; font-weight: 600; pointer-events: none; }
+.notice { position: absolute; top: calc(env(safe-area-inset-top, 0px) + var(--space-3) + 56px); left: var(--space-4); right: var(--space-4); margin: 0; z-index: 2; font-size: 15px; line-height: 20px; font-weight: 600; pointer-events: none; }
 
 .center { flex: 1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: var(--space-4); padding: var(--space-6) var(--space-5); padding-top: calc(env(safe-area-inset-top, 0px) + var(--space-6)); }
 .plain { margin: 0; font-family: var(--font-display); font-size: clamp(32px, 9vw, 64px); line-height: 1.05; font-weight: 700; overflow-wrap: anywhere; }

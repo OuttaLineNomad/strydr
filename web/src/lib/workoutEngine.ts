@@ -270,3 +270,30 @@ export function stepBell(kg: number, dir: 1 | -1, system: 'imperial' | 'metric')
   if (dir < 0 && k < 1) return kg // already at the lightest step: never go heavier on Lighter
   return (Math.max(1, k) * step) / unit
 }
+
+/**
+ * The index in `inputs` of the tap that Back would remove, or null. Only a `next` or `flag` tap is removable (pause and
+ * resume never are), and only while the workout is running or paused, and only when nothing automatic (a timed move
+ * ending, an EMOM minute turning, the AMRAP cap) happened after that tap: undoing past it would rewrite played time.
+ */
+export function undoable(plan: PlanShape, inputs: InputEvent[], nowMs: number): number | null {
+  if (nowMs < 0) return null
+  const { state, log } = replay(plan, inputs, nowMs)
+  if (state.phase === 'done' || state.phase === 'ready') return null
+  let idx = -1
+  for (let i = 0; i < inputs.length; i++) {
+    const e = inputs[i]!
+    if ((e.kind === 'next' || e.kind === 'flag') && e.t_ms <= nowMs && (idx < 0 || e.t_ms >= inputs[idx]!.t_ms)) idx = i
+  }
+  if (idx < 0) return null
+  let lastTap = -1
+  for (let i = 0; i < log.length; i++) if (log[i]!.kind === 'next' || log[i]!.kind === 'flag') lastTap = i
+  if (lastTap < 0) return null // the tap was ignored (for example while paused), so there is nothing to undo
+  for (let i = lastTap + 1; i < log.length; i++) if (log[i]!.kind === 'auto') return null
+  return idx
+}
+
+/** The inputs without the one at `i`. */
+export function withoutInput(inputs: InputEvent[], i: number): InputEvent[] {
+  return inputs.filter((_, j) => j !== i)
+}
