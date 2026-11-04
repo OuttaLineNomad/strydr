@@ -399,6 +399,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sessions */
+        get: operations["list_sessions"];
+        put?: never;
+        /** Add Session */
+        post: operations["add_session"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Session */
+        get: operations["get_session"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings/ai": {
         parameters: {
             query?: never;
@@ -1132,6 +1167,15 @@ export interface components {
             zone_seconds: number[] | null;
         };
         JsonValue: unknown;
+        /** LastSessionOut */
+        LastSessionOut: {
+            /** Date */
+            date: string;
+            /** Partial Moves */
+            partial_moves: number;
+            /** Rounds */
+            rounds: number;
+        };
         /** LoadDayOut */
         LoadDayOut: {
             /** By Type */
@@ -1265,6 +1309,7 @@ export interface components {
             format: "amrap" | "emom" | "complex";
             /** Id */
             id: number;
+            last_session?: components["schemas"]["LastSessionOut"] | null;
             /** Moves */
             moves: components["schemas"]["MoveIn"][];
             /** Name */
@@ -1628,6 +1673,74 @@ export interface components {
             workout_id: string;
             /** Z */
             z: number | null;
+        };
+        /** SessionEvent */
+        SessionEvent: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "next" | "auto" | "flag" | "pause" | "resume" | "end";
+            /** Move */
+            move: number;
+            /** Round */
+            round: number;
+            /** T Ms */
+            t_ms: number;
+        };
+        /** SessionIn */
+        SessionIn: {
+            /**
+             * End Utc
+             * Format: date-time
+             */
+            end_utc: string;
+            /** Events */
+            events: components["schemas"]["SessionEvent"][];
+            /** Fell Short */
+            fell_short?: number[];
+            /** Partial Moves */
+            partial_moves: number;
+            plan: components["schemas"]["PlanIn"];
+            /** Plan Id */
+            plan_id?: number | null;
+            /** Rounds Done */
+            rounds_done: number;
+            /**
+             * Start Utc
+             * Format: date-time
+             */
+            start_utc: string;
+            /** Weight Kg */
+            weight_kg?: number | null;
+        };
+        /** SessionOut */
+        SessionOut: {
+            /** Active S */
+            active_s: number;
+            /** Created At */
+            created_at: string;
+            /** End Utc */
+            end_utc: string;
+            /** Events */
+            events: components["schemas"]["SessionEvent"][];
+            /** Fell Short */
+            fell_short: number[];
+            /** Id */
+            id: number;
+            /** Overtime S */
+            overtime_s: number;
+            /** Partial Moves */
+            partial_moves: number;
+            plan: components["schemas"]["PlanIn"];
+            /** Plan Id */
+            plan_id: number | null;
+            /** Rounds Done */
+            rounds_done: number;
+            /** Start Utc */
+            start_utc: string;
+            /** Weight Kg */
+            weight_kg: number | null;
         };
         /** ShoeDefaultIn */
         ShoeDefaultIn: {
@@ -2993,6 +3106,102 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RouteDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sessions: {
+        parameters: {
+            query?: {
+                plan_id?: number | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"];
                 };
             };
             /** @description Validation Error */

@@ -3,7 +3,8 @@
 SI units throughout; missing data is None (never zero). The only coordinates any model may carry are in
 DisplayGeometry, the output of derive/routes/display.for_display (AD-10).
 """
-from typing import Any, Literal
+from datetime import datetime
+from typing import Annotated, Any, Literal
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field, JsonValue, field_validator, model_validator
@@ -820,6 +821,12 @@ class PlanIn(BaseModel):
         return self
 
 
+class LastSessionOut(BaseModel):
+    rounds: int
+    partial_moves: int
+    date: str  # RFC 3339 UTC start of the latest session
+
+
 class PlanOut(BaseModel):
     id: int
     name: str
@@ -831,3 +838,55 @@ class PlanOut(BaseModel):
     video_url: str | None
     created_at: str
     updated_at: str
+    last_session: LastSessionOut | None = None
+
+
+# --- Home-workout sessions (persistent tier) ---------------------------------------------------------------------
+MAX_SESSION_MS = 4 * 3600 * 1000  # a session is at most 4 h
+MAX_SESSION_EVENTS = 5000
+
+
+class SessionEvent(BaseModel):
+    t_ms: int = Field(ge=0, le=MAX_SESSION_MS)  # wall milliseconds since the start
+    kind: Literal["next", "auto", "flag", "pause", "resume", "end"]
+    move: int = Field(ge=0, le=100)  # 0-based position when it happened
+    round: int = Field(ge=0, le=1000)
+
+
+class SessionIn(BaseModel):
+    plan_id: int | None = None
+    plan: PlanIn
+    weight_kg: float | None = Field(None, ge=0.5, le=300)
+    start_utc: datetime
+    end_utc: datetime
+    events: list[SessionEvent] = Field(max_length=MAX_SESSION_EVENTS)
+    rounds_done: int = Field(ge=0, le=1000)
+    partial_moves: int = Field(ge=0, le=100)
+    fell_short: list[Annotated[int, Field(ge=1, le=90)]] = Field(default_factory=list, max_length=100)  # 1-based EMOM minutes
+
+    @model_validator(mode="after")
+    def _duration(self):
+        if (self.start_utc.tzinfo is None) != (self.end_utc.tzinfo is None):
+            raise ValueError("start_utc and end_utc must both carry a timezone, or both not")
+        if self.plan.format == "emom" and self.plan.emom_min and any(m > self.plan.emom_min for m in self.fell_short):
+            raise ValueError("a fell-short minute is beyond the workout's last minute")
+        span = (self.end_utc - self.start_utc).total_seconds() * 1000
+        if span < 0 or span > MAX_SESSION_MS:
+            raise ValueError("a session lasts between 0 and 4 hours")
+        return self
+
+
+class SessionOut(BaseModel):
+    id: int
+    plan_id: int | None
+    plan: PlanIn
+    weight_kg: float | None
+    start_utc: str
+    end_utc: str
+    events: list[SessionEvent]
+    rounds_done: int
+    partial_moves: int
+    fell_short: list[int]
+    active_s: int
+    overtime_s: int
+    created_at: str

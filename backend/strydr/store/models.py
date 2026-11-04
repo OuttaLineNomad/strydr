@@ -487,6 +487,28 @@ class WorkoutPlan(Base):
     __table_args__ = (Index("uq_workout_plan_name_lower", func.lower(name), unique=True),)
 
 
+class WorkoutSession(Base):
+    """One run of a home-workout plan: the taps are the log. `plan` is a snapshot of the plan as it ran, `events` the
+    timed taps, auto advances, pauses and resumes. User content, not a pipeline input (never recomputed). No FKs:
+    `plan_id` may outlive its plan. `matched_workout_id` and `effort` are filled by the summary story."""
+    __tablename__ = "workout_session"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    plan_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    plan: Mapped[dict] = mapped_column(JSON)
+    weight_kg: Mapped[float | None] = mapped_column(Float)
+    start_utc: Mapped[datetime] = mapped_column(DateTime)
+    end_utc: Mapped[datetime] = mapped_column(DateTime)
+    events: Mapped[list] = mapped_column(JSON)
+    rounds_done: Mapped[int] = mapped_column(Integer)
+    partial_moves: Mapped[int] = mapped_column(Integer)
+    fell_short: Mapped[list] = mapped_column(JSON)
+    active_s: Mapped[int] = mapped_column(Integer)
+    overtime_s: Mapped[int] = mapped_column(Integer)
+    matched_workout_id: Mapped[str | None] = mapped_column(String(64))
+    effort: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+
+
 class ShoeDefault(Base):
     """Default-shoe history: the row with the latest from_date on or before a run's date applies. NULL shoe_id = none."""
     __tablename__ = "shoe_default"

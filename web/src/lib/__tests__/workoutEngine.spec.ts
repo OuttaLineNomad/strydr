@@ -1,0 +1,185 @@
+import { describe, expect, it } from 'vitest'
+import { replay, roundsText, stepBell, nextMoveIndex, type InputEvent, type PlanShape } from '../workoutEngine'
+
+const mv = (name: string, o: { reps?: number; seconds?: number } = { reps: 10 }) => ({ name, reps: o.reps ?? null, seconds: o.seconds ?? null, weight_kg: 11.3398 })
+const five = ['A', 'B', 'C', 'D', 'E'].map((n) => mv(n))
+const amrap = (cap = 20, moves = five): PlanShape => ({ format: 'amrap', cap_min: cap, emom_min: null, rounds: null, moves })
+const emom = (min = 12, n = 3): PlanShape => ({ format: 'emom', cap_min: null, emom_min: min, rounds: null, moves: five.slice(0, n) })
+const complex = (rounds = 4, moves = five): PlanShape => ({ format: 'complex', cap_min: null, emom_min: null, rounds, moves })
+const taps = (...ts: number[]): InputEvent[] => ts.map((t_ms) => ({ t_ms, kind: 'next' }))
+const S = 1000
+
+describe('ready', () => {
+  it('counts the get-ready time down before the start', () => {
+    const r = replay(amrap(), [], -3000)
+    expect(r.state.phase).toBe('ready')
+    expect(r.state.readyMs).toBe(3000)
+  })
+})
+
+describe('AMRAP', () => {
+  it('shows rest after the last move; the next tap starts round 2', () => {
+    const t = [1, 2, 3, 4, 5].map((n) => n * S)
+    let r = replay(amrap(), taps(...t.slice(0, 4)), 5 * S)
+    expect(r.state).toMatchObject({ phase: 'work', move: 4, round: 0, roundsDone: 0, partialMoves: 4 })
+    r = replay(amrap(), taps(...t), 6 * S)
+    expect(r.state).toMatchObject({ phase: 'rest', roundsDone: 1, tap: 'start-round', clockMs: 20 * 60 * S - 6 * S })
+    r = replay(amrap(), taps(...t, 7 * S), 8 * S)
+    expect(r.state).toMatchObject({ phase: 'work', move: 0, round: 1, roundsDone: 1 })
+  })
+
+  it('goes to overtime at the cap and the last tap of that round ends it', () => {
+    // 3 rounds of 5 taps quickly, then moves 1-3 of round 4 before the 2-minute cap
+    const cap = 2
+    const t = Array.from({ length: 21 }, (_, i) => (i + 1) * 5 * S) // 3 rounds (with rest taps) + 3 moves, to 105 s
+    let r = replay(amrap(cap), taps(...t), 106 * S)
+    expect(r.state).toMatchObject({ phase: 'work', move: 3, round: 3 })
+    r = replay(amrap(cap), taps(...t), 121 * S)
+    expect(r.state).toMatchObject({ phase: 'overtime', clockMs: 1 * S, move: 3 })
+    expect(replay(amrap(cap), taps(...t), 120 * S).state).toMatchObject({ phase: 'overtime', clockMs: 0 })
+    const fin = replay(amrap(cap), taps(...t, 130 * S, 140 * S), 150 * S)
+    expect(fin.state).toMatchObject({ phase: 'done', roundsDone: 4, partialMoves: 0, overtimeMs: 20 * S, endedMs: 140 * S })
+    // no tap after the end changes anything, and no new round starts
+    expect(replay(amrap(cap), taps(...t, 130 * S, 140 * S, 150 * S), 160 * S).state).toMatchObject({ phase: 'done', roundsDone: 4 })
+  })
+
+  it('ends at the cap when it hits during rest: no new round', () => {
+    const t = [1, 2, 3, 4, 5].map((n) => n * S)
+    const r = replay(amrap(1), taps(...t), 90 * S)
+    expect(r.state).toMatchObject({ phase: 'done', roundsDone: 1, partialMoves: 0, endedMs: 60 * S, overtimeMs: 0 })
+    expect(r.log[r.log.length - 1]).toMatchObject({ kind: 'auto', t_ms: 60 * S })
+    // a tap after the cap in rest does not start a round
+    expect(replay(amrap(1), taps(...t, 70 * S), 80 * S).state).toMatchObject({ phase: 'done', roundsDone: 1 })
+  })
+
+  it('a seconds move counts down and advances itself with an auto event; a tap skips it', () => {
+    const moves = [mv('Plank', { seconds: 30 }), mv('Swing')]
+    let r = replay(amrap(20, moves), [], 10 * S)
+    expect(r.state).toMatchObject({ move: 0, moveLeftMs: 20 * S })
+    r = replay(amrap(20, moves), [], 31 * S)
+    expect(r.state).toMatchObject({ move: 1, moveLeftMs: null })
+    expect(r.log).toEqual([{ t_ms: 30 * S, kind: 'auto', move: 0, round: 0 }])
+    r = replay(amrap(20, moves), taps(12 * S), 13 * S)
+    expect(r.state).toMatchObject({ move: 1 })
+    expect(r.log[0]).toMatchObject({ kind: 'next', t_ms: 12 * S })
+  })
+
+  it('a timed last move ends the round on its own and rests', () => {
+    const moves = [mv('Swing'), mv('Plank', { seconds: 10 })]
+    const r = replay(amrap(20, moves), taps(2 * S), 20 * S)
+    expect(r.state).toMatchObject({ phase: 'rest', roundsDone: 1 })
+  })
+})
+
+describe('EMOM', () => {
+  it('rotates moves by minute and advances on its own', () => {
+    expect(replay(emom(), [], 10 * S).state).toMatchObject({ move: 0, minute: 0, clockMs: 50 * S, phase: 'work' })
+    expect(replay(emom(), [], 61 * S).state).toMatchObject({ move: 1, minute: 1, round: 0, clockMs: 59 * S })
+    expect(replay(emom(), [], 4 * 60 * S + 5 * S).state).toMatchObject({ move: 1, minute: 4, round: 1 })
+    expect(replay(emom(), [], 61 * S).log).toEqual([{ t_ms: 60 * S, kind: 'auto', move: 0, round: 0 }])
+  })
+
+  it('flags a fell-short minute with a tap, and a second tap in the same minute unflags it', () => {
+    const at5 = 4 * 60 * S + 20 * S // minute 5 (1-based)
+    let r = replay(emom(), [{ t_ms: at5, kind: 'flag' }], at5 + S)
+    expect(r.state.fellShort).toEqual([5])
+    expect(r.log[r.log.length - 1]).toMatchObject({ kind: 'flag' })
+    r = replay(emom(), [{ t_ms: at5, kind: 'flag' }, { t_ms: at5 + 5 * S, kind: 'flag' }], at5 + 6 * S)
+    expect(r.state.fellShort).toEqual([])
+    // flagged minute stays flagged after the minute turns
+    r = replay(emom(), [{ t_ms: at5, kind: 'flag' }], 6 * 60 * S)
+    expect(r.state.fellShort).toEqual([5])
+  })
+
+  it('ends after the last minute', () => {
+    const r = replay(emom(12, 3), [], 13 * 60 * S)
+    expect(r.state).toMatchObject({ phase: 'done', roundsDone: 4, partialMoves: 0, endedMs: 12 * 60 * S })
+  })
+
+  it('ending mid-way records full rotations plus the partial', () => {
+    // 5 whole minutes done on a 3 move list
+    const r = replay(emom(12, 3), [{ t_ms: 5 * 60 * S + 10 * S, kind: 'end' }], 6 * 60 * S)
+    expect(r.state).toMatchObject({ phase: 'done', roundsDone: 1, partialMoves: 2 })
+  })
+})
+
+describe('complex', () => {
+  it('ends after round N last move; the clock counts up', () => {
+    const moves = five.slice(0, 2)
+    const t = Array.from({ length: 8 }, (_, i) => (i + 1) * 10 * S) // 4 rounds x 2 moves, but rest taps in between
+    // rounds: m1 m2 (rest tap) m1 m2 ...: 4 rounds need 8 move taps + 3 rest taps = 11
+    const all = Array.from({ length: 11 }, (_, i) => (i + 1) * 10 * S)
+    expect(t.length).toBe(8)
+    let r = replay(complex(4, moves), taps(...all.slice(0, 2)), 25 * S)
+    expect(r.state).toMatchObject({ phase: 'rest', clockMs: 25 * S, roundsDone: 1 })
+    r = replay(complex(4, moves), taps(...all.slice(0, 10)), 110 * S)
+    expect(r.state).toMatchObject({ phase: 'work', round: 3, move: 1 })
+    r = replay(complex(4, moves), taps(...all), 120 * S)
+    expect(r.state).toMatchObject({ phase: 'done', roundsDone: 4, partialMoves: 0, endedMs: 110 * S })
+  })
+})
+
+describe('pause', () => {
+  it('freezes the clocks, records the pause, and excludes it from active time', () => {
+    const ev: InputEvent[] = [{ t_ms: 10 * S, kind: 'pause' }, { t_ms: 130 * S, kind: 'resume' }]
+    let r = replay(amrap(), ev, 100 * S)
+    expect(r.state).toMatchObject({ phase: 'paused', base: 'work', activeMs: 10 * S, clockMs: 20 * 60 * S - 10 * S })
+    r = replay(amrap(), ev, 140 * S)
+    expect(r.state).toMatchObject({ phase: 'work', activeMs: 20 * S })
+    expect(r.log.map((e) => e.kind)).toEqual(['pause', 'resume'])
+  })
+
+  it('a timed move does not tick down while paused', () => {
+    const moves = [mv('Plank', { seconds: 30 })]
+    const ev: InputEvent[] = [{ t_ms: 10 * S, kind: 'pause' }, { t_ms: 70 * S, kind: 'resume' }]
+    expect(replay(amrap(20, moves), ev, 70 * S).state).toMatchObject({ move: 0, moveLeftMs: 20 * S })
+    expect(replay(amrap(20, moves), ev, 91 * S).state.phase).toBe('rest')
+  })
+
+  it('taps while paused are ignored', () => {
+    const ev: InputEvent[] = [{ t_ms: 10 * S, kind: 'pause' }, { t_ms: 20 * S, kind: 'next' }]
+    expect(replay(amrap(), ev, 30 * S).state).toMatchObject({ phase: 'paused', move: 0 })
+  })
+})
+
+describe('end early', () => {
+  it('keeps the partial round: round 2, move 3 saves 1 round + 2 moves', () => {
+    const t = [...[1, 2, 3, 4, 5].map((n) => n * S), 6 * S, 7 * S, 8 * S] // round 1, rest tap, round 2 moves 1-2 -> on move 3
+    const r = replay(amrap(), [...taps(...t), { t_ms: 9 * S, kind: 'end' }], 10 * S)
+    expect(r.state).toMatchObject({ phase: 'done', roundsDone: 1, partialMoves: 2, endedMs: 9 * S })
+    expect(roundsText(r.state.roundsDone, r.state.partialMoves)).toBe('1 round + 2 moves')
+  })
+
+  it('ending while paused freezes active time at the pause', () => {
+    const ev: InputEvent[] = [{ t_ms: 10 * S, kind: 'pause' }, { t_ms: 50 * S, kind: 'end' }]
+    expect(replay(amrap(), ev, 60 * S).state).toMatchObject({ phase: 'done', activeMs: 10 * S, endedMs: 50 * S })
+  })
+
+  it('ending in rest counts only the finished round', () => {
+    const r = replay(amrap(), [...taps(1 * S, 2 * S, 3 * S, 4 * S, 5 * S), { t_ms: 8 * S, kind: 'end' }], 9 * S)
+    expect(r.state).toMatchObject({ roundsDone: 1, partialMoves: 0 })
+  })
+})
+
+describe('helpers', () => {
+  it('steps the bell to the next common bell', () => {
+    expect(stepBell(11.3398, 1, 'imperial') * 2.2046226218).toBeCloseTo(30, 3)
+    expect(stepBell(11.3398, -1, 'imperial') * 2.2046226218).toBeCloseTo(20, 3)
+    expect(stepBell(16, 1, 'metric')).toBe(18)
+    expect(stepBell(16, -1, 'metric')).toBe(14)
+    expect(stepBell(16, 1, 'imperial') * 2.2046226218).toBeCloseTo(40, 3)
+    expect(stepBell(2, -1, 'metric')).toBe(2)
+    expect(stepBell(1, -1, 'metric')).toBe(1) // below one step, Lighter never goes heavier
+    expect(stepBell(1, -1, 'imperial')).toBe(1)
+  })
+  it('words rounds and partials', () => {
+    expect(roundsText(3, 2)).toBe('3 rounds + 2 moves')
+    expect(roundsText(4, 0)).toBe('4 rounds')
+    expect(roundsText(0, 1)).toBe('1 move')
+  })
+  it('names the move after this one', () => {
+    const p = amrap()
+    expect(nextMoveIndex(p, replay(p, [], 1 * S).state)).toBe(1)
+    expect(nextMoveIndex(p, replay(p, taps(1 * S, 2 * S, 3 * S, 4 * S), 5 * S).state)).toBe(0)
+  })
+})

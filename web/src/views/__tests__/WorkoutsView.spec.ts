@@ -6,9 +6,10 @@ vi.mock('@/api', () => ({ api: { GET: vi.fn(), POST: vi.fn(), PUT: vi.fn(), DELE
 import { api } from '@/api'
 import WorkoutsView from '../WorkoutsView.vue'
 import { useSettingsStore } from '@/stores/settings'
-import { planSummary, planWeight } from '@/lib/plans'
+import { lastLine, planSummary, planWeight } from '@/lib/plans'
 import { profile } from '@/mocks/fixtures'
 import type { PlanOut } from '@/api/types'
+import { memoryStorage } from '@/mocks/memoryStorage'
 
 const get = vi.mocked(api.GET) as unknown as ReturnType<typeof vi.fn>
 const post = vi.mocked(api.POST) as unknown as ReturnType<typeof vi.fn>
@@ -44,7 +45,10 @@ describe('plan summaries', () => {
 })
 
 describe('WorkoutsView', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.stubGlobal('localStorage', memoryStorage())
+  })
 
   it('shows a loading line before the first load finishes', async () => {
     const pinia = createPinia()
@@ -61,14 +65,32 @@ describe('WorkoutsView', () => {
     expect(w.find('[data-testid="new-workout-empty"]').exists()).toBe(true)
   })
 
-  it('lists plans with a summary, a disabled Start with its reason, and Watch how in a new tab', async () => {
+  it('lists plans with a summary, a Start that opens the live view, and Watch how in a new tab', async () => {
     const w = await mountIt([plan({ video_url: 'https://example.com/v' })])
     expect(w.get('[data-testid="plan-summary"]').text()).toBe('AMRAP · 20 min · 5 moves · 25 lb')
-    expect(w.get('[data-testid="plan-start"]').attributes('disabled')).toBeDefined()
-    expect(w.get('[data-testid="plan-start-reason"]').text()).toBe('Live workouts come next')
+    expect(w.get('[data-testid="plan-start"]').attributes('disabled')).toBeUndefined()
+    expect(w.findAllComponents(RouterLinkStub).some((c) => c.props('to') === '/workouts/1/run')).toBe(true)
     const a = w.get('[data-testid="plan-video"]')
     expect(a.text()).toBe('Watch how')
     expect(a.attributes('target')).toBe('_blank')
+  })
+
+  it('shows the Last line only for a plan with a session', async () => {
+    const date = new Date(Date.now() - 86_400_000).toISOString()
+    const w = await mountIt([plan({ last_session: { rounds: 4, partial_moves: 0, date } }), plan({ id: 2, name: 'Zed' })])
+    const rows = w.findAll('[data-testid="plan-row"]')
+    expect(rows[0]!.get('[data-testid="plan-last"]').text()).toMatch(/^Last: 4 rounds · \w+/)
+    expect(rows[1]!.find('[data-testid="plan-last"]').exists()).toBe(false)
+    expect(lastLine({ rounds: 3, partial_moves: 2, date }, new Date())).toContain('3 rounds + 2 moves')
+  })
+
+  it('retries a session kept on the phone before it loads the list', async () => {
+    const rec = { plan_id: 1, plan: plan(), weight_kg: null, start_utc: 'a', end_utc: 'b', events: [], rounds_done: 1, partial_moves: 0, fell_short: [] }
+    localStorage.setItem('strydr.sessionOutbox', JSON.stringify([rec]))
+    post.mockResolvedValue({ data: { id: 9 }, response: { status: 201 } })
+    await mountIt([plan()])
+    expect(post).toHaveBeenCalledWith('/api/v1/sessions', { body: rec })
+    expect(localStorage.getItem('strydr.sessionOutbox')).toBeNull()
   })
 
   it('duplicates a plan', async () => {

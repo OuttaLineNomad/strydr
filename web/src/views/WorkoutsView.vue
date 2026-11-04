@@ -4,11 +4,18 @@ import GlassPanel from '@/components/ui/GlassPanel.vue'
 import Button from '@/components/ui/Button.vue'
 import { usePlansStore } from '@/stores/plans'
 import { useSettingsStore } from '@/stores/settings'
-import { planSummary } from '@/lib/plans'
+import { planSummary, lastLine } from '@/lib/plans'
+import { useSessionsStore } from '@/stores/sessions'
+import { unlockAudio } from '@/lib/useTone'
 
 const store = usePlansStore()
 const s = useSettingsStore()
-onMounted(() => store.load())
+const sessions = useSessionsStore()
+onMounted(async () => {
+  // A session that could not be saved on the phone is retried here, then the list reloads with its Last: line.
+  await store.load()
+  if ((await sessions.flush()) > 0) await store.load() // reload only if a kept session just synced
+})
 
 const confirming = ref<number | null>(null)
 const plans = computed(() => [...store.plans].sort((a, b) => a.name.localeCompare(b.name)))
@@ -53,10 +60,10 @@ async function remove(id: number) {
             <a v-if="p.video_url" :href="p.video_url" target="_blank" rel="noopener noreferrer" class="watch" data-testid="plan-video">Watch how</a>
           </div>
           <div class="start">
-            <Button variant="primary" small disabled class="startbtn" :aria-label="`Start ${p.name}`" data-testid="plan-start">Start</Button>
+            <Button variant="primary" small class="startbtn" :to="`/workouts/${p.id}/run`" :aria-label="`Start ${p.name}`" data-testid="plan-start" @click="unlockAudio()">Start</Button>
           </div>
         </div>
-        <p class="row-meta reason" data-testid="plan-start-reason">Live workouts come next</p>
+        <p v-if="p.last_session" class="body last" data-testid="plan-last">{{ lastLine(p.last_session) }}</p>
 
         <div v-if="confirming === p.id" class="actions" data-testid="plan-confirm">
           <span class="body">Delete {{ p.name }}? This cannot be undone.</span>
@@ -87,7 +94,7 @@ async function remove(id: number) {
 .plan-name { font-family: var(--font-display); font-size: 20px; line-height: 26px; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
 .start { flex-shrink: 0; }
 .startbtn { height: 44px; min-width: 44px; font-size: 15px; }
-.reason { margin: 0; }
+.last { color: var(--ink); }
 .watch { color: var(--accent-text); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; width: fit-content; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; }
 .act { height: 44px; padding: 0 var(--space-4); font-size: 15px; }

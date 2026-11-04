@@ -1310,6 +1310,29 @@
         "type": "object"
       },
       "JsonValue": {},
+      "LastSessionOut": {
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "partial_moves": {
+            "title": "Partial Moves",
+            "type": "integer"
+          },
+          "rounds": {
+            "title": "Rounds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rounds",
+          "partial_moves",
+          "date"
+        ],
+        "title": "LastSessionOut",
+        "type": "object"
+      },
       "LoadDayOut": {
         "properties": {
           "by_type": {
@@ -1792,6 +1815,16 @@
           "id": {
             "title": "Id",
             "type": "integer"
+          },
+          "last_session": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LastSessionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "moves": {
             "items": {
@@ -2980,6 +3013,221 @@
           "reasons"
         ],
         "title": "SectionResultOut",
+        "type": "object"
+      },
+      "SessionEvent": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "next",
+              "auto",
+              "flag",
+              "pause",
+              "resume",
+              "end"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "move": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Move",
+            "type": "integer"
+          },
+          "round": {
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Round",
+            "type": "integer"
+          },
+          "t_ms": {
+            "maximum": 14400000.0,
+            "minimum": 0.0,
+            "title": "T Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "t_ms",
+          "kind",
+          "move",
+          "round"
+        ],
+        "title": "SessionEvent",
+        "type": "object"
+      },
+      "SessionIn": {
+        "properties": {
+          "end_utc": {
+            "format": "date-time",
+            "title": "End Utc",
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/SessionEvent"
+            },
+            "maxItems": 5000,
+            "title": "Events",
+            "type": "array"
+          },
+          "fell_short": {
+            "items": {
+              "maximum": 90.0,
+              "minimum": 1.0,
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "title": "Fell Short",
+            "type": "array"
+          },
+          "partial_moves": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Partial Moves",
+            "type": "integer"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/PlanIn"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          },
+          "rounds_done": {
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Rounds Done",
+            "type": "integer"
+          },
+          "start_utc": {
+            "format": "date-time",
+            "title": "Start Utc",
+            "type": "string"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "maximum": 300.0,
+                "minimum": 0.5,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          }
+        },
+        "required": [
+          "plan",
+          "start_utc",
+          "end_utc",
+          "events",
+          "rounds_done",
+          "partial_moves"
+        ],
+        "title": "SessionIn",
+        "type": "object"
+      },
+      "SessionOut": {
+        "properties": {
+          "active_s": {
+            "title": "Active S",
+            "type": "integer"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "end_utc": {
+            "title": "End Utc",
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/SessionEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "fell_short": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Fell Short",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "overtime_s": {
+            "title": "Overtime S",
+            "type": "integer"
+          },
+          "partial_moves": {
+            "title": "Partial Moves",
+            "type": "integer"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/PlanIn"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          },
+          "rounds_done": {
+            "title": "Rounds Done",
+            "type": "integer"
+          },
+          "start_utc": {
+            "title": "Start Utc",
+            "type": "string"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          }
+        },
+        "required": [
+          "id",
+          "plan_id",
+          "plan",
+          "weight_kg",
+          "start_utc",
+          "end_utc",
+          "events",
+          "rounds_done",
+          "partial_moves",
+          "fell_short",
+          "active_s",
+          "overtime_s",
+          "created_at"
+        ],
+        "title": "SessionOut",
         "type": "object"
       },
       "ShoeDefaultIn": {
@@ -5915,6 +6163,152 @@
         "summary": "Get Route",
         "tags": [
           "routes"
+        ]
+      }
+    },
+    "/api/v1/sessions": {
+      "get": {
+        "operationId": "list_sessions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "plan_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Plan Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SessionOut"
+                  },
+                  "title": "Response List Sessions",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Sessions",
+        "tags": [
+          "sessions"
+        ]
+      },
+      "post": {
+        "operationId": "add_session",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Session",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_id}": {
+      "get": {
+        "operationId": "get_session",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session",
+        "tags": [
+          "sessions"
         ]
       }
     },

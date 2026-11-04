@@ -24,7 +24,7 @@ onMounted(() => {
   </svg>
 
   <SideNav v-if="!route.meta.bare" />
-  <main class="page" :class="{ 'page--bare': route.meta.bare }">
+  <main class="page" :class="{ 'page--bare': route.meta.bare, 'page--full': route.meta.full }">
     <RouterView v-slot="{ Component, route: r }">
       <Transition name="page" mode="out-in">
         <div :key="r.path" class="view">
@@ -47,6 +47,8 @@ onMounted(() => {
 }
 .view { display: flex; flex-direction: column; gap: var(--space-5); }
 .page--bare { padding-bottom: var(--space-6); min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; max-width: 480px; }
+/* The live workout owns the whole window: no max width, no padding, no centring. */
+.page--full { max-width: none; margin: 0; padding: 0; min-height: 0; display: block; }
 @media (min-width: 1080px) {
   .page:not(.page--bare) {
     --page-left: calc(var(--sidebar-w) + var(--space-4));
