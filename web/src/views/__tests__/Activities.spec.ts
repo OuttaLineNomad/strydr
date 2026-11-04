@@ -58,6 +58,15 @@ describe('lists', () => {
     expect(w.text()).toContain('Strength')
   })
 
+  it('a workout with no distance leads with its time and heart rate, never "not available"', async () => {
+    get.mockResolvedValue({ data: [item({ type: 'strength', distance_m: null, avg_speed_mps: null, duration_s: 1320, avg_hr: 136.6 })], response: { ok: true } })
+    const w = mount(ActivitiesView, { global: { plugins: [setup()], stubs } })
+    await flushPromises()
+    expect(w.get('[data-testid="no-distance"]').text()).toBe('22:00')
+    expect(w.text()).toContain('137 bpm avg')
+    expect(w.text()).not.toContain('not available')
+  })
+
   it('shows the chip in kg for metric', async () => {
     get.mockResolvedValue({ data: [item({ type: 'walk', carry_kg: 11.3 })], response: { ok: true } })
     const w = mount(ActivitiesView, { global: { plugins: [setup('metric')], stubs } })

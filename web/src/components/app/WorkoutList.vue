@@ -34,10 +34,15 @@ const w = useWorkoutsStore()
         <span class="row-title">{{ typeLabel(r.type) }}{{ r.is_indoor ? ', indoor' : '' }}</span>
         <span class="row-meta">{{ formatLocalDate(r.local_date) }}</span>
       </span>
-      <span class="run-dist"><span class="big">{{ formatDistance(r.distance_m, s.units) }}</span> <span class="unit">{{ distanceUnit(s.units) }}</span></span>
+      <!-- A workout with no distance (watch strength) leads with its time and heart rate instead -->
+      <span v-if="r.distance_m == null" class="run-dist" data-testid="no-distance">
+        <span class="big">{{ formatDuration(r.duration_s) }}</span>
+      </span>
+      <span v-else class="run-dist"><span class="big">{{ formatDistance(r.distance_m, s.units) }}</span> <span class="unit">{{ distanceUnit(s.units) }}</span></span>
       <span class="run-meta row-meta">
-        <span>{{ formatDuration(r.duration_s) }}</span>
-        <span>{{ formatPace(r.avg_speed_mps, s.units) }}{{ r.avg_speed_mps ? paceUnit(s.units) : '' }}</span>
+        <span v-if="r.distance_m != null">{{ formatDuration(r.duration_s) }}</span>
+        <span v-if="r.avg_speed_mps">{{ formatPace(r.avg_speed_mps, s.units) }}{{ paceUnit(s.units) }}</span>
+        <span v-if="r.distance_m == null && r.avg_hr != null">{{ Math.round(r.avg_hr) }} bpm avg</span>
         <span v-if="r.carry_kg != null" class="chip" data-testid="carry-chip">{{ formatCarry(r.carry_kg, s.units) }}</span>
         <Icons name="chevron" :size="18" class="chev" />
       </span>
