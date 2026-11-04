@@ -490,7 +490,7 @@ class WorkoutPlan(Base):
 class WorkoutSession(Base):
     """One run of a home-workout plan: the taps are the log. `plan` is a snapshot of the plan as it ran, `events` the
     timed taps, auto advances, pauses and resumes. User content, not a pipeline input (never recomputed). No FKs:
-    `plan_id` may outlive its plan. `matched_workout_id` and `effort` are filled by the summary story."""
+    `plan_id` may outlive its plan. `effort` (manual 1-10) and `short_reps` are set from the summary; `matched_workout_id` stays unused (the match is computed on read)."""
     __tablename__ = "workout_session"
     id: Mapped[int] = mapped_column(primary_key=True)
     plan_id: Mapped[int | None] = mapped_column(Integer, index=True)
@@ -506,6 +506,7 @@ class WorkoutSession(Base):
     overtime_s: Mapped[int] = mapped_column(Integer)
     matched_workout_id: Mapped[str | None] = mapped_column(String(64))
     effort: Mapped[int | None] = mapped_column(Integer)
+    short_reps: Mapped[dict | None] = mapped_column(JSON)  # {"minute": reps|null} for flagged EMOM minutes
     created_at: Mapped[datetime] = mapped_column(DateTime)
 
 

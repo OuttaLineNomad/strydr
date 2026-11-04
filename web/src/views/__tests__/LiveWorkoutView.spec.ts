@@ -4,7 +4,10 @@ import { createPinia, setActivePinia } from 'pinia'
 
 vi.mock('@/api', () => ({ api: { GET: vi.fn(), POST: vi.fn() } }))
 const push = vi.fn()
-vi.mock('vue-router', () => ({ useRouter: () => ({ push }), RouterLink: { template: '<a><slot /></a>' } }))
+const replace = vi.fn()
+const routeQuery: Record<string, string> = {}
+const routeState = { name: 'workout-run' }
+vi.mock('vue-router', () => ({ useRouter: () => ({ push, replace }), useRoute: () => ({ get name() { return routeState.name }, query: routeQuery }), RouterLink: { template: '<a><slot /></a>' } }))
 import { api } from '@/api'
 import LiveWorkoutView from '../LiveWorkoutView.vue'
 import { usePlansStore } from '@/stores/plans'
@@ -419,12 +422,65 @@ describe('Saved', () => {
     expect(localStorage.getItem('strydr.sessionOutbox')).toBeNull()
   })
 
+  it('goes straight to the summary once the session is saved', async () => {
+    post.mockResolvedValue({ data: { id: 42 }, response: { status: 201 } })
+    const w = await mountIt(one())
+    await finish(w)
+    await flushPromises()
+    expect(replace).toHaveBeenCalledWith('/workouts/sessions/42')
+  })
+
+  it('does not pull the runner away if the reply lands after he left the screen', async () => {
+    let reply!: (v: unknown) => void
+    post.mockReturnValue(new Promise((r) => (reply = r)))
+    const w = await mountIt(one())
+    await finish(w)
+    routeState.name = 'workouts'
+    try {
+      reply({ data: { id: 42 }, response: { status: 201 } })
+      await flushPromises()
+      expect(replace).not.toHaveBeenCalled()
+    } finally {
+      routeState.name = 'workout-run'
+    }
+  })
+
+  it('stays on the saved screen when the record is only kept on the phone', async () => {
+    post.mockRejectedValue(new Error('offline'))
+    const w = await mountIt(one())
+    await finish(w)
+    expect(replace).not.toHaveBeenCalled()
+  })
+
   it('keeps the record on the phone when the POST fails', async () => {
     post.mockRejectedValue(new Error('offline'))
     const w = await mountIt(one())
     await finish(w)
     expect(t(w, 'saved-status')).toBe('Saved on this phone, will sync')
     expect(JSON.parse(localStorage.getItem('strydr.sessionOutbox')!)).toHaveLength(1)
+  })
+
+  it('seeds Get ready with the bell carried from a summary', async () => {
+    routeQuery.weight = '13.6078'
+    try {
+      const w = await mountIt(one())
+      await w.get('[data-testid="weight-up"]').trigger('click')
+      await finish(w)
+      expect(t(w, 'saved-bell')).toBe('35 lb') // 30 lb carried, stepped to the next bell
+    } finally {
+      delete routeQuery.weight
+    }
+  })
+
+  it('ignores a carried bell that is not a weight', async () => {
+    routeQuery.weight = 'heavy'
+    try {
+      const w = await mountIt(one())
+      await finish(w)
+      expect(t(w, 'saved-bell')).toBe('25 lb')
+    } finally {
+      delete routeQuery.weight
+    }
   })
 
   it('saves the stepped weight, not the plan weight', async () => {

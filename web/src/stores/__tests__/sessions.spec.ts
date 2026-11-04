@@ -24,7 +24,7 @@ describe('sessions store', () => {
 
   it('posts a record and keeps nothing when the server takes it', async () => {
     post.mockResolvedValue({ data: { id: 1 }, response: { status: 201 } })
-    expect(await useSessionsStore().save(rec())).toBe('saved')
+    expect((await useSessionsStore().save(rec())).result).toBe('saved')
     expect(post).toHaveBeenCalledWith('/api/v1/sessions', { body: rec() })
     expect(localStorage.getItem(KEY)).toBeNull()
   })
@@ -32,9 +32,9 @@ describe('sessions store', () => {
   it('keeps a failed record in localStorage, on a 500 and on a network error', async () => {
     const s = useSessionsStore()
     post.mockResolvedValueOnce({ data: undefined, response: { status: 500 } })
-    expect(await s.save(rec(1))).toBe('kept')
+    expect((await s.save(rec(1))).result).toBe('kept')
     post.mockRejectedValueOnce(new Error('offline'))
-    expect(await s.save(rec(2))).toBe('kept')
+    expect((await s.save(rec(2))).result).toBe('kept')
     expect(JSON.parse(localStorage.getItem(KEY)!)).toHaveLength(2)
     expect(s.pending).toBe(2)
   })
@@ -63,13 +63,13 @@ describe('sessions store', () => {
 
   it('a fresh save the server rejects goes to the dead letter too', async () => {
     post.mockResolvedValue({ data: undefined, response: { status: 422 } })
-    expect(await useSessionsStore().save(rec())).toBe('rejected')
+    expect((await useSessionsStore().save(rec())).result).toBe('rejected')
     expect(JSON.parse(localStorage.getItem('strydr.sessionDeadLetter')!)).toHaveLength(1)
   })
 
   it.each([400, 401, 404, 408, 413, 429, 503])('a %i is retried, not dropped', async (status) => {
     post.mockResolvedValue({ data: undefined, response: { status } })
-    expect(await useSessionsStore().save(rec())).toBe('kept')
+    expect((await useSessionsStore().save(rec())).result).toBe('kept')
     expect(JSON.parse(localStorage.getItem(KEY)!)).toHaveLength(1)
     expect(localStorage.getItem('strydr.sessionDeadLetter')).toBeNull()
   })
@@ -80,7 +80,7 @@ describe('sessions store', () => {
     }
     vi.stubGlobal('localStorage', { getItem: blocked, setItem: blocked, removeItem: blocked })
     post.mockRejectedValue(new Error('offline'))
-    expect(await useSessionsStore().save(rec())).toBe('unsaved') // nothing could be stored, and it says so
+    expect((await useSessionsStore().save(rec())).result).toBe('unsaved') // nothing could be stored, and it says so
   })
 
   it('lists sessions for a plan', async () => {

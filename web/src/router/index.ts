@@ -16,6 +16,7 @@ const router = createRouter({
     { path: '/recap', name: 'recap', component: () => import('@/views/RecapView.vue') },
     { path: '/weeks/:id', name: 'week-detail', component: () => import('@/views/WeekDetailView.vue'), props: true },
     { path: '/workouts', name: 'workouts', component: () => import('@/views/WorkoutsView.vue') },
+    { path: '/workouts/sessions/:id', name: 'workout-session', component: () => import('@/views/SessionSummaryView.vue'), props: true },
     { path: '/workouts/new', name: 'workout-new', component: () => import('@/views/PlanEditView.vue') },
     { path: '/workouts/:id/edit', name: 'workout-edit', component: () => import('@/views/PlanEditView.vue'), props: true },
     { path: '/workouts/:id/run', name: 'workout-run', component: () => import('@/views/LiveWorkoutView.vue'), props: true, meta: { bare: true, full: true } },

@@ -434,6 +434,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sessions/{session_id}/effort": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Effort */
+        put: operations["set_effort"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions/{session_id}/short": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Short */
+        put: operations["set_short"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions/{session_id}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Session Summary */
+        get: operations["session_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings/ai": {
         parameters: {
             query?: never;
@@ -943,6 +994,16 @@ export interface components {
                 number
             ][][];
         };
+        /** EffortIn */
+        EffortIn: {
+            /** Effort */
+            effort: number;
+        };
+        /** EffortOut */
+        EffortOut: {
+            /** Effort */
+            effort: number;
+        };
         /** ElevationPoint */
         ElevationPoint: {
             /** Altitude M */
@@ -1171,6 +1232,8 @@ export interface components {
         LastSessionOut: {
             /** Date */
             date: string;
+            /** Id */
+            id: number;
             /** Partial Moves */
             partial_moves: number;
             /** Rounds */
@@ -1714,6 +1777,15 @@ export interface components {
             /** Weight Kg */
             weight_kg?: number | null;
         };
+        /** SessionMoveHr */
+        SessionMoveHr: {
+            /** Avg Hr */
+            avg_hr: number;
+            /** Instances */
+            instances: number;
+            /** Name */
+            name: string;
+        };
         /** SessionOut */
         SessionOut: {
             /** Active S */
@@ -1741,6 +1813,52 @@ export interface components {
             start_utc: string;
             /** Weight Kg */
             weight_kg: number | null;
+        };
+        /** SessionRoundRow */
+        SessionRoundRow: {
+            /** Avg Hr */
+            avg_hr: number | null;
+            /** Moves */
+            moves: number;
+            /** Round */
+            round: number;
+            /** Time S */
+            time_s: number;
+        };
+        /** SessionShortRow */
+        SessionShortRow: {
+            /** Minute */
+            minute: number;
+            /** Move */
+            move: string;
+            /** Short Reps */
+            short_reps: number | null;
+            /** Target Reps */
+            target_reps: number | null;
+        };
+        /** SessionSummaryOut */
+        SessionSummaryOut: {
+            /** Avg Hr */
+            avg_hr: number | null;
+            /** Effort */
+            effort: number | null;
+            /** Effort Estimated */
+            effort_estimated: boolean;
+            /** Effort Source */
+            effort_source: ("watch" | "manual") | null;
+            /** Fell Short */
+            fell_short: components["schemas"]["SessionShortRow"][];
+            /** Matched Workout Id */
+            matched_workout_id: string | null;
+            /** Moves */
+            moves: components["schemas"]["SessionMoveHr"][];
+            /** Rounds */
+            rounds: components["schemas"]["SessionRoundRow"][];
+            session: components["schemas"]["SessionOut"];
+            /** Zone Bounds Bpm */
+            zone_bounds_bpm: number[] | null;
+            /** Zone Seconds */
+            zone_seconds: number[] | null;
         };
         /** ShoeDefaultIn */
         ShoeDefaultIn: {
@@ -3202,6 +3320,111 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_effort: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EffortIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EffortOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_short: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: number | null;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    session_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionSummaryOut"];
                 };
             };
             /** @description Validation Error */

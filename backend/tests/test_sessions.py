@@ -51,7 +51,7 @@ def test_plan_list_carries_the_last_session(c):
     c.post(f"{API}/sessions", json=session(p["id"]))
     c.post(f"{API}/sessions", json=session(p["id"], start_utc="2026-11-04T18:00:00Z", end_utc="2026-11-04T18:05:00Z", rounds_done=5, partial_moves=0))
     last = c.get(f"{API}/plans").json()[0]["last_session"]
-    assert last == {"rounds": 5, "partial_moves": 0, "date": "2026-11-04T18:00:00Z"}
+    assert last == {"id": 2, "rounds": 5, "partial_moves": 0, "date": "2026-11-04T18:00:00Z"}
     assert c.get(f"{API}/plans/{p['id']}").json()["last_session"] == last
 
 
@@ -148,7 +148,7 @@ def test_put_plan_keeps_last_session(c):
     p = c.post(f"{API}/plans", json=plan()).json()
     c.post(f"{API}/sessions", json=session(p["id"]))
     r = c.put(f"{API}/plans/{p['id']}", json=plan(cap_min=25))
-    assert r.json()["last_session"] == {"rounds": 4, "partial_moves": 2, "date": "2026-11-03T18:00:00Z"}
+    assert r.json()["last_session"] == {"id": 1, "rounds": 4, "partial_moves": 2, "date": "2026-11-03T18:00:00Z"}
 
 
 def test_deleting_a_plan_detaches_its_sessions_so_a_reused_id_has_no_last(c):

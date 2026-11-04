@@ -7,8 +7,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from strydr.api import schemas as sc
+from strydr import sessions_summary as ss
 from strydr.api.common import Api, rfc3339
 from strydr.store import models
+from strydr.store.generations import scoped
+from strydr.store.series import load_series
 from strydr.store.util import utcnow
 
 
@@ -43,7 +46,7 @@ def session_out(m: models.WorkoutSession) -> sc.SessionOut:
     return sc.SessionOut(id=m.id, plan_id=m.plan_id, plan=sc.PlanIn(**m.plan), weight_kg=m.weight_kg,
                          start_utc=rfc3339(m.start_utc), end_utc=rfc3339(m.end_utc),
                          events=[sc.SessionEvent(**e) for e in m.events], rounds_done=m.rounds_done,
-                         partial_moves=m.partial_moves, fell_short=m.fell_short, active_s=m.active_s,
+                         partial_moves=m.partial_moves, fell_short=m.fell_short or [], active_s=m.active_s,
                          overtime_s=m.overtime_s, created_at=rfc3339(m.created_at))
 
 
@@ -56,9 +59,52 @@ def last_sessions(s: Session, plan_ids: list[int]) -> dict[int, sc.LastSessionOu
                      .order_by(models.WorkoutSession.start_utc.desc(), models.WorkoutSession.id.desc())).scalars()
     for m in rows:
         if m.plan_id not in out:
-            out[m.plan_id] = sc.LastSessionOut(rounds=m.rounds_done, partial_moves=m.partial_moves,
+            out[m.plan_id] = sc.LastSessionOut(id=m.id, rounds=m.rounds_done, partial_moves=m.partial_moves,
                                                date=rfc3339(m.start_utc))
     return out
+
+
+def build_summary(s: Session, m: models.WorkoutSession) -> sc.SessionSummaryOut:
+    """Built on every read from the saved session and the strength workout it overlaps most, so a watch workout that
+    syncs later attaches on its own. Nothing here is stored."""
+    plan = m.plan
+    end_ms = round((m.end_utc - m.start_utc).total_seconds() * 1000)
+    cands = s.execute(select(models.Workout).where(
+        models.Workout.type == "strength", models.Workout.start_utc < m.end_utc, models.Workout.end_utc > m.start_utc)).scalars().all()
+    w = ss.match(m.start_utc, m.end_utc, cands)
+    samples = None
+    if w is not None:
+        hr = load_series(s, w.workout_id).get("heart_rate")
+        if hr and hr.get("t") and hr.get("avg"):
+            samples = ss.Samples(hr["t"], hr["avg"], (w.start_utc - m.start_utc).total_seconds()) or None
+    prof = s.execute(scoped(models.ProfileResult)).scalar_one_or_none()
+    bounds = prof.zone_bounds_bpm if prof and prof.hrmax else None
+    got = ss.compute(m.events, plan, end_ms, samples, bounds)
+    watch = w.effort_score if w is not None else None
+    estimated = watch is not None and w.effort_estimated is True
+    # A real watch rating beats a manual pick; a manual pick beats the watch's estimate.
+    if watch is not None and not estimated:
+        effort, source = watch, "watch"
+    elif m.effort is not None:
+        effort, source, estimated = m.effort, "manual", False
+    elif watch is not None:
+        effort, source = watch, "watch"
+    else:
+        effort, source = None, None
+    moves = plan["moves"]
+    short = m.short_reps or {}
+    rows = []
+    if plan["format"] == "emom" and moves:
+        for minute in m.fell_short or []:
+            mv = moves[(minute - 1) % len(moves)]
+            rows.append(sc.SessionShortRow(minute=minute, move=mv["name"], target_reps=mv.get("reps"), short_reps=short.get(str(minute))))
+    return sc.SessionSummaryOut(
+        session=session_out(m), matched_workout_id=w.workout_id if w is not None else None, avg_hr=got.avg_hr,
+        effort=effort, effort_source=source, effort_estimated=estimated,
+        moves=[sc.SessionMoveHr(name=x.name, avg_hr=x.avg_hr, instances=x.instances) for x in got.moves],
+        rounds=[sc.SessionRoundRow(round=x.round, time_s=x.time_s, moves=x.moves, avg_hr=x.avg_hr) for x in got.rounds],
+        zone_seconds=got.zone_seconds, zone_bounds_bpm=list(bounds) if bounds and got.zone_seconds else None,
+        fell_short=rows)
 
 
 def router(api: Api) -> APIRouter:
@@ -98,5 +144,39 @@ def router(api: Api) -> APIRouter:
             if m is None:
                 raise HTTPException(status_code=404, detail="session not found")
             return session_out(m)
+
+    @r.get("/sessions/{session_id}/summary", response_model=sc.SessionSummaryOut)
+    def session_summary(session_id: int) -> sc.SessionSummaryOut:
+        with Session(api.engine) as s:
+            m = s.get(models.WorkoutSession, session_id)
+            if m is None:
+                raise HTTPException(status_code=404, detail="session not found")
+            return build_summary(s, m)
+
+    @r.put("/sessions/{session_id}/effort", response_model=sc.EffortOut)
+    def set_effort(session_id: int, body: sc.EffortIn) -> sc.EffortOut:
+        with Session(api.engine) as s:
+            m = s.get(models.WorkoutSession, session_id)
+            if m is None:
+                raise HTTPException(status_code=404, detail="session not found")
+            m.effort = body.effort
+            s.commit()
+            return sc.EffortOut(effort=body.effort)
+
+    @r.put("/sessions/{session_id}/short", response_model=dict[str, int | None])
+    def set_short(session_id: int, body: dict[str, int | None]) -> dict[str, int | None]:
+        with Session(api.engine) as s:
+            m = s.get(models.WorkoutSession, session_id)
+            if m is None:
+                raise HTTPException(status_code=404, detail="session not found")
+            for k, v in body.items():
+                if not (k.isascii() and k.isdigit()) or int(k) not in (m.fell_short or []):
+                    raise HTTPException(status_code=422, detail=f"minute {k} was not flagged as fell short")
+                if v is not None and not 0 <= v <= 500:
+                    raise HTTPException(status_code=422, detail="reps must be between 0 and 500")
+            merged = {**(m.short_reps or {}), **{str(int(k)): v for k, v in body.items()}}
+            m.short_reps = merged  # a new dict: SQLAlchemy does not see an in-place JSON change
+            s.commit()
+            return merged
 
     return r

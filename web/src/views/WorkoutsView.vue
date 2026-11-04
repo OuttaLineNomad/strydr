@@ -7,6 +7,8 @@ import { useSettingsStore } from '@/stores/settings'
 import { planSummary, lastLine } from '@/lib/plans'
 import { useSessionsStore } from '@/stores/sessions'
 import { unlockAudio } from '@/lib/useTone'
+import { roundsText } from '@/lib/workoutEngine'
+import type { SessionOut } from '@/api/types'
 
 const store = usePlansStore()
 const s = useSettingsStore()
@@ -15,7 +17,13 @@ onMounted(async () => {
   // A session that could not be saved on the phone is retried here, then the list reloads with its Last: line.
   await store.load()
   if ((await sessions.flush()) > 0) await store.load() // reload only if a kept session just synced
+  recent.value = await sessions.list(undefined, 10)
 })
+
+const recent = ref<SessionOut[]>([])
+function when(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+}
 
 const confirming = ref<number | null>(null)
 const plans = computed(() => [...store.plans].sort((a, b) => a.name.localeCompare(b.name)))
@@ -63,7 +71,9 @@ async function remove(id: number) {
             <Button variant="primary" small class="startbtn" :to="`/workouts/${p.id}/run`" :aria-label="`Start ${p.name}`" data-testid="plan-start" @click="unlockAudio()">Start</Button>
           </div>
         </div>
-        <p v-if="p.last_session" class="body last" data-testid="plan-last">{{ lastLine(p.last_session) }}</p>
+        <p v-if="p.last_session" class="body last">
+          <RouterLink :to="`/workouts/sessions/${p.last_session.id}`" class="link" data-testid="plan-last">{{ lastLine(p.last_session) }}</RouterLink>
+        </p>
 
         <div v-if="confirming === p.id" class="actions" data-testid="plan-confirm">
           <span class="body">Delete {{ p.name }}? This cannot be undone.</span>
@@ -79,6 +89,20 @@ async function remove(id: number) {
     </ul>
     <p v-if="store.error" class="err pad" role="alert" data-testid="workouts-action-error">{{ store.error }}</p>
   </GlassPanel>
+
+  <section v-if="recent.length" class="recent" aria-labelledby="recent-h" data-testid="recent-sessions">
+    <h2 id="recent-h" class="section-title">Recent sessions</h2>
+    <GlassPanel class="list-panel">
+      <ul class="plans">
+        <li v-for="x in recent" :key="x.id" class="plan session">
+          <RouterLink :to="`/workouts/sessions/${x.id}`" class="session-link" data-testid="recent-row">
+            <span class="plan-name">{{ x.plan.name }}</span>
+            <span class="body">{{ when(x.start_utc) }} · {{ roundsText(x.rounds_done, x.partial_moves) }}</span>
+          </RouterLink>
+        </li>
+      </ul>
+    </GlassPanel>
+  </section>
 </template>
 
 <style scoped>
@@ -95,6 +119,12 @@ async function remove(id: number) {
 .start { flex-shrink: 0; }
 .startbtn { height: 44px; min-width: 44px; font-size: 15px; }
 .last { color: var(--ink); }
+.link { color: var(--accent-text); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; }
+.recent { margin-top: var(--space-6); display: flex; flex-direction: column; gap: var(--space-3); }
+.section-title { margin: 0; font-family: var(--font-display); font-size: 20px; line-height: 26px; font-weight: 700; }
+.session { padding: 0; }
+.session-link { display: flex; flex-direction: column; gap: 4px; padding: var(--space-4) var(--space-5); min-height: 44px; color: var(--ink); text-decoration: none; }
+.session-link:focus-visible, .link:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
 .watch { color: var(--accent-text); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; width: fit-content; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; }
 .act { height: 44px; padding: 0 var(--space-4); font-size: 15px; }

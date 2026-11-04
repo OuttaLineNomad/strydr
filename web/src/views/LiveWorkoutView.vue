@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { usePlansStore } from '@/stores/plans'
 import { useSessionsStore } from '@/stores/sessions'
 import { useSettingsStore } from '@/stores/settings'
@@ -15,6 +15,7 @@ import type { PlanOut, SessionIn } from '@/api/types'
 
 const props = defineProps<{ id: string }>()
 const router = useRouter()
+const route = useRoute()
 const plans = usePlansStore()
 const sessions = useSessionsStore()
 const settings = useSettingsStore()
@@ -219,6 +220,9 @@ async function begin() {
   }
   planSnap.value = JSON.parse(JSON.stringify(p))
   sessionKg.value = p.moves.find((m) => m.weight_kg != null)?.weight_kg ?? null
+  // "Do it again" from a summary carries last time's bell (in kg) so a repeat keeps the weight.
+  const carried = Number(route?.query?.weight)
+  if (sessionKg.value != null && Number.isFinite(carried) && carried >= 0.5 && carried <= 300) sessionKg.value = carried
   startAt.value = Date.now() + READY_MS
   launch()
 }
@@ -269,7 +273,12 @@ watch(
       partial_moves: s.partialMoves,
       fell_short: s.fellShort,
     }
-    void sessions.save(record).then((r) => (saveState.value = r))
+    void sessions.save(record).then(({ result, id }) => {
+      saveState.value = result
+      // Saved cleanly: the end of a session is its summary. A record kept on the phone has no page yet, so it stays here.
+      // A reply that lands after the runner left this screen must not pull him back out of wherever he went.
+      if (result === 'saved' && id != null && !gone && route?.name === 'workout-run') void router.replace(`/workouts/sessions/${id}`)
+    })
   },
 )
 

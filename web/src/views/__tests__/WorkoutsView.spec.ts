@@ -8,7 +8,7 @@ import WorkoutsView from '../WorkoutsView.vue'
 import { useSettingsStore } from '@/stores/settings'
 import { lastLine, planSummary, planWeight } from '@/lib/plans'
 import { profile } from '@/mocks/fixtures'
-import type { PlanOut } from '@/api/types'
+import type { PlanOut, SessionOut } from '@/api/types'
 import { memoryStorage } from '@/mocks/memoryStorage'
 
 const get = vi.mocked(api.GET) as unknown as ReturnType<typeof vi.fn>
@@ -21,11 +21,11 @@ const plan = (o: Partial<PlanOut> = {}): PlanOut => ({
   created_at: '2026-11-03T00:00:00', updated_at: '2026-11-03T00:00:00', ...o,
 })
 
-async function mountIt(plans: PlanOut[], units: 'imperial' | 'metric' = 'imperial') {
+async function mountIt(plans: PlanOut[], units: 'imperial' | 'metric' = 'imperial', recent: SessionOut[] = []) {
   const pinia = createPinia()
   setActivePinia(pinia)
   useSettingsStore().profile = profile({}, { units }) as never
-  get.mockResolvedValue({ data: plans, response: { status: 200 } })
+  get.mockImplementation(async (url: string) => ({ data: url === '/api/v1/sessions' ? recent : plans, response: { status: 200 } }))
   const w = mount(WorkoutsView, { global: { plugins: [pinia], stubs: { RouterLink: RouterLinkStub } } })
   await flushPromises()
   return w
@@ -77,11 +77,30 @@ describe('WorkoutsView', () => {
 
   it('shows the Last line only for a plan with a session', async () => {
     const date = new Date(Date.now() - 86_400_000).toISOString()
-    const w = await mountIt([plan({ last_session: { rounds: 4, partial_moves: 0, date } }), plan({ id: 2, name: 'Zed' })])
+    const w = await mountIt([plan({ last_session: { id: 7, rounds: 4, partial_moves: 0, date } }), plan({ id: 2, name: 'Zed' })])
     const rows = w.findAll('[data-testid="plan-row"]')
     expect(rows[0]!.get('[data-testid="plan-last"]').text()).toMatch(/^Last: 4 rounds · \w+/)
     expect(rows[1]!.find('[data-testid="plan-last"]').exists()).toBe(false)
-    expect(lastLine({ rounds: 3, partial_moves: 2, date }, new Date())).toContain('3 rounds + 2 moves')
+    expect(w.findAllComponents(RouterLinkStub).some((c) => c.props('to') === '/workouts/sessions/7')).toBe(true)
+    expect(lastLine({ id: 7, rounds: 3, partial_moves: 2, date }, new Date())).toContain('3 rounds + 2 moves')
+  })
+
+  it('lists the recent sessions, each linking to its summary', async () => {
+    const x = (id: number, rounds_done: number, partial_moves = 0) => ({
+      id, plan_id: 1, plan: plan(), weight_kg: null, start_utc: '2026-11-03T18:00:00Z', end_utc: '2026-11-03T18:10:00Z', events: [],
+      rounds_done, partial_moves, fell_short: [], active_s: 600, overtime_s: 0, created_at: '2026-11-03T18:10:00Z',
+    }) as SessionOut
+    const w = await mountIt([plan()], 'imperial', [x(5, 4, 2), x(4, 3)])
+    const rows = w.findAll('[data-testid="recent-row"]')
+    expect(rows).toHaveLength(2)
+    expect(rows[0]!.text()).toContain('4 rounds + 2 moves')
+    expect(get).toHaveBeenCalledWith('/api/v1/sessions', { params: { query: { plan_id: undefined, limit: 10 } } })
+    expect(w.findAllComponents(RouterLinkStub).some((c) => c.props('to') === '/workouts/sessions/5')).toBe(true)
+  })
+
+  it('has no Recent sessions panel before the first session', async () => {
+    const w = await mountIt([plan()])
+    expect(w.find('[data-testid="recent-sessions"]').exists()).toBe(false)
   })
 
   it('retries a session kept on the phone before it loads the list', async () => {

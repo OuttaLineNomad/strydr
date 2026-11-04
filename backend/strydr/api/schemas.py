@@ -822,6 +822,7 @@ class PlanIn(BaseModel):
 
 
 class LastSessionOut(BaseModel):
+    id: int  # the session, for the library's link to its summary
     rounds: int
     partial_moves: int
     date: str  # RFC 3339 UTC start of the latest session
@@ -890,3 +891,48 @@ class SessionOut(BaseModel):
     active_s: int
     overtime_s: int
     created_at: str
+
+
+class EffortIn(BaseModel):
+    effort: int = Field(ge=1, le=10)
+
+
+class EffortOut(BaseModel):
+    effort: int
+
+
+SHORT_MINUTES = 90
+
+
+class SessionShortRow(BaseModel):
+    minute: int  # 1-based
+    move: str
+    target_reps: int | None  # None for a timed move
+    short_reps: int | None  # what he did, once answered
+
+
+class SessionMoveHr(BaseModel):
+    name: str
+    avg_hr: float
+    instances: int
+
+
+class SessionRoundRow(BaseModel):
+    round: int  # 1-based
+    time_s: int
+    moves: int
+    avg_hr: float | None
+
+
+class SessionSummaryOut(BaseModel):
+    session: SessionOut
+    matched_workout_id: str | None  # the strength workout whose HR and effort this summary borrows
+    avg_hr: float | None
+    effort: float | None
+    effort_source: Literal["watch", "manual"] | None
+    effort_estimated: bool  # the watch value shown is its estimate, not a rating he gave
+    moves: list[SessionMoveHr]
+    rounds: list[SessionRoundRow]
+    zone_seconds: list[float] | None
+    zone_bounds_bpm: list[float] | None
+    fell_short: list[SessionShortRow]

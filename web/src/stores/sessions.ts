@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { api } from '@/api'
-import type { SessionIn, SessionOut } from '@/api/types'
+import type { SessionIn, SessionOut, SessionSummary } from '@/api/types'
 
 const KEY = 'strydr.sessionOutbox'
 /** Records the server refused as invalid (422). Kept, never retried and never deleted. */
@@ -35,30 +35,30 @@ export const useSessionsStore = defineStore('sessions', () => {
   const pending = ref(readBox().length)
 
   /** 'ok', 'retry' (offline, server error, signed out) or 'rejected' (the server will never take this record). */
-  async function post(body: SessionIn): Promise<'ok' | 'retry' | 'rejected'> {
+  async function post(body: SessionIn): Promise<{ out: 'ok' | 'retry' | 'rejected'; id: number | null }> {
     try {
       const { data, response } = await api.POST('/api/v1/sessions', { body })
-      if (data) return 'ok'
+      if (data) return { out: 'ok', id: typeof data.id === 'number' ? data.id : null }
       const st = response?.status ?? 0
-      return st === 422 ? 'rejected' : 'retry'
+      return { out: st === 422 ? 'rejected' : 'retry', id: null }
     } catch {
-      return 'retry'
+      return { out: 'retry', id: null }
     }
   }
 
   /** Sends the record. `'kept'` means it waits on this phone until it can sync. */
-  async function save(body: SessionIn): Promise<'saved' | 'kept' | 'rejected' | 'unsaved'> {
-    const out = await post(body)
-    if (out === 'ok') return 'saved'
+  async function save(body: SessionIn): Promise<{ result: 'saved' | 'kept' | 'rejected' | 'unsaved'; id: number | null }> {
+    const { out, id } = await post(body)
+    if (out === 'ok') return { result: 'saved', id }
     if (out === 'rejected') {
       deadLetter(body)
-      return 'rejected'
+      return { result: 'rejected', id: null }
     }
     const box = readBox()
     box.push(body)
     const stored = writeBox(box)
     pending.value = box.length
-    return stored ? 'kept' : 'unsaved'
+    return { result: stored ? 'kept' : 'unsaved', id: null }
   }
 
   /** Tries every kept record once; returns how many went through. */
@@ -68,7 +68,7 @@ export const useSessionsStore = defineStore('sessions', () => {
     const left: SessionIn[] = []
     let sent = 0
     for (const body of box) {
-      const r = await post(body)
+      const { out: r } = await post(body)
       if (r === 'ok') sent++
       else if (r === 'retry') left.push(body)
       else deadLetter(body)
@@ -89,5 +89,39 @@ export const useSessionsStore = defineStore('sessions', () => {
     }
   }
 
-  return { pending, save, flush, list }
+  /** The summary built on read; 'missing' when the session does not exist (404); null when it could not load. */
+  async function summary(id: number): Promise<SessionSummary | 'missing' | null> {
+    try {
+      const { data, response } = await api.GET('/api/v1/sessions/{session_id}/summary', { params: { path: { session_id: id } } })
+      if (data) return data
+      return response?.status === 404 ? 'missing' : null
+    } catch {
+      return null
+    }
+  }
+
+  /** Saves a 1-10 effort. True when the server took it. */
+  async function setEffort(id: number, effort: number): Promise<boolean> {
+    try {
+      const { data } = await api.PUT('/api/v1/sessions/{session_id}/effort', { params: { path: { session_id: id } }, body: { effort } })
+      return !!data
+    } catch {
+      return false
+    }
+  }
+
+  /** Saves the reps done in a minute that fell short (null takes the answer back). True when the server took it. */
+  async function setShort(id: number, minute: number, reps: number | null): Promise<boolean> {
+    try {
+      const { data } = await api.PUT('/api/v1/sessions/{session_id}/short', {
+        params: { path: { session_id: id } },
+        body: { [String(minute)]: reps },
+      })
+      return !!data
+    } catch {
+      return false
+    }
+  }
+
+  return { pending, save, flush, list, summary, setEffort, setShort }
 })

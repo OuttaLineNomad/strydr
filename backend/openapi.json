@@ -659,6 +659,34 @@
         "title": "DisplayGeometry",
         "type": "object"
       },
+      "EffortIn": {
+        "properties": {
+          "effort": {
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Effort",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "effort"
+        ],
+        "title": "EffortIn",
+        "type": "object"
+      },
+      "EffortOut": {
+        "properties": {
+          "effort": {
+            "title": "Effort",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "effort"
+        ],
+        "title": "EffortOut",
+        "type": "object"
+      },
       "ElevationPoint": {
         "properties": {
           "altitude_m": {
@@ -1316,6 +1344,10 @@
             "title": "Date",
             "type": "string"
           },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
           "partial_moves": {
             "title": "Partial Moves",
             "type": "integer"
@@ -1326,6 +1358,7 @@
           }
         },
         "required": [
+          "id",
           "rounds",
           "partial_moves",
           "date"
@@ -3138,6 +3171,29 @@
         "title": "SessionIn",
         "type": "object"
       },
+      "SessionMoveHr": {
+        "properties": {
+          "avg_hr": {
+            "title": "Avg Hr",
+            "type": "number"
+          },
+          "instances": {
+            "title": "Instances",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "avg_hr",
+          "instances"
+        ],
+        "title": "SessionMoveHr",
+        "type": "object"
+      },
       "SessionOut": {
         "properties": {
           "active_s": {
@@ -3228,6 +3284,206 @@
           "created_at"
         ],
         "title": "SessionOut",
+        "type": "object"
+      },
+      "SessionRoundRow": {
+        "properties": {
+          "avg_hr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Hr"
+          },
+          "moves": {
+            "title": "Moves",
+            "type": "integer"
+          },
+          "round": {
+            "title": "Round",
+            "type": "integer"
+          },
+          "time_s": {
+            "title": "Time S",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "round",
+          "time_s",
+          "moves",
+          "avg_hr"
+        ],
+        "title": "SessionRoundRow",
+        "type": "object"
+      },
+      "SessionShortRow": {
+        "properties": {
+          "minute": {
+            "title": "Minute",
+            "type": "integer"
+          },
+          "move": {
+            "title": "Move",
+            "type": "string"
+          },
+          "short_reps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Reps"
+          },
+          "target_reps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Reps"
+          }
+        },
+        "required": [
+          "minute",
+          "move",
+          "target_reps",
+          "short_reps"
+        ],
+        "title": "SessionShortRow",
+        "type": "object"
+      },
+      "SessionSummaryOut": {
+        "properties": {
+          "avg_hr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Hr"
+          },
+          "effort": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effort"
+          },
+          "effort_estimated": {
+            "title": "Effort Estimated",
+            "type": "boolean"
+          },
+          "effort_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "watch",
+                  "manual"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effort Source"
+          },
+          "fell_short": {
+            "items": {
+              "$ref": "#/components/schemas/SessionShortRow"
+            },
+            "title": "Fell Short",
+            "type": "array"
+          },
+          "matched_workout_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched Workout Id"
+          },
+          "moves": {
+            "items": {
+              "$ref": "#/components/schemas/SessionMoveHr"
+            },
+            "title": "Moves",
+            "type": "array"
+          },
+          "rounds": {
+            "items": {
+              "$ref": "#/components/schemas/SessionRoundRow"
+            },
+            "title": "Rounds",
+            "type": "array"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionOut"
+          },
+          "zone_bounds_bpm": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zone Bounds Bpm"
+          },
+          "zone_seconds": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zone Seconds"
+          }
+        },
+        "required": [
+          "session",
+          "matched_workout_id",
+          "avg_hr",
+          "effort",
+          "effort_source",
+          "effort_estimated",
+          "moves",
+          "rounds",
+          "zone_seconds",
+          "zone_bounds_bpm",
+          "fell_short"
+        ],
+        "title": "SessionSummaryOut",
         "type": "object"
       },
       "ShoeDefaultIn": {
@@ -6307,6 +6563,174 @@
           }
         },
         "summary": "Get Session",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_id}/effort": {
+      "put": {
+        "operationId": "set_effort",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EffortIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EffortOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Effort",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_id}/short": {
+      "put": {
+        "operationId": "set_short",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "title": "Response Set Short",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Short",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_id}/summary": {
+      "get": {
+        "operationId": "session_summary",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionSummaryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Session Summary",
         "tags": [
           "sessions"
         ]
