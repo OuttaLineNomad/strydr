@@ -203,6 +203,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/plans/import-youtube": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Youtube
+         * @description A draft plan from a YouTube link's public text. Saves nothing; the runner checks it in the editor.
+         */
+        post: operations["import_youtube"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/plans/{plan_id}": {
         parameters: {
             query?: never;
@@ -1337,6 +1357,15 @@ export interface components {
             /** T S */
             t_s: number;
         };
+        /**
+         * PlanDraftOut
+         * @description A plan built from a video, not saved. `title` is the video's, for the editor's note.
+         */
+        PlanDraftOut: {
+            plan: components["schemas"]["PlanIn"];
+            /** Title */
+            title: string;
+        };
         /** PlanIn */
         PlanIn: {
             /** Cap Min */
@@ -2328,6 +2357,11 @@ export interface components {
             /** Workout Id */
             workout_id: string;
         };
+        /** YoutubeImportIn */
+        YoutubeImportIn: {
+            /** Url */
+            url: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -2758,6 +2792,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_youtube: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["YoutubeImportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanDraftOut"];
                 };
             };
             /** @description Validation Error */

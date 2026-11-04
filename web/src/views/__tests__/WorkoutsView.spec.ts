@@ -31,6 +31,13 @@ async function mountIt(plans: PlanOut[], units: 'imperial' | 'metric' = 'imperia
   return w
 }
 
+describe('From a video', () => {
+  it('links to the new-workout editor in import mode', async () => {
+    const w = await mountIt([plan()])
+    expect(w.findComponent(RouterLinkStub).props('to')).toBe('/workouts/new?import=1')
+  })
+})
+
 describe('plan summaries', () => {
   it('AMRAP, EMOM, complex and bodyweight read as the spec says', () => {
     expect(planSummary(plan(), 'imperial')).toBe('AMRAP · 20 min · 5 moves · 25 lb')

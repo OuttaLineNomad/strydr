@@ -4,7 +4,8 @@ import { createPinia, setActivePinia } from 'pinia'
 
 vi.mock('@/api', () => ({ api: { GET: vi.fn(), POST: vi.fn(), PUT: vi.fn(), DELETE: vi.fn() } }))
 const push = vi.fn()
-vi.mock('vue-router', () => ({ useRouter: () => ({ push }), RouterLink: { template: '<a><slot /></a>' } }))
+const routeQuery: Record<string, string> = {}
+vi.mock('vue-router', () => ({ useRouter: () => ({ push }), useRoute: () => ({ query: routeQuery }), RouterLink: { template: '<a><slot /></a>' } }))
 import { api } from '@/api'
 import PlanEditView from '../PlanEditView.vue'
 import { useSettingsStore } from '@/stores/settings'
@@ -24,12 +25,12 @@ const saved = (o: Partial<PlanOut> = {}): PlanOut => ({
   created_at: '2026-11-03T00:00:00', updated_at: '2026-11-03T00:00:00', ...o,
 })
 
-async function mountIt(id?: string, plans: PlanOut[] = [], units: 'imperial' | 'metric' = 'imperial') {
+async function mountIt(id?: string, plans: PlanOut[] = [], units: 'imperial' | 'metric' = 'imperial', attachTo?: HTMLElement) {
   const pinia = createPinia()
   setActivePinia(pinia)
   useSettingsStore().profile = profile({}, { units }) as never
   get.mockResolvedValue({ data: plans, response: { status: 200 } })
-  const w = mount(PlanEditView, { props: { id }, global: { plugins: [pinia], stubs: { RouterLink: RouterLinkStub } } })
+  const w = mount(PlanEditView, { props: { id }, global: { plugins: [pinia], stubs: { RouterLink: RouterLinkStub } }, attachTo })
   await flushPromises()
   return w
 }
@@ -42,7 +43,10 @@ async function fillOne(w: Awaited<ReturnType<typeof mountIt>>) {
 }
 
 describe('PlanEditView', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    delete routeQuery.import
+  })
 
   it('creates an AMRAP with weights converted from lb to kg', async () => {
     const w = await mountIt()
@@ -257,5 +261,149 @@ describe('PlanEditView', () => {
   it('says so when the plan is gone', async () => {
     const w = await mountIt('99', [saved()])
     expect(w.find('[data-testid="plan-missing"]').exists()).toBe(true)
+  })
+
+  describe('YouTube import', () => {
+    const draft = { title: 'Five move AMRAP', plan: { name: 'Five move AMRAP', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, video_url: 'https://youtu.be/abcdEFGhi_0',
+      moves: Array.from({ length: 5 }, (_, i) => ({ name: `Move ${i}`, reps: 10, seconds: null, weight_kg: 11.34 })) } }
+    const build = async (w: Awaited<ReturnType<typeof mountIt>>, url = 'https://youtu.be/abcdEFGhi_0') => {
+      await w.get('[data-testid="yt-input"]').setValue(url)
+      await w.get('[data-testid="yt-build"]').trigger('click')
+    }
+
+    it('fills the form from the draft, with the note, and saves nothing', async () => {
+      const w = await mountIt()
+      post.mockResolvedValue({ data: draft, response: { status: 200 } })
+      await build(w)
+      await flushPromises()
+      expect(post.mock.calls[0]![0]).toBe('/api/v1/plans/import-youtube')
+      expect(post.mock.calls[0]![1].body).toEqual({ url: 'https://youtu.be/abcdEFGhi_0' })
+      expect((w.get('[data-testid="plan-name-input"]').element as HTMLInputElement).value).toBe('Five move AMRAP')
+      expect(w.findAll('[data-testid="move-row"]')).toHaveLength(5)
+      expect((w.get('[data-testid="move-weight"]').element as HTMLInputElement).value).toBe('25')
+      expect((w.get('[data-testid="plan-video-input"]').element as HTMLInputElement).value).toBe('https://youtu.be/abcdEFGhi_0')
+      expect(w.get('[data-testid="yt-note"]').text()).toBe('Built from Five move AMRAP. Check the moves, then save.')
+      expect(post).toHaveBeenCalledTimes(1)
+    })
+
+    it('shows the no-transcript sentence inline and leaves the form alone', async () => {
+      const w = await mountIt()
+      const msg = "This video has no transcript, so Strydr can't read the workout from it."
+      post.mockResolvedValue({ error: { detail: msg }, response: { status: 422 } })
+      await build(w)
+      await flushPromises()
+      expect(w.get('[data-testid="yt-error"]').text()).toBe(msg)
+      expect((w.get('[data-testid="plan-name-input"]').element as HTMLInputElement).value).toBe('')
+    })
+
+    it('shows the AI-off sentence', async () => {
+      const w = await mountIt()
+      post.mockResolvedValue({ error: { detail: 'Turn on AI in Settings to read workouts from videos.' }, response: { status: 409 } })
+      await build(w)
+      await flushPromises()
+      expect(w.get('[data-testid="yt-error"]').text()).toContain('Turn on AI in Settings to read workouts from videos.')
+    })
+
+    it('reads "Reading the video…" while working and cancel stops waiting', async () => {
+      const w = await mountIt()
+      post.mockImplementation((_u: string, o: { signal: AbortSignal }) => new Promise((_res, rej) => o.signal.addEventListener('abort', () => rej(new DOMException('x', 'AbortError')))))
+      await build(w)
+      await flushPromises()
+      expect(w.get('[data-testid="yt-build"]').text()).toBe('Reading the video…')
+      await w.get('[data-testid="yt-cancel"]').trigger('click')
+      await flushPromises()
+      expect(w.get('[data-testid="yt-build"]').text()).toBe('Build workout')
+      expect(w.find('[data-testid="yt-error"]').exists()).toBe(false)
+      expect(w.find('[data-testid="yt-cancel"]').exists()).toBe(false)
+    })
+
+    it('links to Settings when AI is off', async () => {
+      const w = await mountIt()
+      post.mockResolvedValue({ error: { detail: 'Turn on AI in Settings to read workouts from videos.' }, response: { status: 409 } })
+      await build(w)
+      await flushPromises()
+      expect(w.findComponent(RouterLinkStub).props('to')).toBe('/settings')
+    })
+
+    it('focuses the field only when opened from "From a video"', async () => {
+      const host = document.createElement('div')
+      document.body.appendChild(host)
+      routeQuery.import = '1'
+      const w = await mountIt(undefined, [], 'imperial', host)
+      expect(document.activeElement).toBe(w.get('[data-testid="yt-input"]').element)
+      w.unmount()
+      delete routeQuery.import
+      const w2 = await mountIt(undefined, [], 'imperial', host)
+      expect(document.activeElement).not.toBe(w2.get('[data-testid="yt-input"]').element)
+      w2.unmount()
+      host.remove()
+    })
+
+    it('does not post a blank link', async () => {
+      const w = await mountIt()
+      await w.get('[data-testid="yt-build"]').trigger('click')
+      await flushPromises()
+      expect(post).not.toHaveBeenCalled()
+      expect(w.get('[data-testid="yt-error"]').text()).toBe('Paste a YouTube or YouTube Shorts link.')
+    })
+
+    it('Enter in the field builds the workout', async () => {
+      const w = await mountIt()
+      post.mockResolvedValue({ data: draft, response: { status: 200 } })
+      await w.get('[data-testid="yt-input"]').setValue('https://youtu.be/abcdEFGhi_0')
+      await w.get('[data-testid="yt-input"]').trigger('keydown', { key: 'Enter' })
+      await flushPromises()
+      expect(post).toHaveBeenCalledTimes(1)
+      expect(w.find('[data-testid="yt-note"]').exists()).toBe(true)
+    })
+
+    it('says it could not reach the server on a network failure', async () => {
+      const w = await mountIt()
+      post.mockRejectedValue(new TypeError('Failed to fetch'))
+      await build(w)
+      await flushPromises()
+      expect(w.get('[data-testid="yt-error"]').text()).toBe("Couldn't reach YouTube or the AI just now. Try again.")
+    })
+
+    it('gives up after 70 seconds', async () => {
+      vi.useFakeTimers()
+      try {
+        const w = await mountIt()
+        post.mockImplementation((_u: string, o: { signal: AbortSignal }) => new Promise((_res, rej) => o.signal.addEventListener('abort', () => rej(new DOMException('x', 'AbortError')))))
+        await build(w)
+        await vi.advanceTimersByTimeAsync(70_000)
+        await flushPromises()
+        expect(w.get('[data-testid="yt-error"]').text()).toBe("Couldn't reach YouTube or the AI just now. Try again.")
+        expect(w.get('[data-testid="yt-build"]').text()).toBe('Build workout')
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('maps a list-shaped 422 (an over-long link) to the not-a-link sentence', async () => {
+      const w = await mountIt()
+      post.mockResolvedValue({ error: { detail: [{ msg: 'too long' }] }, response: { status: 422 } })
+      await build(w)
+      await flushPromises()
+      expect(w.get('[data-testid="yt-error"]').text()).toBe('Paste a YouTube or YouTube Shorts link.')
+    })
+
+    it('ignores a draft that arrives after switching to edit another workout', async () => {
+      const w = await mountIt(undefined, [saved()])
+      let resolve!: (v: unknown) => void
+      post.mockImplementation(() => new Promise((r) => { resolve = r }))
+      await build(w)
+      await w.setProps({ id: '7' })
+      await flushPromises()
+      resolve({ data: draft, response: { status: 200 } })
+      await flushPromises()
+      expect((w.get('[data-testid="plan-name-input"]').element as HTMLInputElement).value).toBe('Swing circuit')
+      expect(w.find('[data-testid="yt-note"]').exists()).toBe(false)
+    })
+
+    it('is not offered when editing a saved workout', async () => {
+      const w = await mountIt('7', [saved()])
+      expect(w.find('[data-testid="yt-block"]').exists()).toBe(false)
+    })
   })
 })

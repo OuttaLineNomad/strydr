@@ -129,3 +129,15 @@ def context_value_ok(value: object) -> bool:
 
 def context_sentence_ok(value: object) -> bool:
     return isinstance(value, str) and _SENTENCE.fullmatch(value) is not None and not _UNSAFE.search(value)
+
+
+# --- One video's public text (YouTube import, AD-10 amendment) ----------------------------------------------------
+
+class PlanImportPayload(BaseModel):
+    """A video's public title, description and transcript, plus the runner's units setting. Nothing else."""
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    title: str = Field(max_length=300)
+    description: str = Field(max_length=3000)
+    transcript: str = Field(min_length=1, max_length=12000)
+    units: Literal["metric", "imperial"]

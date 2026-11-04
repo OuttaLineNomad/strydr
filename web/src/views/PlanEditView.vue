@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import Button from '@/components/ui/Button.vue'
 import Icons from '@/components/ui/Icons.vue'
@@ -19,6 +19,7 @@ const props = defineProps<{ id?: string }>()
 const store = usePlansStore()
 const s = useSettingsStore()
 const router = useRouter()
+const route = useRoute()
 
 const unit = computed(() => weightUnit(s.units))
 const editingId = computed(() => (props.id == null ? null : /^\d+$/.test(props.id) ? Number(props.id) : NaN))
@@ -40,6 +41,9 @@ const missing = ref(false)
 const loadError = ref(false)
 const tried = ref(false)
 const confirmDelete = ref(false)
+const ytUrl = ref('')
+const ytInput = ref<HTMLInputElement | null>(null)
+const builtFrom = ref<string | null>(null)
 
 const formats = [
   { label: 'AMRAP', value: 'amrap' as Format, testid: 'format-amrap' },
@@ -84,7 +88,11 @@ async function init() {
   confirmDelete.value = false
   store.error = null
   store.nameError = null
+  store.cancelImport() // an import still waiting must not fill a different form
   reset()
+  ytUrl.value = ''
+  builtFrom.value = null
+  store.importError = null
   if (invalidId.value) {
     missing.value = true
     loading.value = false
@@ -99,8 +107,22 @@ async function init() {
     else missing.value = true
   }
   loading.value = false
+  if (editingId.value == null && route.query.import != null) {
+    await nextTick()
+    ytInput.value?.focus()
+  }
+}
+
+async function buildFromVideo() {
+  builtFrom.value = null
+  const d = await store.importYoutube(ytUrl.value)
+  if (!d || editingId.value != null) return
+  reset()
+  fill({ ...d.plan, id: 0, created_at: '', updated_at: '' } as PlanOut)
+  builtFrom.value = d.title
 }
 onMounted(init)
+onUnmounted(() => store.cancelImport())
 watch(() => props.id, init)
 // Switching units re-shows the entered weights in the new unit.
 watch(() => s.units, (now, was) => {
@@ -236,6 +258,22 @@ const nameMsg = computed(() => (tried.value ? errors.value.name : undefined) ?? 
   <p v-else-if="loading" class="body" role="status">Loading the workout.</p>
 
   <form v-else class="form" novalidate @submit.prevent="save">
+    <GlassPanel v-if="editingId == null" class="block" data-testid="yt-block">
+      <label class="field">
+        <span class="lbl">YouTube link</span>
+        <input ref="ytInput" v-model="ytUrl" class="input" type="url" inputmode="url" autocomplete="off" placeholder="https://youtube.com/shorts/…" :disabled="store.importing" :aria-describedby="store.importError ? 'yt-err' : undefined" data-testid="yt-input" @keydown.enter.prevent="buildFromVideo" />
+      </label>
+      <div class="yt-actions">
+        <Button variant="primary" :disabled="store.importing" data-testid="yt-build" @click="buildFromVideo">{{ store.importing ? 'Reading the video…' : 'Build workout' }}</Button>
+        <Button v-if="store.importing" data-testid="yt-cancel" @click="store.cancelImport()">Cancel</Button>
+      </div>
+      <p v-if="store.importError" id="yt-err" class="err" role="alert" data-testid="yt-error">
+        {{ store.importError }}
+        <RouterLink v-if="store.importError.startsWith('Turn on AI')" to="/settings" class="link" data-testid="yt-settings">Open Settings</RouterLink>
+      </p>
+      <p v-else-if="builtFrom !== null" class="hint" role="status" data-testid="yt-note">Built from {{ builtFrom }}. Check the moves, then save.</p>
+    </GlassPanel>
+
     <GlassPanel class="block">
       <label class="field">
         <span class="lbl">Name</span>
@@ -347,6 +385,8 @@ const nameMsg = computed(() => (tried.value ? errors.value.name : undefined) ?? 
 .input:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .input[aria-invalid='true'] { border-color: var(--danger); }
 .err { color: var(--danger); font-size: var(--body-sm-size); }
+.link { color: var(--accent-text); font-weight: 600; margin-left: var(--space-2); }
+.yt-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .same { display: flex; gap: var(--space-3); align-items: flex-end; flex-wrap: wrap; }
 .moves { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .move { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) 0; }

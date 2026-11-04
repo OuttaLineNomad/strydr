@@ -1,4 +1,5 @@
 """App-port FastAPI app: /api/v1/* behind a session cookie (AD-11), plus the built SPA. Reads tables only (AD-2)."""
+from collections.abc import Callable
 from pathlib import Path
 from datetime import date, timedelta
 from typing import Literal
@@ -13,6 +14,7 @@ from strydr.api import calendar, import_api, insights, load, plans, privacy, rec
 from strydr.api import schemas as sc
 from strydr.api.common import Api, rfc3339, workout_out
 from strydr.auth import sessions
+from strydr.egress import Provider, ProviderConfig, make_provider, youtube
 from strydr.jobs import queue
 from strydr.pipeline.phrasing import summary as summary_mod
 from strydr.store import generations, models, settings
@@ -27,7 +29,9 @@ def _note_out(n: models.WorkoutNote | None) -> sc.NoteOut | None:
     return sc.NoteOut(text=n.text, rpe=n.rpe, updated_at=rfc3339(n.updated_at)) if n else None
 
 
-def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | None = None) -> FastAPI:
+def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | None = None, *,
+               provider_factory: Callable[[ProviderConfig], Provider] = make_provider,
+               video_fetch: Callable[[str], youtube.VideoText | None] = youtube.fetch) -> FastAPI:
     """`engine` may be None only to export the OpenAPI schema. `web_dist` is the built SPA, served on this port."""
     app = FastAPI(title="strydr", docs_url=None, redoc_url=None,
                   generate_unique_id_function=lambda route: route.name)
@@ -309,7 +313,7 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
         queue.wakeup.set()
         return out
 
-    shared = Api(engine, default_tz, auth)
+    shared = Api(engine, default_tz, auth, provider_factory, video_fetch)
     for sub in (insights, weeks, calendar, recap, load, routes_api, privacy, settings_api, import_api, shoes, plans, sessions_api):
         router.include_router(sub.router(shared))
     app.include_router(router)

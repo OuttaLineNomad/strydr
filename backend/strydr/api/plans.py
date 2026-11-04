@@ -1,15 +1,45 @@
 """Home-workout plans: the saved library. User table only; plans are not a pipeline input, so no write here
 enqueues a recompute."""
+import json
+import logging
+import re
+
 from fastapi import APIRouter, HTTPException, Response
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from strydr.api import schemas as sc
 from strydr.api.sessions import last_sessions
 from strydr.api.common import Api
-from strydr.store import models
+from strydr.egress import EgressError, PlanImportPayload, resolve, youtube
+from strydr.store import models, settings
 from strydr.store.util import utcnow
+
+log = logging.getLogger("strydr.plans")
+
+AI_OFF = "Turn on AI in Settings to read workouts from videos."
+NO_TRANSCRIPT = "This video has no transcript, so Strydr can't read the workout from it."
+NOT_YOUTUBE = "Paste a YouTube or YouTube Shorts link."
+UNREACHABLE = "Couldn't reach YouTube or the AI just now. Try again."
+UNREADABLE = "Couldn't read a workout from this video."
+UNAVAILABLE = "This video isn't available to Strydr (private, removed or age-restricted)."
+
+
+def _plan_from_reply(raw: str, video_url: str) -> sc.PlanIn:
+    """The first JSON object in the reply that validates as a plan. Prose, <think> text and code fences around it
+    are ignored; nothing is honoured that PlanIn does not accept. `video_url` is always the pasted link."""
+    dec = json.JSONDecoder()
+    for m in re.finditer(r"\{", raw):
+        try:
+            obj, _ = dec.raw_decode(raw, m.start())
+            if isinstance(obj, dict):
+                return sc.PlanIn.model_validate(obj | {"video_url": video_url})
+        except (ValueError, ValidationError, RecursionError):
+            continue
+    raise ValueError("no plan in the reply")
+
 
 TAKEN = "a workout with that name exists"
 
@@ -53,6 +83,38 @@ def router(api: Api) -> APIRouter:
             plans = list(rows)
             last = last_sessions(s, [p.id for p in plans])
             return sorted((plan_out(p, last.get(p.id)) for p in plans), key=lambda p: p.name.casefold())
+
+    @r.post("/plans/import-youtube", response_model=sc.PlanDraftOut)
+    def import_youtube(body: sc.YoutubeImportIn) -> sc.PlanDraftOut:
+        """A draft plan from a YouTube link's public text. Saves nothing; the runner checks it in the editor."""
+        url = body.url.strip()
+        vid = youtube.video_id(url)
+        if vid is None:
+            raise HTTPException(status_code=422, detail=NOT_YOUTUBE)
+        with Session(api.engine) as s:
+            ai = settings.read_ai(s)
+            units = settings.read(s, api.default_tz).units
+        if not ai.enabled:
+            raise HTTPException(status_code=409, detail=AI_OFF)
+        try:
+            video = api.video_fetch(vid)
+            if video is None:
+                raise HTTPException(status_code=422, detail=NO_TRANSCRIPT)
+            payload = PlanImportPayload(title=video.title, description=video.description, transcript=video.transcript[:youtube.MAX_TRANSCRIPT],
+                                        units="imperial" if units == "imperial" else "metric")
+            raw = api.provider_factory(resolve(ai.provider, ai.base_url, ai.model, ai.api_key)).plan_from_text(payload)
+        except youtube.Unavailable:
+            raise HTTPException(status_code=422, detail=UNAVAILABLE) from None
+        except ValidationError:  # the video's text did not fit the closed payload
+            raise HTTPException(status_code=422, detail=UNREADABLE) from None
+        except (EgressError, ValueError, TypeError, RecursionError) as e:  # fetch, provider setup or the AI call
+            log.warning("youtube import failed: %s", type(e).__name__)
+            raise HTTPException(status_code=502, detail=UNREACHABLE) from None
+        try:
+            plan = _plan_from_reply(raw, url if len(url) <= 500 else f"{youtube.WATCH_URL}?v={vid}")
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=422, detail=UNREADABLE) from None
+        return sc.PlanDraftOut(title=video.title.strip() or plan.name, plan=plan)
 
     @r.get("/plans/{plan_id}", response_model=sc.PlanOut)
     def get_plan(plan_id: int) -> sc.PlanOut:

@@ -1,4 +1,5 @@
 """Helpers shared by the app-port routers (AD-2: tables and the job queue only, never pipeline code)."""
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -7,6 +8,7 @@ from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
 from strydr.api import schemas as sc
+from strydr.egress import Provider, ProviderConfig, make_provider, youtube
 from strydr.jobs import queue
 from strydr.store import models, settings
 
@@ -29,6 +31,9 @@ class Api:
     engine: Engine
     default_tz: str
     auth: list[params.Depends]
+    # injectable for tests, as the worker's provider_factory is
+    provider_factory: Callable[[ProviderConfig], Provider] = make_provider
+    video_fetch: Callable[[str], youtube.VideoText | None] = youtube.fetch
 
     def enqueue_recompute(self, s: Session) -> None:
         """Every write to a closed-list pipeline input calls this inside its own transaction (AD-1, AD-5)."""

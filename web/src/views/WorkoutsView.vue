@@ -42,7 +42,10 @@ async function remove(id: number) {
       <h1 class="page-title">Workouts</h1>
       <p class="page-sub">Your saved kettlebell and bodyweight workouts.</p>
     </div>
-    <Button v-if="plans.length" variant="primary" to="/workouts/new" data-testid="new-workout">New workout</Button>
+    <div class="title-actions">
+      <RouterLink to="/workouts/new?import=1" class="link" data-testid="from-video">From a video</RouterLink>
+      <Button v-if="plans.length" variant="primary" to="/workouts/new" data-testid="new-workout">New workout</Button>
+    </div>
   </header>
 
   <p v-if="!store.loaded && !store.error" class="body" role="status" data-testid="workouts-loading">Loading workouts.</p>
@@ -119,6 +122,7 @@ async function remove(id: number) {
 .start { flex-shrink: 0; }
 .startbtn { height: 44px; min-width: 44px; font-size: 15px; }
 .last { color: var(--ink); }
+.title-actions { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
 .link { color: var(--accent-text); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; }
 .recent { margin-top: var(--space-6); display: flex; flex-direction: column; gap: var(--space-3); }
 .section-title { margin: 0; font-family: var(--font-display); font-size: 20px; line-height: 26px; font-weight: 700; }

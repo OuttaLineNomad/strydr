@@ -1722,6 +1722,24 @@
         "title": "PacePoint",
         "type": "object"
       },
+      "PlanDraftOut": {
+        "description": "A plan built from a video, not saved. `title` is the video's, for the editor's note.",
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/PlanIn"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "plan"
+        ],
+        "title": "PlanDraftOut",
+        "type": "object"
+      },
       "PlanIn": {
         "properties": {
           "cap_min": {
@@ -5210,6 +5228,20 @@
         ],
         "title": "WorkoutTypeOut",
         "type": "object"
+      },
+      "YoutubeImportIn": {
+        "properties": {
+          "url": {
+            "maxLength": 500,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "YoutubeImportIn",
+        "type": "object"
       }
     }
   },
@@ -5838,6 +5870,48 @@
           }
         },
         "summary": "Add Plan",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/v1/plans/import-youtube": {
+      "post": {
+        "description": "A draft plan from a YouTube link's public text. Saves nothing; the runner checks it in the editor.",
+        "operationId": "import_youtube",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/YoutubeImportIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDraftOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Youtube",
         "tags": [
           "plans"
         ]

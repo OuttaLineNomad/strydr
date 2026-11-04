@@ -821,6 +821,16 @@ class PlanIn(BaseModel):
         return self
 
 
+class YoutubeImportIn(BaseModel):
+    url: str = Field(max_length=500)
+
+
+class PlanDraftOut(BaseModel):
+    """A plan built from a video, not saved. `title` is the video's, for the editor's note."""
+    title: str
+    plan: PlanIn
+
+
 class LastSessionOut(BaseModel):
     id: int  # the session, for the library's link to its summary
     rounds: int

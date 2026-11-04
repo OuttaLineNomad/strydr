@@ -3,6 +3,11 @@ import { defineStore } from 'pinia'
 import { api } from '@/api'
 import type { PlanIn, PlanOut } from '@/api/types'
 
+export interface PlanDraft { title: string; plan: PlanIn }
+const IMPORT_ABORT_MS = 70_000
+const NOT_A_LINK = 'Paste a YouTube or YouTube Shorts link.'
+const UNREACHABLE = "Couldn't reach YouTube or the AI just now. Try again."
+
 const TAKEN = 'a workout with that name exists'
 
 /** The saved home-workout plans. The library holds them all, so the edit page and the name suggestions read from here. */
@@ -13,6 +18,10 @@ export const usePlansStore = defineStore('plans', () => {
   /** An inline message for the name field (a 422 for a taken name). */
   const nameError = ref<string | null>(null)
   const busy = ref(false)
+  /** The YouTube import: working flag and the one-sentence error for its block. */
+  const importing = ref(false)
+  const importError = ref<string | null>(null)
+  let importCtl: AbortController | null = null
 
   async function load() {
     error.value = null
@@ -83,6 +92,48 @@ export const usePlansStore = defineStore('plans', () => {
     }
   }
 
+  /** Asks the server for a draft plan from a YouTube link. Saves nothing. Null on error (see `importError`) or cancel. */
+  async function importYoutube(url: string): Promise<PlanDraft | null> {
+    importCtl?.abort() // a newer import replaces one still waiting
+    importError.value = null
+    if (!url.trim()) {
+      importError.value = NOT_A_LINK
+      return null
+    }
+    const ctl = new AbortController()
+    importCtl = ctl
+    let timedOut = false
+    const timer = setTimeout(() => {
+      timedOut = true
+      ctl.abort()
+    }, IMPORT_ABORT_MS)
+    importing.value = true
+    try {
+      const { data, error: body, response } = await api.POST('/api/v1/plans/import-youtube', { body: { url: url.trim() }, signal: ctl.signal })
+      if (importCtl !== ctl || (ctl.signal.aborted && !timedOut)) return null // cancelled or replaced: drop the answer
+      if (data) return data
+      const detail = (body as { detail?: unknown } | undefined)?.detail
+      importError.value = typeof detail === 'string' ? detail : response?.status === 422 ? NOT_A_LINK : UNREACHABLE
+      return null
+    } catch {
+      if (importCtl !== ctl || (ctl.signal.aborted && !timedOut)) return null // cancelled by the runner or replaced
+      importError.value = UNREACHABLE
+      return null
+    } finally {
+      clearTimeout(timer)
+      if (importCtl === ctl) {
+        importCtl = null
+        importing.value = false
+      }
+    }
+  }
+  function cancelImport() {
+    const ctl = importCtl
+    importCtl = null
+    importing.value = false
+    ctl?.abort()
+  }
+
   /** Every move name used in any plan, once each, for the name suggestions. */
   function moveNames(): string[] {
     const seen = new Map<string, string>()
@@ -90,5 +141,5 @@ export const usePlansStore = defineStore('plans', () => {
     return [...seen.values()].sort((a, b) => a.localeCompare(b))
   }
 
-  return { plans, loaded, error, nameError, busy, load, create, update, duplicate, remove, moveNames }
+  return { plans, loaded, error, nameError, busy, importing, importError, importYoutube, cancelImport, load, create, update, duplicate, remove, moveNames }
 })
