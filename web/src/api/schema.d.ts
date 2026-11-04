@@ -259,6 +259,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/plans/{plan_id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Plan Progress
+         * @description Every session of the plan, newest first, and the earliest against the latest. Computed on read.
+         */
+        get: operations["plan_progress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/privacy-zones": {
         parameters: {
             query?: never;
@@ -1430,6 +1450,14 @@ export interface components {
             /** Video Url */
             video_url: string | null;
         };
+        /** PlanProgressOut */
+        PlanProgressOut: {
+            now: components["schemas"]["ProgressCompareOut"] | null;
+            plan: components["schemas"]["PlanOut"];
+            /** Sessions */
+            sessions: components["schemas"]["ProgressSessionOut"][];
+            then: components["schemas"]["ProgressCompareOut"] | null;
+        };
         /**
          * PrivacyZoneIn
          * @description Input only. The centre is accepted here and never returned by any endpoint.
@@ -1479,6 +1507,66 @@ export interface components {
             units: "metric" | "imperial";
             /** Zones */
             zones?: number[] | null;
+        };
+        /** ProgressCompareOut */
+        ProgressCompareOut: {
+            /** Active S */
+            active_s: number;
+            /** Avg Hr */
+            avg_hr: number | null;
+            /** Cap Min */
+            cap_min: number | null;
+            /** Changed */
+            changed: boolean;
+            /** Date */
+            date: string;
+            /** Effort */
+            effort: number | null;
+            /** Id */
+            id: number;
+            /** Missed Reps */
+            missed_reps: number | null;
+            /** Move Count */
+            move_count: number;
+            /** Overtime S */
+            overtime_s: number;
+            /** Partial Moves */
+            partial_moves: number;
+            /** Rounds Done */
+            rounds_done: number;
+            /** Target Rounds */
+            target_rounds: number | null;
+            /** Weight Kg */
+            weight_kg: number | null;
+        };
+        /** ProgressSessionOut */
+        ProgressSessionOut: {
+            /** Active S */
+            active_s: number;
+            /** Cap Min */
+            cap_min: number | null;
+            /** Changed */
+            changed: boolean;
+            /** Date */
+            date: string;
+            /** Effort */
+            effort: number | null;
+            /** Id */
+            id: number;
+            /** Missed Reps */
+            missed_reps: number | null;
+            /** Move Count */
+            move_count: number;
+            /** Overtime S */
+            overtime_s: number;
+            /** Partial Moves */
+            partial_moves: number;
+            /** Rounds Done */
+            rounds_done: number;
+            /** Target Rounds */
+            target_rounds: number | null;
+            /** Weight Kg */
+            weight_kg: number | null;
         };
         /** QuarantinedPayload */
         QuarantinedPayload: {
@@ -2986,6 +3074,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    plan_progress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanProgressOut"];
                 };
             };
             /** @description Validation Error */

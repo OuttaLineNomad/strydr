@@ -1930,6 +1930,48 @@
         "title": "PlanOut",
         "type": "object"
       },
+      "PlanProgressOut": {
+        "properties": {
+          "now": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProgressCompareOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plan": {
+            "$ref": "#/components/schemas/PlanOut"
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressSessionOut"
+            },
+            "title": "Sessions",
+            "type": "array"
+          },
+          "then": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProgressCompareOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "plan",
+          "sessions",
+          "then",
+          "now"
+        ],
+        "title": "PlanProgressOut",
+        "type": "object"
+      },
       "PrivacyZoneIn": {
         "description": "Input only. The centre is accepted here and never returned by any endpoint.",
         "properties": {
@@ -2089,6 +2131,234 @@
           "home_tz"
         ],
         "title": "ProfileSettings",
+        "type": "object"
+      },
+      "ProgressCompareOut": {
+        "properties": {
+          "active_s": {
+            "title": "Active S",
+            "type": "integer"
+          },
+          "avg_hr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Hr"
+          },
+          "cap_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cap Min"
+          },
+          "changed": {
+            "title": "Changed",
+            "type": "boolean"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "effort": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effort"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "missed_reps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missed Reps"
+          },
+          "move_count": {
+            "title": "Move Count",
+            "type": "integer"
+          },
+          "overtime_s": {
+            "title": "Overtime S",
+            "type": "integer"
+          },
+          "partial_moves": {
+            "title": "Partial Moves",
+            "type": "integer"
+          },
+          "rounds_done": {
+            "title": "Rounds Done",
+            "type": "integer"
+          },
+          "target_rounds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Rounds"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "weight_kg",
+          "rounds_done",
+          "partial_moves",
+          "active_s",
+          "overtime_s",
+          "effort",
+          "missed_reps",
+          "changed",
+          "cap_min",
+          "target_rounds",
+          "move_count",
+          "avg_hr"
+        ],
+        "title": "ProgressCompareOut",
+        "type": "object"
+      },
+      "ProgressSessionOut": {
+        "properties": {
+          "active_s": {
+            "title": "Active S",
+            "type": "integer"
+          },
+          "cap_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cap Min"
+          },
+          "changed": {
+            "title": "Changed",
+            "type": "boolean"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "effort": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effort"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "missed_reps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missed Reps"
+          },
+          "move_count": {
+            "title": "Move Count",
+            "type": "integer"
+          },
+          "overtime_s": {
+            "title": "Overtime S",
+            "type": "integer"
+          },
+          "partial_moves": {
+            "title": "Partial Moves",
+            "type": "integer"
+          },
+          "rounds_done": {
+            "title": "Rounds Done",
+            "type": "integer"
+          },
+          "target_rounds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Rounds"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "weight_kg",
+          "rounds_done",
+          "partial_moves",
+          "active_s",
+          "overtime_s",
+          "effort",
+          "missed_reps",
+          "changed",
+          "cap_min",
+          "target_rounds",
+          "move_count"
+        ],
+        "title": "ProgressSessionOut",
         "type": "object"
       },
       "QuarantinedPayload": {
@@ -6128,6 +6398,49 @@
           }
         },
         "summary": "Duplicate Plan",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/v1/plans/{plan_id}/progress": {
+      "get": {
+        "description": "Every session of the plan, newest first, and the earliest against the latest. Computed on read.",
+        "operationId": "plan_progress",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "title": "Plan Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanProgressOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Plan Progress",
         "tags": [
           "plans"
         ]

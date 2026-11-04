@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { api } from '@/api'
-import type { PlanIn, PlanOut } from '@/api/types'
+import type { PlanIn, PlanOut, PlanProgress } from '@/api/types'
 
 export interface PlanDraft { title: string; plan: PlanIn }
 const IMPORT_ABORT_MS = 70_000
@@ -92,6 +92,17 @@ export const usePlansStore = defineStore('plans', () => {
     }
   }
 
+  /** One workout's sessions and the earliest-vs-latest comparison, read fresh. 'missing' for an unknown plan, null on a failure. */
+  async function progress(id: number): Promise<PlanProgress | 'missing' | null> {
+    try {
+      const { data, response } = await api.GET('/api/v1/plans/{plan_id}/progress', { params: { path: { plan_id: id } } })
+      if (data) return data
+      return response?.status === 404 ? 'missing' : null
+    } catch {
+      return null
+    }
+  }
+
   /** Asks the server for a draft plan from a YouTube link. Saves nothing. Null on error (see `importError`) or cancel. */
   async function importYoutube(url: string): Promise<PlanDraft | null> {
     importCtl?.abort() // a newer import replaces one still waiting
@@ -141,5 +152,5 @@ export const usePlansStore = defineStore('plans', () => {
     return [...seen.values()].sort((a, b) => a.localeCompare(b))
   }
 
-  return { plans, loaded, error, nameError, busy, importing, importError, importYoutube, cancelImport, load, create, update, duplicate, remove, moveNames }
+  return { plans, loaded, error, nameError, busy, importing, importError, importYoutube, cancelImport, load, create, update, duplicate, remove, moveNames, progress }
 })

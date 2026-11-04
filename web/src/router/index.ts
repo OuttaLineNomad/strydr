@@ -18,6 +18,7 @@ const router = createRouter({
     { path: '/workouts', name: 'workouts', component: () => import('@/views/WorkoutsView.vue') },
     { path: '/workouts/sessions/:id', name: 'workout-session', component: () => import('@/views/SessionSummaryView.vue'), props: true },
     { path: '/workouts/new', name: 'workout-new', component: () => import('@/views/PlanEditView.vue') },
+    { path: '/workouts/:id', name: 'workout', component: () => import('@/views/WorkoutPlanView.vue'), props: true },
     { path: '/workouts/:id/edit', name: 'workout-edit', component: () => import('@/views/PlanEditView.vue'), props: true },
     { path: '/workouts/:id/run', name: 'workout-run', component: () => import('@/views/LiveWorkoutView.vue'), props: true, meta: { bare: true, full: true } },
     { path: '/settings', name: 'settings', component: () => import('@/views/SettingsView.vue') },

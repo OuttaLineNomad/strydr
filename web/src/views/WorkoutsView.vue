@@ -69,7 +69,7 @@ async function remove(id: number) {
       <li v-for="p in plans" :key="p.id" class="plan" data-testid="plan-row">
         <div class="top">
           <div class="text">
-            <h2 class="plan-name" data-testid="plan-name">{{ p.name }}</h2>
+            <h2 class="plan-name" data-testid="plan-name"><RouterLink :to="`/workouts/${p.id}`" class="name-link" data-testid="plan-link">{{ p.name }}</RouterLink></h2>
             <p class="body" data-testid="plan-summary">{{ planSummary(p, s.units) }}</p>
             <a v-if="p.video_url" :href="p.video_url" target="_blank" rel="noopener noreferrer" class="watch" data-testid="plan-video">Watch how</a>
           </div>
@@ -130,6 +130,8 @@ async function remove(id: number) {
 .link { color: var(--accent-text); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; }
 .recent { margin-top: var(--space-6); display: flex; flex-direction: column; gap: var(--space-3); }
 .section-title { margin: 0; font-family: var(--font-display); font-size: 20px; line-height: 26px; font-weight: 700; }
+.name-link { color: inherit; text-decoration: none; }
+.name-link:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 6px; }
 .session { padding: 0; }
 .session-link { display: flex; flex-direction: column; gap: 4px; padding: var(--space-4) var(--space-5); min-height: 44px; color: var(--ink); text-decoration: none; }
 .session-link:focus-visible, .link:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }

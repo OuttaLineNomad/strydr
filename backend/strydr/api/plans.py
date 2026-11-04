@@ -11,8 +11,8 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from strydr.api import schemas as sc
-from strydr.api.sessions import last_sessions
-from strydr.api.common import Api
+from strydr.api.sessions import build_summary, last_sessions, match_workout, session_effort
+from strydr.api.common import Api, rfc3339
 from strydr.egress import EgressError, PlanImportPayload, resolve, youtube
 from strydr.store import models, settings
 from strydr.store.util import utcnow
@@ -63,6 +63,33 @@ def plan_out(p: models.WorkoutPlan, last: sc.LastSessionOut | None = None) -> sc
     return sc.PlanOut(id=p.id, name=p.name, format=p.format, cap_min=p.cap_min, emom_min=p.emom_min, rounds=p.rounds,
                       moves=[sc.MoveIn(**m) for m in p.moves], video_url=p.video_url,
                       created_at=p.created_at.isoformat(), updated_at=p.updated_at.isoformat(), last_session=last)
+
+
+def _missed_reps(m: models.WorkoutSession) -> int | None:
+    """EMOM: reps short of target over the fell-short minutes. None if any flagged minute is unanswered."""
+    plan = m.plan
+    if plan["format"] != "emom":
+        return None
+    moves, short, total = plan["moves"], m.short_reps or {}, 0
+    for minute in m.fell_short or []:
+        answer = short.get(str(minute))
+        if answer is None:
+            return None
+        target = moves[(minute - 1) % len(moves)].get("reps") if moves else None
+        total += max(0, target - answer) if target is not None else 0
+    return total
+
+
+def _shape(moves: list[dict]) -> list[tuple]:
+    return [(x["name"], x.get("reps"), x.get("seconds")) for x in moves]
+
+
+def _progress_row(s: Session, m: models.WorkoutSession, current: list[tuple]) -> dict:
+    effort, _, _ = session_effort(m, match_workout(s, m))
+    return dict(id=m.id, date=rfc3339(m.start_utc), weight_kg=m.weight_kg, rounds_done=m.rounds_done,
+                partial_moves=m.partial_moves, active_s=m.active_s, overtime_s=m.overtime_s, effort=effort,
+                missed_reps=_missed_reps(m), changed=_shape(m.plan["moves"]) != current, cap_min=m.plan.get("cap_min"),
+                target_rounds=m.plan.get("rounds"), move_count=len(m.plan["moves"]))
 
 
 def router(api: Api) -> APIRouter:
@@ -136,6 +163,22 @@ def router(api: Api) -> APIRouter:
         with Session(api.engine) as s:
             p = get_or_404(s, plan_id)
             return plan_out(p, last_sessions(s, [p.id]).get(p.id))
+
+    @r.get("/plans/{plan_id}/progress", response_model=sc.PlanProgressOut)
+    def plan_progress(plan_id: int) -> sc.PlanProgressOut:
+        """Every session of the plan, newest first, and the earliest against the latest. Computed on read."""
+        with Session(api.engine) as s:
+            p = get_or_404(s, plan_id)
+            rows = list(s.execute(select(models.WorkoutSession).where(models.WorkoutSession.plan_id == plan_id)
+                                  .order_by(models.WorkoutSession.start_utc.desc(), models.WorkoutSession.id.desc())).scalars())
+            current = _shape(p.moves)
+            sessions = [_progress_row(s, m, current) for m in rows]
+            then = now = None
+            if len(rows) >= 2:  # the HR series is read for these two only
+                now = sc.ProgressCompareOut(**sessions[0], avg_hr=build_summary(s, rows[0]).avg_hr)
+                then = sc.ProgressCompareOut(**sessions[-1], avg_hr=build_summary(s, rows[-1]).avg_hr)
+            return sc.PlanProgressOut(plan=plan_out(p, last_sessions(s, [p.id]).get(p.id)),
+                                      sessions=[sc.ProgressSessionOut(**x) for x in sessions], then=then, now=now)
 
     @r.post("/plans", response_model=sc.PlanOut, status_code=201)
     def add_plan(body: sc.PlanIn) -> sc.PlanOut:

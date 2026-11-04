@@ -948,6 +948,33 @@ class SessionSummaryOut(BaseModel):
     fell_short: list[SessionShortRow]
 
 
+class ProgressSessionOut(BaseModel):
+    id: int
+    date: str  # RFC 3339 UTC start
+    weight_kg: float | None
+    rounds_done: int
+    partial_moves: int
+    active_s: int
+    overtime_s: int
+    effort: float | None
+    missed_reps: int | None  # EMOM only; None when a flagged minute is unanswered, and for other formats
+    changed: bool  # the session's moves (name, reps, seconds) differ from the plan's now
+    cap_min: int | None  # the session's own plan snapshot, for comparing like with like
+    target_rounds: int | None
+    move_count: int
+
+
+class ProgressCompareOut(ProgressSessionOut):
+    avg_hr: float | None
+
+
+class PlanProgressOut(BaseModel):
+    plan: PlanOut
+    sessions: list[ProgressSessionOut]  # newest first
+    then: ProgressCompareOut | None  # the earliest session; None with fewer than 2
+    now: ProgressCompareOut | None  # the latest
+
+
 class StreakWeekOut(BaseModel):
     week_start: str  # the Monday, YYYY-MM-DD
     counted: bool

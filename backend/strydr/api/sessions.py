@@ -64,14 +64,32 @@ def last_sessions(s: Session, plan_ids: list[int]) -> dict[int, sc.LastSessionOu
     return out
 
 
+def match_workout(s: Session, m: models.WorkoutSession) -> models.Workout | None:
+    """The strength workout the session overlaps most (see `ss.match`)."""
+    cands = s.execute(select(models.Workout).where(
+        models.Workout.type == "strength", models.Workout.start_utc < m.end_utc, models.Workout.end_utc > m.start_utc)).scalars().all()
+    return ss.match(m.start_utc, m.end_utc, cands)
+
+
+def session_effort(m: models.WorkoutSession, w: models.Workout | None) -> tuple[float | None, str | None, bool]:
+    """(effort, source, estimated). A real watch rating beats a manual pick; a manual pick beats the watch's estimate."""
+    watch = w.effort_score if w is not None else None
+    estimated = watch is not None and w.effort_estimated is True
+    if watch is not None and not estimated:
+        return watch, "watch", estimated
+    if m.effort is not None:
+        return m.effort, "manual", False
+    if watch is not None:
+        return watch, "watch", estimated
+    return None, None, estimated
+
+
 def build_summary(s: Session, m: models.WorkoutSession) -> sc.SessionSummaryOut:
     """Built on every read from the saved session and the strength workout it overlaps most, so a watch workout that
     syncs later attaches on its own. Nothing here is stored."""
     plan = m.plan
     end_ms = round((m.end_utc - m.start_utc).total_seconds() * 1000)
-    cands = s.execute(select(models.Workout).where(
-        models.Workout.type == "strength", models.Workout.start_utc < m.end_utc, models.Workout.end_utc > m.start_utc)).scalars().all()
-    w = ss.match(m.start_utc, m.end_utc, cands)
+    w = match_workout(s, m)
     samples = None
     if w is not None:
         hr = load_series(s, w.workout_id).get("heart_rate")
@@ -80,17 +98,7 @@ def build_summary(s: Session, m: models.WorkoutSession) -> sc.SessionSummaryOut:
     prof = s.execute(scoped(models.ProfileResult)).scalar_one_or_none()
     bounds = prof.zone_bounds_bpm if prof and prof.hrmax else None
     got = ss.compute(m.events, plan, end_ms, samples, bounds)
-    watch = w.effort_score if w is not None else None
-    estimated = watch is not None and w.effort_estimated is True
-    # A real watch rating beats a manual pick; a manual pick beats the watch's estimate.
-    if watch is not None and not estimated:
-        effort, source = watch, "watch"
-    elif m.effort is not None:
-        effort, source, estimated = m.effort, "manual", False
-    elif watch is not None:
-        effort, source = watch, "watch"
-    else:
-        effort, source = None, None
+    effort, source, estimated = session_effort(m, w)
     moves = plan["moves"]
     short = m.short_reps or {}
     rows = []

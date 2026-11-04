@@ -132,6 +132,12 @@ describe('WorkoutsView', () => {
     expect(localStorage.getItem('strydr.sessionOutbox')).toBeNull()
   })
 
+  it('links each plan name to its page', async () => {
+    const w = await mountIt([plan(), plan({ id: 2, name: 'Other' })])
+    const links = w.findAll('[data-testid="plan-link"]').map((l) => l.findComponent(RouterLinkStub).props('to'))
+    expect(links.sort()).toEqual(['/workouts/1', '/workouts/2'])
+  })
+
   it('duplicates a plan', async () => {
     const w = await mountIt([plan()])
     post.mockResolvedValue({ data: plan({ id: 2, name: 'Swing circuit (copy)' }), response: { status: 201 } })
