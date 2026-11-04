@@ -75,7 +75,7 @@ def test_happy_path_after_hae_merges_the_twins(engine, send, worker, login, expo
     assert len(select_ids(engine)) > len(hae_ids)
     with Session(engine) as s:
         p = s.execute(select(models.RawPayload).where(models.RawPayload.source == "apple")).scalar_one()
-        assert p.status == "processed" and p.adapter_version == 3
+        assert p.status == "processed" and p.adapter_version == process.apple.ADAPTER_VERSION
     assert count(engine, models.Job, models.Job.type == "fetch_weather") == 0  # weather is off
 
 
@@ -167,7 +167,7 @@ def test_reparse_replays_each_payload_through_its_own_parser(engine, send, worke
     assert after == before
     with Session(engine) as s:  # the HAE payload now carries the bumped version; the Apple one is untouched
         vers = dict(s.execute(select(models.RawPayload.source, models.RawPayload.adapter_version)).all())
-    assert vers == {"hae": process.ADAPTER_VERSION, "apple": 3}
+    assert vers == {"hae": process.ADAPTER_VERSION, "apple": process.apple.ADAPTER_VERSION}
     assert not reparse.needs_reparse(engine)
 
 
@@ -348,13 +348,13 @@ def test_a_processed_payload_is_not_imported_twice(engine, worker, login, export
 def test_apple_payload_staleness_is_judged_by_the_apple_version(engine, worker, login, export_zip, monkeypatch):
     assert _run(engine, worker, login, export_zip)["state"] == "done"
     assert not reparse.needs_reparse(engine)
-    monkeypatch.setattr(process.apple, "ADAPTER_VERSION", 4)
+    monkeypatch.setattr(process.apple, "ADAPTER_VERSION", process.apple.ADAPTER_VERSION + 1)
     assert reparse.needs_reparse(engine) and reparse.enqueue_if_stale(engine)
     worker.run_all()
     assert not reparse.needs_reparse(engine)
     with Session(engine) as s:
-        assert s.execute(select(models.RawPayload.adapter_version)).scalar_one() == 4
-        assert s.execute(select(models.Workout.adapter_version).distinct()).scalars().all() == [4]
+        assert s.execute(select(models.RawPayload.adapter_version)).scalar_one() == process.apple.ADAPTER_VERSION
+        assert s.execute(select(models.Workout.adapter_version).distinct()).scalars().all() == [process.apple.ADAPTER_VERSION]
 
 
 def test_a_processed_payload_with_no_version_is_stale(engine, worker, login, export_zip):

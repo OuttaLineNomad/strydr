@@ -68,6 +68,17 @@ def hr_series(start: datetime, minutes: int, base: int, seed: int, *, seconds=Fa
     return out
 
 
+def step_series(start: datetime, seconds: int, cadence: float, seed: int, *, per_second=False) -> list[dict]:
+    """In-run stepCount samples: one per minute, or one per second. Counts follow the cadence (steps/min)."""
+    rnd = random.Random(seed)
+    step = 1 if per_second else 60
+    out = []
+    for off in range(0, seconds, step):
+        qty = round(cadence / 60 * step * (1 + rnd.uniform(-0.08, 0.08)), 1)
+        out.append({"date": ts(start + timedelta(seconds=off)), "qty": qty, "source": SOURCE["name"], "units": "count"})
+    return out
+
+
 def split_set(unit: str, size_m: float, total_m: float, pace_s_per_m: float) -> dict:
     items, n, t = [], int(math.ceil(total_m / size_m)), 0.0
     for i in range(n):
@@ -80,7 +91,7 @@ def split_set(unit: str, size_m: float, total_m: float, pace_s_per_m: float) -> 
 
 def workout(label, name, activity, code, start, minutes, speed_mps, *, indoor=False, hr=True, with_route=True,
             with_id=True, distance_units="mi", temp=("degF", 41.0), seed=0, base_hr=140, hr_seconds=False,
-            hr_dropout=None) -> dict:
+            hr_dropout=None, steps=True) -> dict:
     seconds = minutes * 60
     dist_m = speed_mps * seconds
     w = {
@@ -104,6 +115,8 @@ def workout(label, name, activity, code, start, minutes, speed_mps, *, indoor=Fa
         w["maxHeartRate"] = q(base_hr + 18, "count/min")
         w["heartRate"] = {k: q(v, "count/min") for k, v in (("min", base_hr - 20), ("avg", base_hr), ("max", base_hr + 18))}
         w["heartRateData"] = hr_series(start, minutes, base_hr, seed, seconds=hr_seconds, dropout=hr_dropout)
+    if steps:
+        w["stepCount"] = step_series(start, seconds, speed_mps * 26, seed, per_second=hr_seconds)
     if not indoor:
         w["avgSpeed"] = q(round(speed_mps / 0.44704, 2), "mi")  # sic: HAE labels a speed "mi"
         w["maxSpeed"] = q(round(speed_mps * 1.2 / 0.44704, 2), "mi")

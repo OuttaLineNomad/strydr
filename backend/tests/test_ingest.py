@@ -59,7 +59,7 @@ def test_richer_copy_wins_and_poorer_does_not(engine, send):
         del wk["route"]
     send(thin)
     assert workouts(engine)[wid].series_count == 2
-    assert count(engine, models.SampleSeries, models.SampleSeries.workout_id == wid, models.SampleSeries.series != "splits") == 2
+    assert count(engine, models.SampleSeries, models.SampleSeries.workout_id == wid, models.SampleSeries.series.not_in(("splits", "step_count"))) == 2
 
 
 def test_missing_fields_still_import(engine, send):

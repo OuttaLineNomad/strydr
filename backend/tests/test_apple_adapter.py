@@ -42,7 +42,7 @@ RUN = ("run", "2026-03-03T12:30:20")
 
 
 def test_version():
-    assert ADAPTER_VERSION == 3
+    assert ADAPTER_VERSION == 4
 
 
 def test_only_run_walk_hike_are_yielded():

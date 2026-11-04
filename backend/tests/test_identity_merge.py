@@ -69,7 +69,7 @@ def test_apple_after_hae_merges_into_one_workout(engine):
     w = got[HAE_RUN]
     assert w.start_utc == datetime(2026, 3, 3, 12, 30, 20)  # Apple wins: its copy has the samples
     assert w.sample_count == 321 + 1500 and w.series_count == 2
-    assert series(engine, HAE_RUN) == {"heart_rate": 321, "route": 1500, "splits": 8}  # HAE's splits are kept
+    assert series(engine, HAE_RUN) == {"heart_rate": 321, "route": 1500, "splits": 8, "step_count": 188}  # HAE's splits are kept
     hae_run = next(x for x in hae_items() if x.workout_id == HAE_RUN)
     assert (w.effort_score, w.effort_estimated) == (5.0, hae_run.effort_estimated) and w.avg_cadence == 83.2
     assert hae_run.effort_estimated is not None  # the HAE-only fields survive the Apple win
@@ -93,7 +93,7 @@ def test_hae_after_apple_keeps_apples_id(engine):
     assert (w.effort_score, w.effort_estimated) == (5.0, hae_run.effort_estimated) and w.avg_cadence == 83.2  # from the losing HAE copy
     assert hae_run.effort_estimated is not None
     # HAE's splits join the winning Apple copy; precedence counts stay Apple's own.
-    assert series(engine, apple_id) == {"heart_rate": 321, "route": 1500, "splits": 8}
+    assert series(engine, apple_id) == {"heart_rate": 321, "route": 1500, "splits": 8, "step_count": 188}
     assert w.sample_count == 321 + 1500
 
 
@@ -130,7 +130,7 @@ def test_a_re_exported_apple_history_keeps_what_hae_merged_in(engine):
 
     (wid, w), = rows(engine).items()
     assert w.received_at == T0 + timedelta(minutes=10)  # the newer export replaced the stored copy
-    assert series(engine, wid) == {"heart_rate": 321, "route": 1500, "splits": 8}
+    assert series(engine, wid) == {"heart_rate": 321, "route": 1500, "splits": 8, "step_count": 188}
     assert w.effort_score == 5.0 and w.avg_cadence == 83.2
 
 

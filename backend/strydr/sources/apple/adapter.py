@@ -3,6 +3,7 @@
 Streams with iterparse so memory stays bounded. Bump ADAPTER_VERSION whenever the parsing output changes
 (AD-1: triggers a reparse). Error messages never contain values, names, dates or source names.
 """
+import math
 import zipfile
 from array import array
 from bisect import bisect_left, bisect_right
@@ -16,7 +17,7 @@ from strydr.sources.apple import sleep
 from strydr.sources.canonical import Characteristics, DailyMetric, SampleSeries, Workout, active_seconds, fallback_workout_id
 from strydr.sources.hae.units import convert
 
-ADAPTER_VERSION = 3
+ADAPTER_VERSION = 4  # 4: step_count series
 
 HR_MIN, HR_MAX = 25, 250  # bpm; outside this range a sample is impossible (same bounds as the HAE adapter)
 MAX_SPEED_MPS = 12.0
@@ -25,6 +26,7 @@ _TS = "%Y-%m-%d %H:%M:%S %z"
 _TYPES = {"Running": "run", "Walking": "walk", "Hiking": "hike"}
 _Q = "HKQuantityTypeIdentifier"
 _HR = _Q + "HeartRate"
+_STEPS = _Q + "StepCount"
 _SLEEP = "HKCategoryTypeIdentifierSleepAnalysis"
 _SLEEP_PREFIX = "HKCategoryValueSleepAnalysis"
 _SLEEP_STAGES = {"InBed", "Asleep", "AsleepUnspecified", "AsleepCore", "AsleepDeep", "AsleepREM", "Awake"}
@@ -60,6 +62,7 @@ def parse(stream: BinaryIO, home_tz: tzinfo,
     sleep_samples: list[sleep.Sample] = []
     seen: set[tuple] = set()  # identical records (a nested copy of a top-level one) count once
     hr = _HeartRates()
+    steps = _Steps()
     pending: list[tuple[Workout, str | None, list[tuple[float, float]], str | None]] = []
     me: Characteristics | None = None
     export_year = datetime.now(UTC).year
@@ -81,6 +84,8 @@ def parse(stream: BinaryIO, home_tz: tzinfo,
             if el.tag == "Record" and not in_other:
                 if el.get("type") == _HR:
                     hr.add(el, nested=depth > 1)
+                elif el.get("type") == _STEPS:
+                    steps.add(el, nested=depth > 1)
                 else:
                     _record(el, home_tz, sums, sleep_samples, seen)
             if el.tag == "ExportDate" and depth == 1 and (el.get("value") or "")[:4].isdigit():
@@ -104,10 +109,14 @@ def parse(stream: BinaryIO, home_tz: tzinfo,
     if me is not None:
         yield me
     hr.finish()
+    steps.finish()
     for w, source, pauses, route_path in pending:
         series = hr.series(w, source, pauses)
         if series:
             w.series["heart_rate"] = series
+        step_series = steps.series(w, source)
+        if step_series:
+            w.series["step_count"] = step_series
         if route_path is not None:
             route = _route(open_route, route_path, w.start_utc, w.end_utc, pauses, w.quality_flags)
             if route:
@@ -356,6 +365,74 @@ class _HeartRates:
                 cols[k].append(float(value))
             cols["at"].append(active_seconds(t, pauses))
         return SampleSeries("heart_rate", cols) if cols["t"] else None
+
+
+class _Steps:
+    """Every StepCount record of the export, kept compactly (start, end, count, source index) until the
+    workouts, which come later in the file, can claim theirs."""
+
+    def __init__(self) -> None:
+        self.start, self.end, self.val, self.src = array("d"), array("d"), array("d"), array("H")
+        self.nested: list[tuple[float, float, float, int]] = []
+        self._sources: dict[str, int] = {}
+        self._sorted = True
+        self._longest = 0.0
+
+    def add(self, el, nested: bool) -> None:
+        if el.get("unit") != "count":
+            return
+        try:
+            start, end = _epoch(el.get("startDate")), _epoch(el.get("endDate"))
+            value = float(el.get("value"))
+        except (TypeError, ValueError):
+            return
+        if not end > start or not math.isfinite(value) or value < 0:
+            return  # an instant has no interval to place; a negative count is impossible
+        name = el.get("sourceName") or ""
+        src = self._sources.get(name)
+        if src is None:
+            src = self._sources[name] = min(len(self._sources), 65535)
+        if nested:
+            self.nested.append((start, end, value, src))
+            return
+        if self.start and start < self.start[-1]:
+            self._sorted = False
+        self._longest = max(self._longest, end - start)
+        for col, v in ((self.start, start), (self.end, end), (self.val, value), (self.src, src)):
+            col.append(v)
+
+    def finish(self) -> None:
+        if self._sorted:
+            return
+        import numpy as np
+        order = np.argsort(np.frombuffer(self.start, dtype="d"), kind="stable")
+        for name, typecode in (("start", "d"), ("end", "d"), ("val", "d"), ("src", "H")):
+            col = getattr(self, name)
+            setattr(self, name, array(typecode, np.frombuffer(col, dtype=typecode)[order].tobytes()))
+
+    def series(self, w: Workout, source: str | None) -> SampleSeries | None:
+        w0 = w.start_utc.replace(tzinfo=UTC).timestamp()
+        w1 = w.end_utc.replace(tzinfo=UTC).timestamp()
+        lo, hi = bisect_left(self.start, w0 - self._longest), bisect_right(self.start, w1)
+        found = {(self.start[i], self.end[i], self.val[i], self.src[i]) for i in range(lo, hi)}
+        found.update(self.nested)  # a set: identical records count once
+        found = {r for r in found if r[0] < w1 and r[1] > w0}
+        own = self._sources.get(source or "")
+        if own is not None and any(r[3] == own for r in found):
+            found = {r for r in found if r[3] == own}
+        elif found:  # no record from the workout's own source: one source only, so overlapping devices never add up
+            totals: dict[int, float] = {}
+            for r in found:
+                totals[r[3]] = totals.get(r[3], 0.0) + r[2]
+            best = max(sorted(totals), key=totals.__getitem__)
+            found = {r for r in found if r[3] == best}
+        cols: dict[str, list] = {"t": [], "dt": [], "steps": []}
+        for a, b, value, _ in sorted(found):
+            lo_t, hi_t = max(a, w0), min(b, w1)
+            cols["t"].append(lo_t - w0)
+            cols["dt"].append(hi_t - lo_t)
+            cols["steps"].append(value * (hi_t - lo_t) / (b - a))
+        return SampleSeries("step_count", cols) if cols["t"] else None
 
 
 # --- pauses and route --------------------------------------------------------

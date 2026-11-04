@@ -249,8 +249,8 @@ def _fill(winner, loser) -> None:
 def write_workout(s: Session, w: Workout, payload_id: int, received_at: datetime, version: int | None = None) -> int:
     if version is None:
         version = ADAPTER_VERSION
-    # AD-3 precedence counts sample streams only; the watch's split summary is not one.
-    streams = [x for name, x in w.series.items() if name != "splits"]
+    # AD-3 precedence counts sample streams only; the watch's split summary and the step series are not.
+    streams = [x for name, x in w.series.items() if name not in ("splits", "step_count")]
     n_series = len(streams)
     n_samples = sum(x.n for x in streams)
     hr = w.series.get("heart_rate")

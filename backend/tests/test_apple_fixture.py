@@ -60,7 +60,8 @@ def test_export_counts():
     assert types["SleepAnalysis"] == 5 + 3 * 6 + 1  # 5 InBed (one from the phone), 3 modern nights x 6 stages, 1 legacy
     assert types["RestingHeartRate"] == types["HeartRateVariabilitySDNN"] == types["RespiratoryRate"] == 3
     assert types["VO2Max"] == 1 and types["AppleSleepingWristTemperature"] == 3
-    assert types["StepCount"] == 1 and types["ActiveEnergyBurned"] == 1
+    # 1 stray, the watch's run, walk and hike in 8 s records, and the phone's run in 60 s ones
+    assert types["StepCount"] == 651 and types["ActiveEnergyBurned"] == 1
     sleep = Counter(r.get("value").removeprefix("HKCategoryValueSleepAnalysis") for r in records
                     if r.get("type").endswith("SleepAnalysis"))
     assert sleep == {"InBed": 5, "AsleepCore": 6, "AsleepDeep": 3, "AsleepREM": 6, "Awake": 3, "AsleepUnspecified": 1}

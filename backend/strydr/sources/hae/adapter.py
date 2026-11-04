@@ -2,6 +2,7 @@
 
 Bump ADAPTER_VERSION whenever the parsing output changes (AD-1: triggers a reparse).
 """
+import math
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from typing import BinaryIO
@@ -12,7 +13,7 @@ from ijson.common import ObjectBuilder
 from strydr.sources.canonical import DailyMetric, SampleSeries, Workout, active_seconds, fallback_workout_id
 from strydr.sources.hae.units import convert, passthrough
 
-ADAPTER_VERSION = 2  # 2: active time (pauses removed), the watch's own speed, elevation and splits
+ADAPTER_VERSION = 3  # 2: active time (pauses removed), the watch's own speed, elevation and splits; 3: step_count series
 
 HR_MIN, HR_MAX = 25, 250  # bpm; outside this range a sample is impossible
 MAX_SPEED_MPS = 12.0
@@ -159,6 +160,9 @@ def convert_workout(w: dict) -> Workout | None:
     if route:
         route.columns["at"] = [active_seconds(t, pauses) for t in route.columns["t"]]
         out.series["route"] = route
+    steps = _step_series(w.get("stepCount"), start_utc, end_utc, flags)
+    if steps:
+        out.series["step_count"] = steps
     splits = _splits_series(w.get("splits"), flags)
     if splits:
         out.series["splits"] = splits
@@ -257,6 +261,39 @@ def _hr_series(items, start: datetime, flags: dict) -> SampleSeries | None:
         for k, v in zip(("min", "avg", "max"), vals):
             cols[k].append(float(v))
     return SampleSeries("heart_rate", cols) if cols["t"] else None
+
+
+STEP_DT_CAP = 60.0  # s; a gap (a paused watch) must not stretch one sample's interval
+
+
+def _step_series(items, start: datetime, end: datetime, flags: dict) -> SampleSeries | None:
+    """HAE's stepCount samples as intervals: dt is the gap to the next sample (the last gets the median gap)."""
+    if not isinstance(items, list):
+        return None
+    span = (end - start).total_seconds()
+    rows: list[tuple[float, float]] = []
+    for s in items:
+        try:
+            qty = s["qty"]
+            t = (_utc(s["date"]) - start).total_seconds()
+            ok = (isinstance(qty, (int, float)) and not isinstance(qty, bool) and math.isfinite(qty) and qty >= 0
+                  and s.get("units", "count") == "count" and 0 <= t <= span)
+        except (KeyError, TypeError, ValueError, AttributeError):
+            ok = False
+        if not ok:
+            flags["step_samples_dropped"] = flags.get("step_samples_dropped", 0) + 1
+            continue
+        rows.append((t, float(qty)))
+    if not rows:
+        return None
+    merged: dict[float, float] = {}
+    for t, qty in rows:  # samples at the same instant are one sample
+        merged[t] = merged.get(t, 0.0) + qty
+    rows = sorted(merged.items())
+    gaps = [b[0] - a[0] for a, b in zip(rows, rows[1:])]
+    last = sorted(gaps)[len(gaps) // 2] if gaps else STEP_DT_CAP
+    dts = [min(g, STEP_DT_CAP) for g in gaps] + [min(last, STEP_DT_CAP)]
+    return SampleSeries("step_count", {"t": [r[0] for r in rows], "dt": dts, "steps": [r[1] for r in rows]})
 
 
 def _route_series(items, start: datetime, flags: dict) -> SampleSeries | None:

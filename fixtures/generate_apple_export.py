@@ -67,6 +67,20 @@ def hr_irregular(start: datetime, seconds: int, base: int, seed: int) -> list[tu
     return out
 
 
+def step_records(start: datetime, seconds: int, cadence: float, seed: int, *, lead=4, span=8,
+                 source=SOURCE) -> str:
+    """StepCount records of `span` seconds across a workout. The first starts `lead` s before it (it straddles
+    the start), so the importer must clip and prorate. Counts follow the cadence (steps/min)."""
+    rnd = random.Random(seed)
+    out, off = "", -lead
+    while off < seconds:
+        n = round(cadence / 60 * span * (1 + rnd.uniform(-0.08, 0.08)))
+        out += record(f"{HK}StepCount", start + timedelta(seconds=off), start + timedelta(seconds=off + span),
+                      n, "count", source=source)
+        off += span
+    return out
+
+
 def route_points(start: datetime, seconds: int, speed: float, seed: int, pause=None) -> list[tuple]:
     """One point per active second; `pause` = (offset s, length s) leaves a gap in the timestamps."""
     rnd = random.Random(seed)
@@ -244,6 +258,10 @@ def build() -> dict[str, str]:
     rec += sleep_night(1, modern) + sleep_night(2, modern) + sleep_night(3, modern)
     rec += sleep_night(4, [("AsleepUnspecified", 15, 450)])  # legacy, pre-iOS 16
 
+    rec += step_records(twin, 25 * 60, 3.2 * 26, 21)  # the watch counts the run
+    rec += step_records(twin, 25 * 60, 3.2 * 24, 22, lead=0, span=60, source=PHONE)  # the phone's coarser, lower count
+    rec += step_records(wstart, 18 * 60, 1.4 * 26, 23)
+    rec += step_records(hstart, 40 * 60, 1.1 * 26, 24)
     rec += record(f"{HK}StepCount", t(3, 12, 0), t(3, 12, 30), 412, "count")
     rec += record(f"{HK}ActiveEnergyBurned", t(3, 12, 0), t(3, 12, 30), 21.5, "Cal")
     b = t(6, 9, 0)
