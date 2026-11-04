@@ -75,7 +75,7 @@ describe('SleepCard fix', () => {
     put.mockResolvedValue({ data: { local_date: '2026-10-20', hours: 6.5 }, response: { ok: true, status: 200 } })
     const w = mountIt(late)
     const store = useWorkoutsStore()
-    store.detail = { workout: { workout_id: 'r1' } } as never
+    store.detail = { workout: { workout_id: 'r1' } } as unknown as typeof store.detail
     mockGet()
     await w.get('[data-testid="sleep-fix"]').trigger('click')
     await w.get('[data-testid="sleep-hours"]').setValue('6.5')
