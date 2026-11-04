@@ -12,6 +12,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/OuttaLineNomad/strydr/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/OuttaLineNomad/strydr/actions/workflows/ci.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
   <img alt="Python 3.14" src="https://img.shields.io/badge/python-3.14-3776AB.svg">
   <img alt="Vue 3" src="https://img.shields.io/badge/vue-3-42b883.svg">

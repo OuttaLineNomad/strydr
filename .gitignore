@@ -40,3 +40,7 @@ _bmad/
 _bmad-output/
 .claude/skills/
 skills-lock.json
+
+# Demo screenshot tooling
+fixtures/demo/node_modules/
+fixtures/demo/out/

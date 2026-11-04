@@ -74,8 +74,8 @@ Further down:
 
 ![Other activities](images/activities.webp)
 
-Walks, hikes and watch strength workouts, with filters for each. A walk with carried weight shows it as a badge
-(**+29 lb**). Walks and hikes count toward your training load, but run insights and run comparisons
+Walks, hikes and watch strength workouts, with filters for each. Strength workouts show their time and average heart
+rate; a walk with carried weight shows it as a badge (**+29 lb**). Walks and hikes count toward your training load, but run insights and run comparisons
 leave them out.
 
 ## Routes

@@ -1,0 +1,9 @@
+{
+  "name": "strydr-demo-screenshots",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer-core": "24.43.1"
+  }
+}

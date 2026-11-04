@@ -67,6 +67,15 @@ to the repository, including in screenshots and test snapshots.
 
 Regenerate with `python fixtures/generate_hae_export.py` (or the Apple one) after changing them.
 
+`fixtures/demo/` builds the made-up Central Park runner behind every screenshot in `docs/images/`, and retakes them all
+with one command. See [fixtures/demo/README.md](../fixtures/demo/README.md). Retake the screenshots after a visible UI
+change.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request: the backend tests, the web tests and
+build, and a Docker build that checks the image carries its config files.
+
 ## API contract
 
 The app-port API schema is committed as `backend/openapi.json`. After changing an endpoint:
