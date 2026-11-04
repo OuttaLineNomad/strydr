@@ -27,6 +27,21 @@ UNREADABLE = "Couldn't read a workout from this video."
 UNAVAILABLE = "This video isn't available to Strydr (private, removed or age-restricted)."
 
 
+def _clip(v: object, n: int) -> object:
+    """A model's over-long name cut at a word boundary, so a video-title name doesn't sink the whole draft."""
+    if not isinstance(v, str) or len(v.strip()) <= n:
+        return v
+    cut = v.strip()[:n + 1].rsplit(" ", 1)[0] if " " in v.strip()[:n + 1] else v.strip()[:n]
+    return cut[:n].rstrip(" .,;:!-–—|")
+
+
+def _shorten_names(obj: dict) -> dict:
+    out = obj | {"name": _clip(obj.get("name"), 60)}
+    if isinstance(obj.get("moves"), list):
+        out["moves"] = [m | {"name": _clip(m.get("name"), 40)} if isinstance(m, dict) else m for m in obj["moves"]]
+    return out
+
+
 def _plan_from_reply(raw: str, video_url: str) -> sc.PlanIn:
     """The first JSON object in the reply that validates as a plan. Prose, <think> text and code fences around it
     are ignored; nothing is honoured that PlanIn does not accept. `video_url` is always the pasted link."""
@@ -35,7 +50,7 @@ def _plan_from_reply(raw: str, video_url: str) -> sc.PlanIn:
         try:
             obj, _ = dec.raw_decode(raw, m.start())
             if isinstance(obj, dict):
-                return sc.PlanIn.model_validate(obj | {"video_url": video_url})
+                return sc.PlanIn.model_validate(_shorten_names(obj) | {"video_url": video_url})
         except (ValueError, ValidationError, RecursionError):
             continue
     raise ValueError("no plan in the reply")

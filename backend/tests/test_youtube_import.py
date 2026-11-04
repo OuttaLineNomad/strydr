@@ -373,3 +373,15 @@ def test_metric_units_reach_the_payload(make):
 def test_empty_video_title_falls_back_to_the_plan_name(make):
     c, _, _ = make(Site([track()], title=""))
     assert imp(c).json()["title"] == "Five move AMRAP"
+
+
+def test_over_long_names_from_the_ai_are_shortened_not_rejected(make):
+    title = "One Kettlebell. 5 Movements. 30 Minutes. Full-Body. This One Will Surprise You!"
+    long_move = "Goblet squat to deep curl to overhead press with a pause"
+    reply = PLAN | {"name": title, "moves": [PLAN["moves"][0] | {"name": long_move}] + PLAN["moves"][1:]}
+    c, _, _ = make(provider=FakeProvider(json.dumps(reply)))
+    r = imp(c)
+    assert r.status_code == 200
+    plan = r.json()["plan"]
+    assert plan["name"] == "One Kettlebell. 5 Movements. 30 Minutes. Full-Body. This One"
+    assert len(plan["moves"][0]["name"]) <= 40 and plan["moves"][0]["name"].startswith("Goblet squat to deep curl")
