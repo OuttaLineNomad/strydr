@@ -22,6 +22,7 @@ export const GLYPHS = {
   activities: '<circle cx="13" cy="5" r="1.8"/><path d="M11 21l2-6-3-3 1-4 4 2 3 1M9 11l-3 2M13 15l3 5"/>',
   weeks: '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>',
   settings: '<path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2.2"/><circle cx="9" cy="16" r="2.2"/>',
+  workouts: '<path d="M9.5 8.5V6.5a2.5 2.5 0 0 1 5 0v2"/><path d="M12 8.5c-4 0-6.5 2.800-6.500 6.300 0 2.700 1.800 4.700 4 4.700h5c2.200 0 4-2 4-4.700 0-3.500-2.500-6.300-6.500-6.300Z"/>',
   chevron: '<path d="M9 6l6 6-6 6"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   warning: '<path d="M12 4 3 19.5h18L12 4Z"/><path d="M12 10v4.5M12 17.5v.2"/>',

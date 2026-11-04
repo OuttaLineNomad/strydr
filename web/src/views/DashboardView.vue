@@ -3,6 +3,8 @@ import { computed, onMounted } from 'vue'
 import StatTile, { type Trend } from '@/components/ui/StatTile.vue'
 import BarChart from '@/components/ui/BarChart.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
+import Button from '@/components/ui/Button.vue'
+import Icons from '@/components/ui/Icons.vue'
 import Segmented from '@/components/ui/Segmented.vue'
 import InsightList from '@/components/app/InsightList.vue'
 import SyncStatusLine from '@/components/app/SyncStatusLine.vue'
@@ -50,15 +52,15 @@ const values = computed(() => weeks.value.map((w) => distanceValue(w.distance_m,
 const labelEvery = computed(() => Math.max(1, Math.ceil(weeks.value.length / 8)))
 
 // This week against last week, from the same series the chart draws.
-const thisWeek = computed(() => values.value.at(-1) ?? null)
-const lastWeek = computed(() => values.value.at(-2) ?? null)
+const thisWeek = computed(() => values.value[values.value.length - 1] ?? null)
+const lastWeek = computed(() => values.value[values.value.length - 2] ?? null)
 const weekTrend = computed<Trend | undefined>(() => {
   if (thisWeek.value == null || lastWeek.value == null) return undefined
   const diff = Number(thisWeek.value.toFixed(1)) - Number(lastWeek.value.toFixed(1))
   if (Math.abs(diff) < 0.05) return { direction: 'flat', text: 'Same as last week', good: true }
   return { direction: diff > 0 ? 'up' : 'down', text: `${diff > 0 ? '+' : '−'}${Math.abs(diff).toFixed(1)} ${du.value} vs last week`, good: diff > 0 }
 })
-const runsThisWeek = computed(() => weeks.value.at(-1)?.run_count ?? null)
+const runsThisWeek = computed(() => weeks.value[weeks.value.length - 1]?.run_count ?? null)
 const rangeTotal = computed(() => values.value.reduce((a, b) => a + b, 0))
 const runsInRange = computed(() => weeks.value.reduce((a, w) => a + w.run_count, 0))
 
@@ -78,6 +80,7 @@ const caption = computed(() => {
       <h1 class="page-title">Dashboard</h1>
       <SyncStatusLine :sync="d.sync" :tz="s.homeTz" />
     </div>
+    <Button icon variant="glass" to="/settings" label="Settings" data-testid="settings-gear"><Icons name="settings" :size="22" /></Button>
   </header>
 
   <p v-if="d.error" class="err" role="alert" data-testid="dash-error">{{ d.error }}</p>

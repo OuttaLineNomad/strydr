@@ -17,19 +17,20 @@ export const NAV_ITEMS: TabItem[] = [
   { label: 'Dashboard', shortLabel: 'Home', to: '/', icon: 'dashboard' },
   { label: 'Runs', to: '/runs', icon: 'runs' },
   { label: 'Other activities', shortLabel: 'Activities', to: '/activities', icon: 'activities' },
+  { label: 'Workouts', to: '/workouts', icon: 'workouts' },
   { label: 'Weeks', to: '/weeks', icon: 'weeks' },
   { label: 'Calendar', to: '/calendar', icon: 'calendar' },
   { label: 'Recap', to: '/recap', icon: 'recap' },
   { label: 'Settings', to: '/settings', icon: 'settings' },
 ]
 
-/** The phone tab bar: five tabs. History opens Weeks and also owns Calendar and Recap. */
+/** The phone tab bar: five tabs (Settings is the gear on Home). History opens Weeks and also owns Calendar and Recap. */
 export const PHONE_NAV_ITEMS: TabItem[] = [
   { label: 'Dashboard', shortLabel: 'Home', to: '/', icon: 'dashboard' },
   { label: 'Runs', to: '/runs', icon: 'runs' },
   { label: 'Other activities', shortLabel: 'Activities', to: '/activities', icon: 'activities' },
+  { label: 'Workouts', to: '/workouts', icon: 'workouts' },
   { label: 'History', to: '/weeks', icon: 'history', match: ['/weeks', '/calendar', '/recap'] },
-  { label: 'Settings', to: '/settings', icon: 'settings' },
 ]
 
 const WORKOUT_PAGE = /^\/runs\/(?!routes(?:\/|$))[^/]+$/

@@ -18,7 +18,7 @@ describe('phone tab bar', () => {
   it('renders five tabs', () => {
     path = '/'
     const w = mount(TabBar, opts())
-    expect(w.findAll('.tab').map((t) => t.text())).toEqual(['Home', 'Runs', 'Activities', 'History', 'Settings'])
+    expect(w.findAll('.tab').map((t) => t.text())).toEqual(['Home', 'Runs', 'Activities', 'Workouts', 'History'])
   })
 
   it.each(['/weeks', '/weeks/2026-W40', '/calendar', '/recap'])('lights History on %s', (p) => {
@@ -31,15 +31,30 @@ describe('phone tab bar', () => {
 })
 
 describe('desktop side menu', () => {
-  it('keeps seven items and lights only Calendar on /calendar', () => {
+  it('lists Workouts after Other activities, keeps Settings, and lights only Calendar on /calendar', () => {
     path = '/calendar'
-    expect(NAV_ITEMS).toHaveLength(7)
+    expect(NAV_ITEMS).toHaveLength(8)
+    const labels = NAV_ITEMS.map((i) => i.label)
+    expect(labels[labels.indexOf('Other activities') + 1]).toBe('Workouts')
+    expect(labels).toContain('Settings')
     const w = mount(SideNav, opts())
     const links = w.findAllComponents(RouterLinkStub)
-    expect(links.length).toBeGreaterThanOrEqual(7)
+    expect(links.length).toBeGreaterThanOrEqual(8)
     const active = w.findAll('.active')
     expect(active).toHaveLength(1)
     expect(active[0]!.text()).toContain('Calendar')
+  })
+})
+
+describe('Workouts tab', () => {
+  it.each(['/workouts', '/workouts/new', '/workouts/3/edit'])('lights Workouts on %s', (p) => {
+    path = p
+    const active = mount(TabBar, opts()).findAll('.tab.active')
+    expect(active).toHaveLength(1)
+    expect(active[0]!.text()).toBe('Workouts')
+  })
+  it('does not light Workouts on /workoutsx', () => {
+    expect(isActive('/workouts', '/workoutsx')).toBe(false)
   })
 })
 

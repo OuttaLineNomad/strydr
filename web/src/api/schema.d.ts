@@ -185,6 +185,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Plans */
+        get: operations["list_plans"];
+        put?: never;
+        /** Add Plan */
+        post: operations["add_plan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/plans/{plan_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Plan */
+        get: operations["get_plan"];
+        /** Put Plan */
+        put: operations["put_plan"];
+        post?: never;
+        /** Delete Plan */
+        delete: operations["delete_plan"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/plans/{plan_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Duplicate Plan */
+        post: operations["duplicate_plan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/privacy-zones": {
         parameters: {
             query?: never;
@@ -1140,6 +1194,17 @@ export interface components {
             /** Run Count */
             run_count: number;
         };
+        /** MoveIn */
+        MoveIn: {
+            /** Name */
+            name: string;
+            /** Reps */
+            reps?: number | null;
+            /** Seconds */
+            seconds?: number | null;
+            /** Weight Kg */
+            weight_kg?: number | null;
+        };
         /** NoteIn */
         NoteIn: {
             /** Rpe */
@@ -1164,6 +1229,52 @@ export interface components {
             speed_mps: number | null;
             /** T S */
             t_s: number;
+        };
+        /** PlanIn */
+        PlanIn: {
+            /** Cap Min */
+            cap_min?: number | null;
+            /** Emom Min */
+            emom_min?: number | null;
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "amrap" | "emom" | "complex";
+            /** Moves */
+            moves: components["schemas"]["MoveIn"][];
+            /** Name */
+            name: string;
+            /** Rounds */
+            rounds?: number | null;
+            /** Video Url */
+            video_url?: string | null;
+        };
+        /** PlanOut */
+        PlanOut: {
+            /** Cap Min */
+            cap_min: number | null;
+            /** Created At */
+            created_at: string;
+            /** Emom Min */
+            emom_min: number | null;
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "amrap" | "emom" | "complex";
+            /** Id */
+            id: number;
+            /** Moves */
+            moves: components["schemas"]["MoveIn"][];
+            /** Name */
+            name: string;
+            /** Rounds */
+            rounds: number | null;
+            /** Updated At */
+            updated_at: string;
+            /** Video Url */
+            video_url: string | null;
         };
         /**
          * PrivacyZoneIn
@@ -2363,6 +2474,185 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoadOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_plans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"][];
+                };
+            };
+        };
+    };
+    add_plan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_plan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_plan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_plan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    duplicate_plan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"];
                 };
             };
             /** @description Validation Error */

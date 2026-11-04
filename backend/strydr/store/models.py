@@ -470,6 +470,23 @@ class Shoe(Base):
     __table_args__ = (Index("uq_shoe_name_lower", func.lower(name), unique=True),)
 
 
+class WorkoutPlan(Base):
+    """A saved home-workout plan (kettlebell / bodyweight): user content, not a pipeline input, so a write never
+    enqueues a recompute. `moves` is the ordered list of {name, reps|seconds, weight_kg|null}. No FKs."""
+    __tablename__ = "workout_plan"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(60))
+    format: Mapped[str] = mapped_column(String(8))  # amrap|emom|complex
+    cap_min: Mapped[int | None] = mapped_column(Integer)  # AMRAP time cap
+    emom_min: Mapped[int | None] = mapped_column(Integer)  # EMOM total minutes
+    rounds: Mapped[int | None] = mapped_column(Integer)  # complex rounds
+    moves: Mapped[list] = mapped_column(JSON)
+    video_url: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime)
+    __table_args__ = (Index("uq_workout_plan_name_lower", func.lower(name), unique=True),)
+
+
 class ShoeDefault(Base):
     """Default-shoe history: the row with the latest from_date on or before a run's date applies. NULL shoe_id = none."""
     __tablename__ = "shoe_default"

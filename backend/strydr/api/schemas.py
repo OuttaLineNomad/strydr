@@ -758,3 +758,76 @@ class ImportStatusOut(BaseModel):
 
 class HealthOut(BaseModel):
     status: Literal["ok"]
+
+
+# --- Home-workout plans (persistent tier) -----------------------------------------------------------------------
+class MoveIn(BaseModel):
+    name: str = Field(min_length=1, max_length=40)
+    reps: int | None = Field(None, ge=1, le=500)
+    seconds: int | None = Field(None, ge=5, le=600)
+    weight_kg: float | None = Field(None, ge=0.5, le=100)  # None = bodyweight
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _strip(cls, v):
+        return v.strip() if isinstance(v, str) else v
+
+    @model_validator(mode="after")
+    def _one_of_reps_or_seconds(self):
+        if (self.reps is None) == (self.seconds is None):
+            raise ValueError("a move needs exactly one of reps or seconds")
+        return self
+
+
+class PlanIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    format: Literal["amrap", "emom", "complex"]
+    cap_min: int | None = Field(None, ge=1, le=90)
+    emom_min: int | None = Field(None, ge=1, le=90)
+    rounds: int | None = Field(None, ge=1, le=50)
+    moves: list[MoveIn] = Field(min_length=1, max_length=12)
+    video_url: str | None = Field(None, max_length=500)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _strip(cls, v):
+        return v.strip() if isinstance(v, str) else v
+
+    @field_validator("video_url", mode="before")
+    @classmethod
+    def _url(cls, v):
+        from urllib.parse import urlparse
+        if v is None:
+            return None
+        if not isinstance(v, str):
+            return v
+        v = v.strip()
+        if not v:
+            return None
+        u = urlparse(v)
+        if u.scheme not in ("http", "https") or not u.netloc:
+            raise ValueError("the video link must be an http or https URL")
+        return v
+
+    @model_validator(mode="after")
+    def _format_setting(self):
+        need = {"amrap": "cap_min", "emom": "emom_min", "complex": "rounds"}[self.format]
+        if getattr(self, need) is None:
+            raise ValueError(f"{self.format} needs {need}")
+        for f in ("cap_min", "emom_min", "rounds"):  # settings of other formats are dropped
+            if f != need:
+                setattr(self, f, None)
+        return self
+
+
+class PlanOut(BaseModel):
+    id: int
+    name: str
+    format: Literal["amrap", "emom", "complex"]
+    cap_min: int | None
+    emom_min: int | None
+    rounds: int | None
+    moves: list[MoveIn]
+    video_url: str | None
+    created_at: str
+    updated_at: str

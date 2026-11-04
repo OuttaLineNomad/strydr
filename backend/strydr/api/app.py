@@ -9,7 +9,7 @@ from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
 from strydr import relabel
-from strydr.api import calendar, import_api, insights, load, privacy, recap, routes_api, settings_api, shoes, weeks
+from strydr.api import calendar, import_api, insights, load, plans, privacy, recap, routes_api, settings_api, shoes, weeks
 from strydr.api import schemas as sc
 from strydr.api.common import Api, rfc3339, workout_out
 from strydr.auth import sessions
@@ -310,7 +310,7 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
         return out
 
     shared = Api(engine, default_tz, auth)
-    for sub in (insights, weeks, calendar, recap, load, routes_api, privacy, settings_api, import_api, shoes):
+    for sub in (insights, weeks, calendar, recap, load, routes_api, privacy, settings_api, import_api, shoes, plans):
         router.include_router(sub.router(shared))
     app.include_router(router)
     if web_dist is not None and web_dist.is_dir():
