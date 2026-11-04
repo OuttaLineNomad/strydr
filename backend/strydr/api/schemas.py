@@ -81,6 +81,17 @@ class DisplayGeometry(BaseModel):
     start: tuple[float, float]
     end: tuple[float, float]
     bounds: tuple[float, float, float, float]  # south, west, north, east
+    walk_segments: list[list[tuple[float, float]]] = []  # walking sections, cut from the same clipped points
+
+
+class RunWalkOut(BaseModel):
+    """Share of a run's active time spent running, walking and standing still (derive/runwalk)."""
+    run_pct: float
+    walk_pct: float
+    stopped_pct: float  # under 60 spm while recording; counts as neither running nor walking
+    source: Literal["cadence", "pace"]
+    cutoff: float  # steps per minute for cadence, metres per second for pace
+    cutoff_learned: bool  # False when the default was used
 
 
 class NoteOut(BaseModel):
@@ -267,6 +278,7 @@ class WorkoutDetailOut(BaseModel):
     conditions: ConditionsOut | None = None
     gap: GapOut | None = None
     sleep: SleepOut | None = None
+    runwalk: RunWalkOut | None = None
     display_geometry: DisplayGeometry | None
     quality_flags: dict[str, int]
     data_quality_issues: list[str]
@@ -457,6 +469,7 @@ class WeekSummaryOut(BaseModel):
     long_run_count: int
     elevation_gain_m: float | None
     intensity: IntensityMix
+    walk_pct: float | None = None  # walking time over running plus walking time; None when no run had a split
     load: WeekLoad
     insight_count: int
     has_note: bool

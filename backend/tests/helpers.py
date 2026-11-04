@@ -14,7 +14,7 @@ ORIGIN = (52.3700, 4.8900)  # arbitrary, as in fixtures/generate_hae_export.py
 
 def add_run(engine, wid: str, start: datetime, minutes: int, speed_mps: float = 3.0, *, hr: float | list[float] | None = 150.0,
             route: bool = True, reported_m: float | None = None, speed_fn=None, type_: str = "run",
-            origin=ORIGIN) -> float:
+            origin=ORIGIN, cadence_fn=None) -> float:
     """Insert a canonical workout: a straight track at 1 Hz and per-minute HR buckets. Returns the track length."""
     seconds = minutes * 60
     t, lat, speeds = list(range(seconds + 1)), [origin[0]], []
@@ -25,8 +25,11 @@ def add_run(engine, wid: str, start: datetime, minutes: int, speed_mps: float = 
     dist = sum(speeds)
     series = {}
     if route:
-        series["route"] = {"t": t, "lat": lat, "lon": [origin[1]] * len(t), "alt": [10 + (i % 60) / 10 for i in t],
+        series["route"] = {"t": t, "lat": lat, "lon": [origin[1]] * len(t), "alt": [10 + (i % 60) / 10 for i in t], "at": [float(i) for i in t],
                            "speed": speeds + [speeds[-1]]}
+    if cadence_fn:  # steps per minute at second i -> 10 s step intervals, as the adapters store them
+        ts = list(range(0, seconds, 10))
+        series["step_count"] = {"t": ts, "dt": [10.0] * len(ts), "steps": [cadence_fn(i) / 6 for i in ts]}
     avgs = None if hr is None else (hr if isinstance(hr, list) else [hr] * minutes)
     if avgs is not None:
         series["heart_rate"] = {"t": [m * 60 + 30 for m in range(len(avgs))], "min": [a - 4 for a in avgs],

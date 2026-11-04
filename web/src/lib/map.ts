@@ -30,6 +30,16 @@ export function drawRoute(maplibregl: MapLibre, m: import('maplibre-gl').Map, g:
   })
   m.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': width + 3, 'line-opacity': 0.95 } })
   m.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': color, 'line-width': width } })
+  // Walking sections sit over the route in a second colour; the API sends them already clipped (AD-10).
+  const walk = g.walk_segments ?? []
+  if (walk.length) {
+    m.addSource('walk', {
+      type: 'geojson',
+      data: { type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: walk.map((s) => s.map(lonLat)) } },
+    })
+    const walkColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-elevation').trim() || '#2a78d6'
+    m.addLayer({ id: 'walk-line', type: 'line', source: 'walk', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': walkColor, 'line-width': width } })
+  }
   // Start sits left of its point and End right, so close-together markers stay distinct.
   for (const [kind, point] of [['S', g.start], ['E', g.end]] as const) {
     const pin = document.createElement('div')

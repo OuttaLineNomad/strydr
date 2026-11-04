@@ -123,4 +123,4 @@ def test_route_map_serves_every_clipped_track(engine, app_client):
     m = app_client.get("/api/v1/routes/map").json()
     assert {x["workout_id"] for x in m["lines"]} == {"a", "b", "c"}
     assert {x["type"] for x in m["lines"]} == {"run", "walk"}
-    assert set(m["lines"][0]["display_geometry"]) == {"segments", "start", "end", "bounds"}
+    assert set(m["lines"][0]["display_geometry"]) == {"segments", "start", "end", "bounds", "walk_segments"}

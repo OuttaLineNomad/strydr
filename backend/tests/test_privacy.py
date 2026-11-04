@@ -97,4 +97,4 @@ def test_openapi_exposes_raw_coordinates_only_through_display_geometry():
     users = [n for n, s in schemas.items() if "#/components/schemas/DisplayGeometry" in str(s)]
     assert sorted(users) == ["RouteDetailOut", "RouteMapLine", "RouteOut", "WorkoutDetailOut"]  # map: one line per workout
     assert {"lat", "lon"}.isdisjoint(schemas["PrivacyZoneOut"]["properties"])
-    assert DisplayGeometry.model_fields.keys() == {"segments", "start", "end", "bounds"}
+    assert DisplayGeometry.model_fields.keys() == {"segments", "start", "end", "bounds", "walk_segments"}

@@ -139,7 +139,7 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
                 hr_series=detail.hr_series if detail else None, pace_series=detail.pace_series if detail else None,
                 elevation_series=detail.elevation_series if detail else None,
                 conditions=detail.conditions if detail else None, gap=detail.gap if detail else None,
-                sleep=detail.sleep if detail else None,
+                sleep=detail.sleep if detail else None, runwalk=detail.runwalk if detail else None,
                 display_geometry=display.display_geometry if display else None,
                 quality_flags=w.quality_flags or {}, data_quality_issues=list(issues), note=_note_out(note), shoe=shoe,
                 shoe_chosen=s.get(models.WorkoutShoe, workout_id) is not None,

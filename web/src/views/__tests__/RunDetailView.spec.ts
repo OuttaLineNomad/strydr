@@ -32,6 +32,11 @@ async function mountIt(detail = workoutDetail()) {
 describe('RunDetailView', () => {
   beforeEach(() => vi.clearAllMocks())
 
+  it('shows the run/walk split tile for a run', async () => {
+    const { w } = await mountIt(workoutDetail({ runwalk: { run_pct: 80, walk_pct: 20, stopped_pct: 0, source: 'cadence', cutoff: 130, cutoff_learned: true } }))
+    expect(w.get('[data-testid="runwalk-line"]').text()).toBe('Running 80% · Walking 20%')
+  })
+
   it('shows the run shoe in the picker and saves a change to this workout', async () => {
     const { w } = await mountIt(workoutDetail({ shoe: { id: 1, name: 'Pegasus', retired: false, source: 'chosen' }, shoe_chosen: true }))
     const sel = w.get('[data-testid="shoe-picker"]')

@@ -209,6 +209,7 @@ class WorkoutDetail(Base):
     conditions: Mapped[dict | None] = mapped_column(JSON)  # derive/conditions: weather and heat adjustment
     gap: Mapped[dict | None] = mapped_column(JSON)  # derive/grade: whole-run grade adjusted pace and relief
     sleep: Mapped[dict | None] = mapped_column(JSON)  # derive/sleep: the night before and the next morning's readings
+    runwalk: Mapped[dict | None] = mapped_column(JSON)  # derive/runwalk: running, walking and stopped shares, source, cutoff
 
 
 class WorkoutDisplay(Base):
@@ -231,6 +232,8 @@ class PeriodSummary(Base):
     long_run_count: Mapped[int] = mapped_column(Integer)
     elevation_gain_m: Mapped[float | None] = mapped_column(Float)
     zone_seconds: Mapped[list | None] = mapped_column(JSON)
+    run_s: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")  # derive/runwalk seconds
+    walk_s: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
 
 
 class BestEffort(Base):

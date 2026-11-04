@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from strydr.pipeline.context import Context
 from strydr.pipeline.derive import days as days_mod
 from strydr.pipeline.derive import load as load_mod
-from strydr.pipeline.derive import conditions, grade, records, sleep, summary, track
+from strydr.pipeline.derive import conditions, grade, records, runwalk, sleep, summary, track
 from strydr.pipeline.derive.routes import stage as routes_stage
 from strydr.pipeline.derive.routes.display import for_display
 from strydr.pipeline.hr import active_clock
@@ -48,6 +48,7 @@ def run(ctx: Context, profile: Profile) -> None:
                        for r in s.execute(select(models.WorkoutWeather).where(models.WorkoutWeather.status == "ok")).scalars()}
 
     nights = sleep.overlay(nights, corrections)  # the runner's hours, before any sleep math (AD-1)
+    cuts, run_windows = _learn_runwalk(ctx, workouts)
     facts: list[summary.RunFacts] = []
     efforts: dict[str, dict[str, float]] = {}
     inputs: list[load_mod.WorkoutLoadInput] = []
@@ -57,8 +58,9 @@ def run(ctx: Context, profile: Profile) -> None:
         try:
             with Session(ctx.engine) as s:
                 cols = series.load_series(s, w.workout_id)
+            split = runwalk.split(run_windows.get(w.workout_id, []), cuts) if w.type == "run" else None
             rows, fact, best = _workout_rows(gid, w, cols, profile, zones, weather.get(w.workout_id),
-                                             sleep.before_run(nights, w.start_utc, w.utc_offset_s, rhr, hrv, ctx.tz))
+                                             sleep.before_run(nights, w.start_utc, w.utc_offset_s, rhr, hrv, ctx.tz), split)
             if w.type == "strength":  # detail rows only: never an input to load, fitness or run facts
                 generations.add_rows(ctx.engine, rows)
                 strength_days.append((date.fromisoformat(w.local_date), days_mod.DayWorkout("strength", w.duration_s or 0.0, 0.0)))
@@ -101,6 +103,21 @@ def run(ctx: Context, profile: Profile) -> None:
     routes_stage.run(ctx, profile, zones)
 
 
+def _learn_runwalk(ctx: Context, workouts) -> tuple[runwalk.Cutoffs, dict[str, list[runwalk.Window]]]:
+    """Pre-pass over every run: its 10 s windows, then the cutoffs learned from all of them (only windows are kept)."""
+    wins: dict[str, list[runwalk.Window]] = {}
+    for w in workouts:
+        if w.type != "run":
+            continue
+        try:
+            with Session(ctx.engine) as s:
+                cols = series.load_series(s, w.workout_id)
+            wins[w.workout_id] = runwalk.windows(cols.get("step_count"), cols.get("route"), cols.get("heart_rate"))
+        except Exception as e:
+            log.warning("run/walk windows skipped for %s: %s", w.workout_id, type(e).__name__)
+    return runwalk.learn_cutoff(list(wins.values())), wins
+
+
 def _load_row(gid: int, wl: load_mod.WorkoutLoad, rpe: int | None, hrmax: int | None) -> models.WorkoutLoad:
     return models.WorkoutLoad(
         generation_id=gid, workout_id=wl.workout_id, type=wl.type, local_date=wl.local_date.isoformat(), trimp=wl.trimp,
@@ -138,7 +155,7 @@ def _daily(ctx: Context, th, p: load_mod.LoadParams, loads: list[load_mod.Workou
         kind=c.kind, load=c.load, hard_seconds=c.hard_seconds, reasons=list(c.reasons)) for c in classes))
 
 
-def _workout_rows(gid, w, cols, profile, zones, weather=None, night=None) -> tuple[list, summary.RunFacts | None, dict[str, float]]:
+def _workout_rows(gid, w, cols, profile, zones, weather=None, night=None, split=None) -> tuple[list, summary.RunFacts | None, dict[str, float]]:
     hr, route = cols.get("heart_rate"), cols.get("route")
     rows: list = []
     fact = None
@@ -146,7 +163,8 @@ def _workout_rows(gid, w, cols, profile, zones, weather=None, night=None) -> tup
         zone_s = summary.zone_seconds(hr["avg"], profile.zone_bounds_bpm, hr_t=active_clock(hr)) if hr else None
         long_run = summary.is_long_run(w.distance_m, w.duration_s)
         fact = summary.RunFacts(w.workout_id, w.local_date, w.distance_m or 0.0, w.duration_s or 0.0,
-                                w.elevation_gain_m, zone_s, long_run)
+                                w.elevation_gain_m, zone_s, long_run,
+                                split["run_s"] if split else 0.0, split["walk_s"] if split else 0.0)
         mix = summary.intensity_mix(active_clock(hr), hr["avg"], w.duration_s, profile.easy_ceiling_bpm) if hr else None
         rows.append(models.WorkoutSummary(
             generation_id=gid, workout_id=w.workout_id, is_long_run=long_run, zone_seconds=zone_s,
@@ -157,6 +175,8 @@ def _workout_rows(gid, w, cols, profile, zones, weather=None, night=None) -> tup
             generation_id=gid, workout_id=w.workout_id, is_long_run=False,
             zone_seconds=summary.zone_seconds(hr["avg"], profile.zone_bounds_bpm, hr_t=active_clock(hr))))
     detail = models.WorkoutDetail(generation_id=gid, workout_id=w.workout_id, sleep=night)
+    if split:  # percentages, source and cutoff only; the walk ranges are used for the map and not stored
+        detail.runwalk = {k: v for k, v in split.items() if k != "walk_ranges"}
     if not w.is_indoor:
         detail.conditions = conditions.conditions(w.temperature_c, w.humidity_pct, weather, w.avg_speed_mps)
     display = None
@@ -182,7 +202,7 @@ def _workout_rows(gid, w, cols, profile, zones, weather=None, night=None) -> tup
         detail.gap = grade.run_gap(dist, route["alt"], w.avg_speed_mps)
         detail.pace_series = track.pace_series(dist, rt)
         detail.elevation_series = track.elevation_series(dist, route["alt"])
-        display = for_display(route, zones)
+        display = for_display(route, zones, split["walk_ranges"] if split else None)
         if w.type == "run":
             best = records.best_efforts(dist, rt, w.distance_m)
             if own:

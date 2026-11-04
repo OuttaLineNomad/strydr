@@ -627,6 +627,27 @@
             ],
             "title": "Start",
             "type": "array"
+          },
+          "walk_segments": {
+            "default": [],
+            "items": {
+              "items": {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "title": "Walk Segments",
+            "type": "array"
           }
         },
         "required": [
@@ -2484,6 +2505,49 @@
         "title": "RunSummaryOut",
         "type": "object"
       },
+      "RunWalkOut": {
+        "description": "Share of a run's active time spent running, walking and standing still (derive/runwalk).",
+        "properties": {
+          "cutoff": {
+            "title": "Cutoff",
+            "type": "number"
+          },
+          "cutoff_learned": {
+            "title": "Cutoff Learned",
+            "type": "boolean"
+          },
+          "run_pct": {
+            "title": "Run Pct",
+            "type": "number"
+          },
+          "source": {
+            "enum": [
+              "cadence",
+              "pace"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "stopped_pct": {
+            "title": "Stopped Pct",
+            "type": "number"
+          },
+          "walk_pct": {
+            "title": "Walk Pct",
+            "type": "number"
+          }
+        },
+        "required": [
+          "run_pct",
+          "walk_pct",
+          "stopped_pct",
+          "source",
+          "cutoff",
+          "cutoff_learned"
+        ],
+        "title": "RunWalkOut",
+        "type": "object"
+      },
       "SectionOut": {
         "properties": {
           "end_m": {
@@ -3546,6 +3610,17 @@
             "title": "Runs",
             "type": "array"
           },
+          "walk_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Walk Pct"
+          },
           "week_end": {
             "title": "Week End",
             "type": "string"
@@ -3717,6 +3792,17 @@
           "run_count": {
             "title": "Run Count",
             "type": "integer"
+          },
+          "walk_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Walk Pct"
           },
           "week_end": {
             "title": "Week End",
@@ -3979,6 +4065,16 @@
             },
             "title": "Quality Flags",
             "type": "object"
+          },
+          "runwalk": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunWalkOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "shoe": {
             "anyOf": [

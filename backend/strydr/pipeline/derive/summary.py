@@ -19,6 +19,8 @@ class RunFacts:
     elevation_gain_m: float | None
     zone_seconds: list[float] | None
     is_long_run: bool
+    run_s: float = 0.0  # seconds classed as running / walking (derive/runwalk); stopped time is in neither
+    walk_s: float = 0.0
 
 
 def week_id(local_date: str) -> str:
@@ -62,6 +64,7 @@ def period_summaries(runs: Sequence[RunFacts]) -> list[dict]:
             "distance_m": sum(r.distance_m for r in rs), "duration_s": sum(r.duration_s for r in rs),
             "run_count": len(rs), "long_run_count": sum(r.is_long_run for r in rs),
             "elevation_gain_m": sum(gains) if gains else None,
+            "run_s": sum(r.run_s for r in rs), "walk_s": sum(r.walk_s for r in rs),
             "zone_seconds": [sum(z[i] for z in zones) for i in range(len(zones[0]))] if zones else None,
         })
     return out

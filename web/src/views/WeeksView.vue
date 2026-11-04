@@ -7,6 +7,7 @@ import Icons from '@/components/ui/Icons.vue'
 import Button from '@/components/ui/Button.vue'
 import { vPress } from '@/directives/press'
 import LoadSection from '@/components/app/LoadSection.vue'
+import WalkingShareSection from '@/components/app/WalkingShareSection.vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useWeeksStore } from '@/stores/weeks'
 import { distanceUnit, formatDistance, formatDuration } from '@/lib/units'
@@ -35,6 +36,8 @@ function otherActivities(wk: WeekSummary): string[] {
 
   <!-- The load chart lives here, in a Load section above the weeks list. -->
   <LoadSection />
+
+  <WalkingShareSection />
 
   <section class="stack" aria-labelledby="weeks-h">
     <h2 id="weeks-h" class="section-title">All weeks</h2>

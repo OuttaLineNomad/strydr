@@ -26,7 +26,7 @@ describe.each([
   it('renders the history switch with its own segment pressed', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
-    const w = mount(View, { global: { plugins: [pinia], stubs: { RouterLink: RouterLinkStub, LoadSection: true } } })
+    const w = mount(View, { global: { plugins: [pinia], stubs: { RouterLink: RouterLinkStub, LoadSection: true, WalkingShareSection: true } } })
     await flushPromises()
     for (const p of ['weeks', 'calendar', 'recap']) {
       expect(w.get(`[data-testid="history-${p}"]`).attributes('aria-pressed')).toBe(String(p === page))

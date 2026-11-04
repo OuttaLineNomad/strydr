@@ -30,6 +30,11 @@ def _wid(d: date) -> str:
     return d.strftime("%G-W%V")
 
 
+def _walk_pct(p: models.PeriodSummary | None) -> float | None:
+    total = (p.run_s + p.walk_s) if p else 0.0
+    return round(p.walk_s / total * 100, 1) if total > 0 else None
+
+
 def _summaries(s: Session, mondays: list[date]) -> list[sc.WeekSummaryOut]:
     first, last = mondays[0], mondays[-1] + timedelta(days=6)
     ids = [_wid(m) for m in mondays]
@@ -58,6 +63,7 @@ def _summaries(s: Session, mondays: list[date]) -> list[sc.WeekSummaryOut]:
             run_count=p.run_count if p else 0, long_run_count=p.long_run_count if p else 0,
             elevation_gain_m=p.elevation_gain_m if p else None,
             intensity=sc.IntensityMix(zone_seconds=zones, easy_share_pct=sum(zones[:EASY_ZONES]) / total * 100 if total else None),
+            walk_pct=_walk_pct(p),
             load=sc.WeekLoad(total=sum(d.load for d in mine), by_type=by_type, estimated=any(d.estimated for d in mine),
                              fitness=end.fitness if end else None, fatigue=end.fatigue if end else None,
                              form_pct=end.form_pct if end else None),

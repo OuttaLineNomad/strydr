@@ -13,6 +13,7 @@ import RunSummary from '@/components/app/RunSummary.vue'
 import RunHero from '@/components/app/RunHero.vue'
 import ConditionsCard from '@/components/app/ConditionsCard.vue'
 import SleepCard from '@/components/app/SleepCard.vue'
+import RunWalkCard from '@/components/app/RunWalkCard.vue'
 import { useRoute } from 'vue-router'
 import { sleepLine } from '@/lib/sleep'
 import { conditionsLine } from '@/lib/conditions'
@@ -245,6 +246,8 @@ const elev = computed(() => {
       <SplitsTable v-if="!isStrength" class="s6" :splits-km="detail.splits_km" :splits-mi="detail.splits_mi" :units="s.units" />
 
       <ConditionsCard v-if="!run.is_indoor && !isStrength" class="s6" :conditions="detail.conditions ?? null" :gap="detail.gap ?? null" :speed-mps="run.avg_speed_mps" :units="s.units" />
+
+      <RunWalkCard v-if="run.type === 'run'" class="s6" :runwalk="detail.runwalk ?? null" :units="s.units" />
 
       <SleepCard v-if="!isStrength" class="s6" :sleep="detail.sleep ?? null" :workout-id="run.workout_id" />
 

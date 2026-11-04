@@ -845,6 +845,14 @@ export interface components {
                 number,
                 number
             ];
+            /**
+             * Walk Segments
+             * @default []
+             */
+            walk_segments: [
+                number,
+                number
+            ][][];
         };
         /** ElevationPoint */
         ElevationPoint: {
@@ -1436,6 +1444,27 @@ export interface components {
             /** Thumb */
             thumb?: ("up" | "down") | null;
         };
+        /**
+         * RunWalkOut
+         * @description Share of a run's active time spent running, walking and standing still (derive/runwalk).
+         */
+        RunWalkOut: {
+            /** Cutoff */
+            cutoff: number;
+            /** Cutoff Learned */
+            cutoff_learned: boolean;
+            /** Run Pct */
+            run_pct: number;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "cadence" | "pace";
+            /** Stopped Pct */
+            stopped_pct: number;
+            /** Walk Pct */
+            walk_pct: number;
+        };
         /** SectionOut */
         SectionOut: {
             /** End M */
@@ -1737,6 +1766,8 @@ export interface components {
             run_count: number;
             /** Runs */
             runs: components["schemas"]["WorkoutOut"][];
+            /** Walk Pct */
+            walk_pct?: number | null;
             /** Week End */
             week_end: string;
             /** Week Id */
@@ -1791,6 +1822,8 @@ export interface components {
             long_run_count: number;
             /** Run Count */
             run_count: number;
+            /** Walk Pct */
+            walk_pct?: number | null;
             /** Week End */
             week_end: string;
             /** Week Id */
@@ -1851,6 +1884,7 @@ export interface components {
             quality_flags: {
                 [key: string]: number;
             };
+            runwalk?: components["schemas"]["RunWalkOut"] | null;
             shoe?: components["schemas"]["WorkoutShoeOut"] | null;
             /**
              * Shoe Chosen
