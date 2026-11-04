@@ -490,6 +490,15 @@ class WorkoutCarry(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime)
 
 
+class SleepCorrection(Base):
+    """The runner's own hours for a night Apple recorded short (watch put on late). A pipeline input (AD-1) keyed by
+    the night's wake-up date; derive overlays it on `totalSleep` only."""
+    __tablename__ = "sleep_correction"
+    local_date: Mapped[str] = mapped_column(String(10), primary_key=True)
+    hours: Mapped[float] = mapped_column(Float)
+    updated_at: Mapped[datetime] = mapped_column(DateTime)
+
+
 class WeekNote(Base):
     __tablename__ = "week_note"
     week_id: Mapped[str] = mapped_column(String(8), primary_key=True)

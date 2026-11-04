@@ -41,11 +41,13 @@ def run(ctx: Context, profile: Profile) -> None:
             models.DailyMetric.metric == "heart_rate_variability", models.DailyMetric.value.is_not(None)))}
         nights = [(d, x) for d, x in s.execute(select(models.DailyMetric.local_date, models.DailyMetric.extra).where(
             models.DailyMetric.metric == "sleep_analysis").order_by(models.DailyMetric.local_date)) if x]
+        corrections = {d: h for d, h in s.execute(select(models.SleepCorrection.local_date, models.SleepCorrection.hours))}
         weather = {}
         if settings.read_weather_enabled(s):  # fetched weather is only an input while the runner has it on
             weather = {r.workout_id: {c: getattr(r, c) for c in _WEATHER_COLS}
                        for r in s.execute(select(models.WorkoutWeather).where(models.WorkoutWeather.status == "ok")).scalars()}
 
+    nights = sleep.overlay(nights, corrections)  # the runner's hours, before any sleep math (AD-1)
     facts: list[summary.RunFacts] = []
     efforts: dict[str, dict[str, float]] = {}
     inputs: list[load_mod.WorkoutLoadInput] = []
@@ -55,7 +57,7 @@ def run(ctx: Context, profile: Profile) -> None:
             with Session(ctx.engine) as s:
                 cols = series.load_series(s, w.workout_id)
             rows, fact, best = _workout_rows(gid, w, cols, profile, zones, weather.get(w.workout_id),
-                                             sleep.before_run(nights, w.start_utc, w.utc_offset_s, rhr, hrv))
+                                             sleep.before_run(nights, w.start_utc, w.utc_offset_s, rhr, hrv, ctx.tz))
             hr = cols.get("heart_rate")
             samples = list(zip(active_clock(hr), hr["avg"])) if hr and profile.hrmax else None
             inp = load_mod.WorkoutLoadInput(

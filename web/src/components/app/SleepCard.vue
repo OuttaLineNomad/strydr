@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
+import Button from '@/components/ui/Button.vue'
+import SleepFixField from '@/components/app/SleepFixField.vue'
 import type { Sleep } from '@/api/types'
 import { formatHours, QUALITY_LABEL } from '@/lib/sleep'
 
 // The night before this run, from Apple's sleep stages: how long, how it split into stages,
 // how it compares with the runner's usual, and the next morning's resting HR and HRV.
-const props = defineProps<{ sleep: Sleep | null }>()
+const props = defineProps<{ sleep: Sleep | null; workoutId?: string }>()
+const fixing = ref(false)
 
 const z = computed(() => props.sleep)
 const stages = computed(() => {
@@ -44,20 +47,26 @@ const hrv = computed(() => delta(z.value?.hrv_ms, z.value?.hrv_usual_ms, 'ms', f
   <GlassPanel class="sleep" role="group" aria-label="Sleep the night before" data-testid="sleep">
     <div class="head">
       <h3 class="chart-title">Sleep the night before</h3>
+      <span v-if="z?.corrected" class="pill pill--neutral" data-testid="sleep-corrected">Corrected</span>
       <span v-if="z" class="pill" :class="z.quality === 'good' ? 'pill--success' : 'pill--neutral'" data-testid="sleep-quality">{{ QUALITY_LABEL[z.quality] }}</span>
     </div>
 
     <template v-if="z">
       <div class="total">
         <span class="big mono" data-testid="sleep-total">{{ formatHours(z.total_h) }}</span>
-        <span v-if="z.bedtime && z.wake" class="times">{{ z.bedtime }} to {{ z.wake }}<template v-if="z.hours_before_run != null"> · woke {{ formatHours(z.hours_before_run) }} before the run</template></span>
+        <span v-if="z.bedtime && z.wake && !z.corrected" class="times">{{ z.bedtime }} to {{ z.wake }}<template v-if="z.hours_before_run != null"> · woke {{ formatHours(z.hours_before_run) }} before the run</template></span>
+      </div>
+      <div v-if="workoutId" class="fixbox">
+        <p v-if="z.suspicious && !fixing" class="flag" data-testid="sleep-flag">This looks like the watch went on late.</p>
+        <SleepFixField v-if="fixing" :workout-id="workoutId" :night="z.night_of" :hours="z.total_h" :corrected="z.corrected" @done="fixing = false" />
+        <Button v-else small type="button" data-testid="sleep-fix" @click="fixing = true">{{ z.suspicious ? 'Fix hours' : z.corrected ? 'Change hours' : 'Correct hours' }}</Button>
       </div>
       <p v-if="vsUsual" class="usual" :class="`usual--${vsUsual.tone}`">{{ vsUsual.text }}</p>
 
-      <div v-if="stages.length" class="bar" role="img" :aria-label="stages.map((s) => `${s.label} ${formatHours(s.h)}`).join(', ')">
+      <div v-if="stages.length && !z.corrected" class="bar" role="img" :aria-label="stages.map((s) => `${s.label} ${formatHours(s.h)}`).join(', ')">
         <span v-for="s in stages" :key="s.key" class="seg" :class="`seg--${s.key}`" :style="{ width: `${s.pct}%` }" />
       </div>
-      <ul v-if="stages.length" class="stages">
+      <ul v-if="stages.length && !z.corrected" class="stages">
         <li v-for="s in stages" :key="s.key"><i class="sw" :class="`seg--${s.key}`" /> {{ s.label }} <b class="mono">{{ formatHours(s.h) }}</b></li>
       </ul>
 
@@ -88,6 +97,8 @@ const hrv = computed(() => delta(z.value?.hrv_ms, z.value?.hrv_usual_ms, 'ms', f
 .times { font-size: var(--body-sm-size); color: var(--ink-secondary); }
 .usual { margin: 0; font-size: var(--body-sm-size); font-weight: 600; color: var(--ink-secondary); }
 .usual--low { color: var(--accent-text); }
+.fixbox { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+.flag { margin: 0; font-size: var(--body-sm-size); font-weight: 600; color: var(--accent-text); }
 .bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; gap: 2px; background: var(--divider); }
 .seg { display: block; height: 100%; transform-origin: left; animation: grow-x .8s var(--ease-settle) both; }
 .seg--deep { background: var(--deep); }

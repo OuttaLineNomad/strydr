@@ -113,6 +113,15 @@ class WorkoutCarryIn(BaseModel):
     weight_kg: float = Field(gt=0, le=100)
 
 
+class SleepCorrectionIn(BaseModel):
+    hours: float = Field(ge=0.5, le=14, allow_inf_nan=False)
+
+
+class SleepCorrectionOut(BaseModel):
+    local_date: str
+    hours: float | None
+
+
 class WorkoutCarryOut(BaseModel):
     carry_kg: float | None
 
@@ -219,6 +228,8 @@ class SleepOut(BaseModel):
     usual_h: float | None  # median of the previous 30 nights, from 7 nights up
     vs_usual_h: float | None
     quality: Literal["short", "restless", "good", "fair"]
+    corrected: bool = False  # the runner entered these hours
+    suspicious: bool = False  # looks like a watch put on late: offer the fix
     rhr_bpm: float | None
     rhr_usual_bpm: float | None
     hrv_ms: float | None

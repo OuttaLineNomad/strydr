@@ -469,6 +469,24 @@ export interface paths {
         patch: operations["patch_shoe"];
         trace?: never;
     };
+    "/api/v1/sleep/{local_date}/correction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Sleep Correction */
+        put: operations["put_sleep_correction"];
+        post?: never;
+        /** Delete Sleep Correction */
+        delete: operations["delete_sleep_correction"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sync-status": {
         parameters: {
             query?: never;
@@ -1518,6 +1536,18 @@ export interface components {
             /** Shoes */
             shoes: components["schemas"]["ShoeOut"][];
         };
+        /** SleepCorrectionIn */
+        SleepCorrectionIn: {
+            /** Hours */
+            hours: number;
+        };
+        /** SleepCorrectionOut */
+        SleepCorrectionOut: {
+            /** Hours */
+            hours: number | null;
+            /** Local Date */
+            local_date: string;
+        };
         /**
          * SleepOut
          * @description The night before a run (derive/sleep): hours from Apple's sleep stages, and the next morning's readings.
@@ -1529,6 +1559,11 @@ export interface components {
             bedtime: string | null;
             /** Core H */
             core_h: number | null;
+            /**
+             * Corrected
+             * @default false
+             */
+            corrected: boolean;
             /** Deep H */
             deep_h: number | null;
             /** Deep Rem Pct */
@@ -1554,6 +1589,11 @@ export interface components {
             rhr_bpm: number | null;
             /** Rhr Usual Bpm */
             rhr_usual_bpm: number | null;
+            /**
+             * Suspicious
+             * @default false
+             */
+            suspicious: boolean;
             /** Total H */
             total_h: number;
             /** Usual H */
@@ -2975,6 +3015,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ShoesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_sleep_correction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                local_date: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SleepCorrectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SleepCorrectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_sleep_correction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                local_date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SleepCorrectionOut"];
                 };
             };
             /** @description Validation Error */

@@ -56,7 +56,7 @@ TerrainKey = Literal["gap_pace", "relief", "relief_per_distance", "hilly"]
 ConditionsKey = Literal["temperature", "feels_like", "humidity", "dew_point", "wind", "rain", "cloud",
                         "heat_adjustment", "band"]
 SleepKey = Literal["hours", "deep", "core", "rem", "awake", "efficiency", "usual_sleep", "vs_usual", "quality",
-                   "morning_rhr", "usual_rhr", "rhr_vs_usual", "morning_hrv", "usual_hrv", "hrv_vs_usual"]
+                   "morning_rhr", "usual_rhr", "rhr_vs_usual", "morning_hrv", "usual_hrv", "hrv_vs_usual", "corrected"]
 TrainingKey = Literal["run_load", "load_7_days", "fitness", "fatigue", "form", "state", "days_since_last_run",
                       "runs_this_week"]
 ComparisonKey = Literal["similar_runs", "pace", "usual_pace", "hr", "usual_hr", "beats_per_km", "usual_beats_per_km"]
@@ -69,6 +69,7 @@ _WORD_VALUES = {
     ("conditions", "rain"): r"Dry|\d{1,3}\.\d mm/h",
     ("conditions", "band"): r"ideal|warm|hot|oppressive|cold|freezing",
     ("sleep", "quality"): r"short|restless|good|fair",
+    ("sleep", "corrected"): r"Yes, entered by the runner",
     ("sleep", "vs_usual"): r"about usual|[+\u2212]\d+h \d{2}m|[+\u2212]\d+m",
     ("training", "state"): r"Building|Holding|Easing|Overreaching",
 }

@@ -54,6 +54,8 @@ export const useWorkoutsStore = defineStore('workouts', () => {
   const typeError = ref<string | null>(null)
   const carryBusy = ref(false)
   const carryError = ref<string | null>(null)
+  const sleepBusy = ref(false)
+  const sleepError = ref<string | null>(null)
 
   const updating = ref(false)
   // A type change queues a recompute; the long-run flag, zones and summary are stale until it finishes.
@@ -109,6 +111,30 @@ export const useWorkoutsStore = defineStore('workouts', () => {
       return false
     } finally {
       carryBusy.value = false
+    }
+  }
+
+  /** Set (or, with null, clear) the runner's hours for a night, then refresh the run once the recompute lands. */
+  async function setSleepCorrection(runId: string, night: string, hours: number | null): Promise<boolean> {
+    sleepBusy.value = true
+    sleepError.value = null
+    const fail = hours == null ? 'The hours were not cleared.' : 'The hours were not saved.'
+    try {
+      const path = { params: { path: { local_date: night } } }
+      const { response } = hours == null
+        ? await api.DELETE('/api/v1/sleep/{local_date}/correction', path)
+        : await api.PUT('/api/v1/sleep/{local_date}/correction', { ...path, body: { hours } })
+      if (!response.ok) {
+        sleepError.value = response.status === 422 ? 'Enter hours from 0.5 to 14.' : `${fail} Try again.`
+        return false
+      }
+      void refreshAfterRecompute(runId)
+      return true
+    } catch {
+      sleepError.value = `${fail} Check your connection and try again.`
+      return false
+    } finally {
+      sleepBusy.value = false
     }
   }
 
@@ -200,5 +226,5 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     }
   }
 
-  return { items, type, page, hasNext, loading, error, detail, detailLoading, detailError, noteBusy, noteError, shoeBusy, shoeError, typeBusy, typeError, updating, carryBusy, carryError, setType, setCarry, saveShoe, clearShoe, loadList, loadDetail, saveNote, deleteNote }
+  return { items, type, page, hasNext, loading, error, detail, detailLoading, detailError, noteBusy, noteError, shoeBusy, shoeError, typeBusy, typeError, updating, carryBusy, carryError, sleepBusy, sleepError, setType, setSleepCorrection, setCarry, saveShoe, clearShoe, loadList, loadDetail, saveNote, deleteNote }
 })

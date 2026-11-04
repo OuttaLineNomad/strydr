@@ -325,3 +325,13 @@ def test_carried_run_with_no_carried_history_has_no_comparison(engine):
     _seed(engine, prior=3)
     _carry(engine, "r")
     assert _build(engine).comparison == {}
+
+
+def test_corrected_night_is_stated_with_its_hours(engine):
+    _seed(engine)
+    _patch(engine, sleep={**SLEEP, "total_h": 6.5, "corrected": True})
+    p = _build(engine)
+    assert p.sleep["hours"] == "6h 30m" and p.sleep["corrected"] == "Yes, entered by the runner"
+    assert RunContextPayload.model_validate_json(p.model_dump_json()) == p
+    _patch(engine, sleep=SLEEP)
+    assert "corrected" not in _build(engine).sleep

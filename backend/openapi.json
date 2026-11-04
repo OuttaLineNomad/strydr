@@ -2847,6 +2847,46 @@
         "title": "ShoesOut",
         "type": "object"
       },
+      "SleepCorrectionIn": {
+        "properties": {
+          "hours": {
+            "maximum": 14.0,
+            "minimum": 0.5,
+            "title": "Hours",
+            "type": "number"
+          }
+        },
+        "required": [
+          "hours"
+        ],
+        "title": "SleepCorrectionIn",
+        "type": "object"
+      },
+      "SleepCorrectionOut": {
+        "properties": {
+          "hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hours"
+          },
+          "local_date": {
+            "title": "Local Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "local_date",
+          "hours"
+        ],
+        "title": "SleepCorrectionOut",
+        "type": "object"
+      },
       "SleepOut": {
         "description": "The night before a run (derive/sleep): hours from Apple's sleep stages, and the next morning's readings.",
         "properties": {
@@ -2875,6 +2915,11 @@
               }
             ],
             "title": "Core H"
+          },
+          "corrected": {
+            "default": false,
+            "title": "Corrected",
+            "type": "boolean"
           },
           "deep_h": {
             "anyOf": [
@@ -2988,6 +3033,11 @@
               }
             ],
             "title": "Rhr Usual Bpm"
+          },
+          "suspicious": {
+            "default": false,
+            "title": "Suspicious",
+            "type": "boolean"
           },
           "total_h": {
             "title": "Total H",
@@ -5728,6 +5778,92 @@
         "tags": [
           "shoes"
         ]
+      }
+    },
+    "/api/v1/sleep/{local_date}/correction": {
+      "delete": {
+        "operationId": "delete_sleep_correction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "local_date",
+            "required": true,
+            "schema": {
+              "title": "Local Date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SleepCorrectionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Sleep Correction"
+      },
+      "put": {
+        "operationId": "put_sleep_correction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "local_date",
+            "required": true,
+            "schema": {
+              "title": "Local Date",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SleepCorrectionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SleepCorrectionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Sleep Correction"
       }
     },
     "/api/v1/sync-status": {

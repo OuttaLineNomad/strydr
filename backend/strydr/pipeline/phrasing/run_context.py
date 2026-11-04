@@ -128,6 +128,8 @@ def _sleep(z: dict | None) -> dict:
             mins = fmt.js_round(total * 60) - fmt.js_round(usual * 60)  # from the two shown values
             _put(out, "vs_usual", "about usual" if abs(mins) < 15 else fmt.signed_hours(mins / 60))
         _put_term(out, "quality", z.get("quality"))
+        if z.get("corrected"):
+            out["corrected"] = "Yes, entered by the runner"
         _put(out, "morning_rhr", fmt.bpm(z.get("rhr_bpm")))
         _put(out, "usual_rhr", fmt.bpm(z.get("rhr_usual_bpm")))
         _put(out, "rhr_vs_usual", _vs_usual(z.get("rhr_bpm"), z.get("rhr_usual_bpm"), "bpm"))

@@ -218,7 +218,7 @@ const elev = computed(() => {
 
       <ConditionsCard v-if="!run.is_indoor" class="s6" :conditions="detail.conditions ?? null" :gap="detail.gap ?? null" :speed-mps="run.avg_speed_mps" :units="s.units" />
 
-      <SleepCard class="s6" :sleep="detail.sleep ?? null" />
+      <SleepCard class="s6" :sleep="detail.sleep ?? null" :workout-id="run.workout_id" />
 
       <InsightList class="s7" :run="run.workout_id" title="Insights for this run" empty-text="No insights for this run." />
 

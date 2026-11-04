@@ -263,6 +263,42 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
         with generations.read_snapshot(engine) as s:
             return profile_out(s)
 
+    def _valid_date(local_date: str) -> None:
+        try:
+            date.fromisoformat(local_date)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="local_date must be YYYY-MM-DD") from None
+
+    def _night_exists(s: Session, local_date: str) -> None:
+        _valid_date(local_date)
+        if s.execute(select(models.DailyMetric.id).where(models.DailyMetric.metric == "sleep_analysis",
+                                                         models.DailyMetric.local_date == local_date)).first() is None:
+            raise HTTPException(status_code=404, detail="night not found")
+
+    @router.put("/sleep/{local_date}/correction", response_model=sc.SleepCorrectionOut, dependencies=auth)
+    def put_sleep_correction(local_date: str, body: sc.SleepCorrectionIn) -> sc.SleepCorrectionOut:
+        with Session(engine) as s:
+            _night_exists(s, local_date)
+            row = s.get(models.SleepCorrection, local_date) or models.SleepCorrection(local_date=local_date)
+            row.hours, row.updated_at = body.hours, utcnow()
+            s.add(row)
+            recompute_enqueue(s)  # AD-1: a user input the pipeline reads
+            s.commit()
+        queue.wakeup.set()
+        return sc.SleepCorrectionOut(local_date=local_date, hours=body.hours)
+
+    @router.delete("/sleep/{local_date}/correction", response_model=sc.SleepCorrectionOut, dependencies=auth)
+    def delete_sleep_correction(local_date: str) -> sc.SleepCorrectionOut:
+        _valid_date(local_date)  # no night check: an orphan correction must still be clearable
+        with Session(engine) as s:
+            row = s.get(models.SleepCorrection, local_date)
+            if row is not None:
+                s.delete(row)
+                recompute_enqueue(s)
+                s.commit()
+        queue.wakeup.set()
+        return sc.SleepCorrectionOut(local_date=local_date, hours=None)
+
     @router.put("/profile", response_model=sc.ProfileOut, dependencies=auth)
     def put_profile(body: sc.ProfileSettings) -> sc.ProfileOut:
         with Session(engine) as s:
