@@ -1795,6 +1795,140 @@
         "title": "NoteOut",
         "type": "object"
       },
+      "OrphanGuess": {
+        "properties": {
+          "format": {
+            "enum": [
+              "amrap",
+              "emom",
+              "complex"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "partial_moves": {
+            "title": "Partial Moves",
+            "type": "integer"
+          },
+          "plan_id": {
+            "title": "Plan Id",
+            "type": "integer"
+          },
+          "plan_name": {
+            "title": "Plan Name",
+            "type": "string"
+          },
+          "rounds_done": {
+            "title": "Rounds Done",
+            "type": "integer"
+          },
+          "same_weekday": {
+            "title": "Same Weekday",
+            "type": "boolean"
+          },
+          "session_date": {
+            "title": "Session Date",
+            "type": "string"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          }
+        },
+        "required": [
+          "plan_id",
+          "plan_name",
+          "weight_kg",
+          "rounds_done",
+          "partial_moves",
+          "format",
+          "session_date",
+          "same_weekday"
+        ],
+        "title": "OrphanGuess",
+        "type": "object"
+      },
+      "OrphanLogIn": {
+        "properties": {
+          "partial_moves": {
+            "default": 0,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Partial Moves",
+            "type": "integer"
+          },
+          "plan_id": {
+            "title": "Plan Id",
+            "type": "integer"
+          },
+          "rounds_done": {
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Rounds Done",
+            "type": "integer"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "maximum": 300.0,
+                "minimum": 0.5,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          }
+        },
+        "required": [
+          "plan_id",
+          "rounds_done"
+        ],
+        "title": "OrphanLogIn",
+        "type": "object"
+      },
+      "OrphanOut": {
+        "properties": {
+          "duration_s": {
+            "title": "Duration S",
+            "type": "number"
+          },
+          "guess": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrphanGuess"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "start_utc": {
+            "title": "Start Utc",
+            "type": "string"
+          },
+          "workout_id": {
+            "title": "Workout Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workout_id",
+          "start_utc",
+          "duration_s",
+          "guess"
+        ],
+        "title": "OrphanOut",
+        "type": "object"
+      },
       "PacePoint": {
         "properties": {
           "distance_m": {
@@ -3694,6 +3828,18 @@
             "title": "Rounds Done",
             "type": "integer"
           },
+          "source": {
+            "anyOf": [
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
           "start_utc": {
             "title": "Start Utc",
             "type": "string"
@@ -3889,6 +4035,18 @@
           },
           "session": {
             "$ref": "#/components/schemas/SessionOut"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "const": "watch",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
           },
           "unlocked": {
             "items": {
@@ -6378,6 +6536,118 @@
         "summary": "Get Load",
         "tags": [
           "load"
+        ]
+      }
+    },
+    "/api/v1/orphans": {
+      "get": {
+        "operationId": "list_orphans",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OrphanOut"
+                  },
+                  "title": "Response List Orphans",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Orphans",
+        "tags": [
+          "orphans"
+        ]
+      }
+    },
+    "/api/v1/orphans/{workout_id}/dismiss": {
+      "post": {
+        "operationId": "dismiss_orphan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workout_id",
+            "required": true,
+            "schema": {
+              "title": "Workout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Dismiss Orphan",
+        "tags": [
+          "orphans"
+        ]
+      }
+    },
+    "/api/v1/orphans/{workout_id}/log": {
+      "post": {
+        "operationId": "log_orphan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workout_id",
+            "required": true,
+            "schema": {
+              "title": "Workout Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrphanLogIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Log Orphan",
+        "tags": [
+          "orphans"
         ]
       }
     },

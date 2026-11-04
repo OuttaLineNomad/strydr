@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import Button from '@/components/ui/Button.vue'
 import StreakBlock from '@/components/app/StreakBlock.vue'
+import OrphanPrompt from '@/components/app/OrphanPrompt.vue'
 import { usePlansStore } from '@/stores/plans'
 import { useSettingsStore } from '@/stores/settings'
 import { planSummary, lastLine } from '@/lib/plans'
@@ -49,6 +50,7 @@ async function remove(id: number) {
     </div>
   </header>
 
+  <OrphanPrompt class="streak-block" />
   <StreakBlock class="streak-block" />
 
   <p v-if="!store.loaded && !store.error" class="body" role="status" data-testid="workouts-loading">Loading workouts.</p>

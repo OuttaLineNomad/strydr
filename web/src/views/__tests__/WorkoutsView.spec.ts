@@ -21,12 +21,12 @@ const plan = (o: Partial<PlanOut> = {}): PlanOut => ({
   created_at: '2026-11-03T00:00:00', updated_at: '2026-11-03T00:00:00', ...o,
 })
 
-async function mountIt(plans: PlanOut[], units: 'imperial' | 'metric' = 'imperial', recent: SessionOut[] = []) {
+async function mountIt(plans: PlanOut[], units: 'imperial' | 'metric' = 'imperial', recent: SessionOut[] = [], orphans: unknown[] = []) {
   const pinia = createPinia()
   setActivePinia(pinia)
   useSettingsStore().profile = profile({}, { units }) as never
   get.mockImplementation(async (url: string) => ({
-    data: url === '/api/v1/sessions' ? recent : url === '/api/v1/streak' ? { weeks: 2, this_week: true, last_streak: 2, recent: [] } : plans,
+    data: url === '/api/v1/sessions' ? recent : url === '/api/v1/orphans' ? orphans : url === '/api/v1/streak' ? { weeks: 2, this_week: true, last_streak: 2, recent: [] } : plans,
     response: { status: 200 },
   }))
   const w = mount(WorkoutsView, { global: { plugins: [pinia], stubs: { RouterLink: RouterLinkStub } } })
@@ -41,6 +41,15 @@ describe('streak block', () => {
     expect(w.find('[data-testid="streak"]').exists()).toBe(true)
     expect(html.indexOf('data-testid="streak"')).toBeGreaterThan(html.indexOf('class="title-row"'))
     expect(html.indexOf('data-testid="streak"')).toBeLessThan(html.indexOf('data-testid="workouts-list"'))
+  })
+})
+
+describe('orphan prompt', () => {
+  it('shows above the streak when a watch workout is unlogged', async () => {
+    const w = await mountIt([plan()], 'imperial', [], [{ workout_id: 'w1', start_utc: '2026-11-10T18:00:00Z', duration_s: 1800, guess: null }])
+    const html = w.html()
+    expect(w.find('[data-testid="orphan"]').exists()).toBe(true)
+    expect(html.indexOf('data-testid="orphan"')).toBeLessThan(html.indexOf('data-testid="streak"'))
   })
 })
 

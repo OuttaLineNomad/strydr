@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button.vue'
 import Icons from '@/components/ui/Icons.vue'
 import Segmented from '@/components/ui/Segmented.vue'
 import StreakBlock from '@/components/app/StreakBlock.vue'
+import OrphanPrompt from '@/components/app/OrphanPrompt.vue'
 import InsightList from '@/components/app/InsightList.vue'
 import SyncStatusLine from '@/components/app/SyncStatusLine.vue'
 import { useSettingsStore } from '@/stores/settings'
@@ -87,6 +88,7 @@ const caption = computed(() => {
   <p v-if="d.error" class="err" role="alert" data-testid="dash-error">{{ d.error }}</p>
 
   <div class="canvas">
+    <OrphanPrompt />
     <BarChart
       v-if="weeks.length"
       class="s8 stretch"

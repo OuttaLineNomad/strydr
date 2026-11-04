@@ -48,7 +48,7 @@ def session_out(m: models.WorkoutSession) -> sc.SessionOut:
                          start_utc=rfc3339(m.start_utc), end_utc=rfc3339(m.end_utc),
                          events=[sc.SessionEvent(**e) for e in m.events], rounds_done=m.rounds_done,
                          partial_moves=m.partial_moves, fell_short=m.fell_short or [], active_s=m.active_s,
-                         overtime_s=m.overtime_s, created_at=rfc3339(m.created_at))
+                         overtime_s=m.overtime_s, source=m.source, created_at=rfc3339(m.created_at))
 
 
 def last_sessions(s: Session, plan_ids: list[int]) -> dict[int, sc.LastSessionOut]:
@@ -118,7 +118,7 @@ def build_summary(s: Session, m: models.WorkoutSession) -> sc.SessionSummaryOut:
         ladder_sets=[sc.LadderSetOut(move_index=x.move, instance=x.instance, move=moves[x.move]["name"], ladder=x.ladder,
                                      planned_rung=x.planned, rung=x.rung, reps=x.reps) for x in lsets],
         unlocked=unlocked,
-        session=session_out(m), matched_workout_id=w.workout_id if w is not None else None, avg_hr=got.avg_hr,
+        session=session_out(m), source=m.source, matched_workout_id=w.workout_id if w is not None else None, avg_hr=got.avg_hr,
         effort=effort, effort_source=source, effort_estimated=estimated,
         moves=[sc.SessionMoveHr(name=x.name, avg_hr=x.avg_hr, instances=x.instances) for x in got.moves],
         rounds=[sc.SessionRoundRow(round=x.round, time_s=x.time_s, moves=x.moves, avg_hr=x.avg_hr) for x in got.rounds],

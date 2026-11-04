@@ -201,6 +201,7 @@ async function removeSession() {
     <header class="head">
       <h1 class="page-title" data-testid="summary-title">{{ title }}</h1>
       <p class="page-sub" data-testid="summary-sub">{{ sub }}</p>
+      <p v-if="sm.source === 'watch'" class="page-sub" data-testid="summary-watch">Logged from your watch</p>
     </header>
 
     <dl class="figures" data-testid="summary-figures">

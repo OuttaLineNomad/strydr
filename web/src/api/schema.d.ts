@@ -205,6 +205,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orphans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Orphans */
+        get: operations["list_orphans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orphans/{workout_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss Orphan */
+        post: operations["dismiss_orphan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orphans/{workout_id}/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Log Orphan */
+        post: operations["log_orphan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/plans": {
         parameters: {
             query?: never;
@@ -1462,6 +1513,52 @@ export interface components {
             /** Updated At */
             updated_at: string;
         };
+        /** OrphanGuess */
+        OrphanGuess: {
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "amrap" | "emom" | "complex";
+            /** Partial Moves */
+            partial_moves: number;
+            /** Plan Id */
+            plan_id: number;
+            /** Plan Name */
+            plan_name: string;
+            /** Rounds Done */
+            rounds_done: number;
+            /** Same Weekday */
+            same_weekday: boolean;
+            /** Session Date */
+            session_date: string;
+            /** Weight Kg */
+            weight_kg: number | null;
+        };
+        /** OrphanLogIn */
+        OrphanLogIn: {
+            /**
+             * Partial Moves
+             * @default 0
+             */
+            partial_moves: number;
+            /** Plan Id */
+            plan_id: number;
+            /** Rounds Done */
+            rounds_done: number;
+            /** Weight Kg */
+            weight_kg?: number | null;
+        };
+        /** OrphanOut */
+        OrphanOut: {
+            /** Duration S */
+            duration_s: number;
+            guess: components["schemas"]["OrphanGuess"] | null;
+            /** Start Utc */
+            start_utc: string;
+            /** Workout Id */
+            workout_id: string;
+        };
         /** PacePoint */
         PacePoint: {
             /** Distance M */
@@ -2030,6 +2127,8 @@ export interface components {
             plan_id: number | null;
             /** Rounds Done */
             rounds_done: number;
+            /** Source */
+            source?: "watch" | null;
             /** Start Utc */
             start_utc: string;
             /** Weight Kg */
@@ -2078,6 +2177,8 @@ export interface components {
             /** Rounds */
             rounds: components["schemas"]["SessionRoundRow"][];
             session: components["schemas"]["SessionOut"];
+            /** Source */
+            source?: "watch" | null;
             /** Unlocked */
             unlocked?: string[];
             /** Zone Bounds Bpm */
@@ -2998,6 +3099,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoadOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_orphans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrphanOut"][];
+                };
+            };
+        };
+    };
+    dismiss_orphan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    log_orphan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrphanLogIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"];
                 };
             };
             /** @description Validation Error */

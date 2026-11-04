@@ -13,6 +13,7 @@ and keeps track of your progress.
 - [Bodyweight levels](#bodyweight-levels)
 - [Weekly streak](#weekly-streak)
 - [With your watch](#with-your-watch)
+- [Workouts done with only the watch](#workouts-done-with-only-the-watch)
 
 ## Workout library
 
@@ -123,3 +124,18 @@ Strydr. After the watch workout syncs (through [Health Auto Export](importing-da
 [Apple Health export](importing-data.md#apple-health-export)), Strydr matches it to the session that overlaps it most
 and fills in heart rate and effort on the summary. Without a watch workout, the session still counts for the streak,
 rounds and score; the heart-rate sections are simply empty.
+
+## Workouts done with only the watch
+
+If you train with only your watch running and no Strydr session, Strydr notices the watch strength workout once it
+syncs and asks about it on the Dashboard and the Workouts page, with a guess from your history:
+
+> Same as last Tuesday: Swing circuit, 35 lb, 7 rounds?
+
+- **Yes, log it** saves it as a session on the watch's times, with the watch's heart rate and effort. Its summary says
+  "Logged from your watch" and has no per-move or per-round times, since there were no taps.
+- **Something else** lets you pick another workout and change the bell and rounds.
+- **Not a Strydr workout** stops asking about it.
+
+The guess is your latest session on the same weekday, or your latest session on any day. Strydr asks about each watch
+workout once, and only about those from the last 14 days.

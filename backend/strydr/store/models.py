@@ -508,6 +508,15 @@ class WorkoutSession(Base):
     effort: Mapped[int | None] = mapped_column(Integer)
     short_reps: Mapped[dict | None] = mapped_column(JSON)  # {"minute": reps|null} for flagged EMOM minutes
     set_rungs: Mapped[dict | None] = mapped_column(JSON)  # {"move:instance": rung} for sets done at an easier level
+    source: Mapped[str | None] = mapped_column(String(8))  # NULL = a live run; 'watch' = logged from an orphan watch workout
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class OrphanDismissal(Base):
+    """A watch strength workout the runner has answered (logged as a session, or not a Strydr workout): never asked about
+    again, even if the session is later deleted. User content."""
+    __tablename__ = "orphan_dismissal"
+    workout_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime)
 
 

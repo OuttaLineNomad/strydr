@@ -47,6 +47,11 @@ const t = (w: ReturnType<typeof mount>, id: string) => w.get(`[data-testid="${id
 describe('SessionSummaryView', () => {
   beforeEach(() => vi.clearAllMocks())
 
+  it('says Logged from your watch only for a watch-logged session', async () => {
+    expect(t(await mountIt(summary({ source: 'watch' })), 'summary-watch')).toBe('Logged from your watch')
+    expect((await mountIt(summary({ source: null }))).find('[data-testid="summary-watch"]').exists()).toBe(false)
+  })
+
   it('shows the headline figures, HR per move, zones and the round table for a matched session', async () => {
     const w = await mountIt(summary())
     expect(get).toHaveBeenCalledWith('/api/v1/sessions/{session_id}/summary', { params: { path: { session_id: 3 } } })

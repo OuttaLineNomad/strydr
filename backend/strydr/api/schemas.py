@@ -927,6 +927,7 @@ class SessionOut(BaseModel):
     fell_short: list[int]
     active_s: int
     overtime_s: int
+    source: Literal["watch"] | None = None  # None = a live run
     created_at: str
 
 
@@ -980,6 +981,7 @@ class LadderPointOut(BaseModel):
 
 class SessionSummaryOut(BaseModel):
     session: SessionOut
+    source: Literal["watch"] | None = None  # "watch": logged from the watch, no per-move or per-round sections
     matched_workout_id: str | None  # the strength workout whose HR and effort this summary borrows
     avg_hr: float | None
     effort: float | None
@@ -1032,3 +1034,28 @@ class StreakOut(BaseModel):
     this_week: bool
     last_streak: int
     recent: list[StreakWeekOut]  # last 8 weeks, oldest first, the current week last
+
+
+class OrphanGuess(BaseModel):
+    plan_id: int
+    plan_name: str
+    weight_kg: float | None
+    rounds_done: int
+    partial_moves: int
+    format: Literal["amrap", "emom", "complex"]
+    session_date: str  # local date (home time zone) of the session the guess came from
+    same_weekday: bool
+
+
+class OrphanOut(BaseModel):
+    workout_id: str
+    start_utc: str
+    duration_s: float
+    guess: OrphanGuess | None
+
+
+class OrphanLogIn(BaseModel):
+    plan_id: int
+    weight_kg: float | None = Field(None, ge=0.5, le=300)
+    rounds_done: int = Field(ge=0, le=1000)
+    partial_moves: int = Field(0, ge=0, le=100)
