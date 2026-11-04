@@ -5,6 +5,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from helpers import add_run, login, recompute_now
+from strydr.jobs import queue
 from strydr.store import models
 
 FAR = (40.0, -3.0)
@@ -31,7 +32,8 @@ def _seed(engine):
 
 
 @pytest.fixture
-def client(engine, app_client):
+def client(engine, app_client, monkeypatch):
+    monkeypatch.setattr(queue, "local_today", lambda tz: "2026-10-20")  # the seeded data is "this month"; never the wall clock
     _seed(engine)
     login(app_client)
     return app_client
