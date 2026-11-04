@@ -100,4 +100,22 @@ describe('WorkoutPlanView', () => {
     expect(cells.map((c) => c.text())).toEqual(['10', '—'])
     expect(w.get('[data-testid="cmp-missed"]').findAll('td.win')).toHaveLength(0)
   })
+
+  it('shows the strength score, its change, the explainer and a score on each row', async () => {
+    const w = await mountIt({ plan: { ...plan, strength_score: 112, strength_change: 12 }, sessions: [{ ...now, score: 112 }, { ...then, score: 100 }], then, now })
+    expect(t(w, 'strength-score')).toBe('Strength 112')
+    expect(t(w, 'strength-change')).toBe('+12 since the first time')
+    expect(t(w, 'strength-explainer')).toContain('100 is your first session.')
+    expect(w.findAll('[data-testid="session-score"]').map((x) => x.text())).toEqual(['Strength 112', 'Strength 100'])
+    expect(t(w, 'plan-summary')).not.toContain('Strength')
+  })
+
+  it('shows a dash for a null row score and no score with one session', async () => {
+    const w = await mountIt({ plan: { ...plan, strength_score: null, strength_change: null }, sessions: [{ ...now, score: null }, { ...then, score: 100 }], then, now })
+    expect(w.find('[data-testid="strength"]').exists()).toBe(false)
+    expect(w.findAll('[data-testid="session-score"]').map((x) => x.text())).toEqual(['—', 'Strength 100'])
+    const one = await mountIt({ plan, sessions: [{ ...then, score: 100 }], then: null, now: null })
+    expect(one.find('[data-testid="session-score"]').exists()).toBe(false)
+    expect(one.find('[data-testid="strength"]').exists()).toBe(false)
+  })
 })

@@ -70,7 +70,7 @@ async function remove(id: number) {
         <div class="top">
           <div class="text">
             <h2 class="plan-name" data-testid="plan-name"><RouterLink :to="`/workouts/${p.id}`" class="name-link" data-testid="plan-link">{{ p.name }}</RouterLink></h2>
-            <p class="body" data-testid="plan-summary">{{ planSummary(p, s.units) }}</p>
+            <p class="body" data-testid="plan-summary">{{ planSummary(p, s.units, true) }}</p>
             <a v-if="p.video_url" :href="p.video_url" target="_blank" rel="noopener noreferrer" class="watch" data-testid="plan-video">Watch how</a>
           </div>
           <div class="start">

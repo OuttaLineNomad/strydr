@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { shortDate, better, gainLine, headline, roundsFigure, sessionLine } from '../progress'
+import { scoreLine, scoreText, shortDate, better, gainLine, headline, roundsFigure, sessionLine } from '../progress'
 import type { ProgressSession } from '@/api/types'
 
 function row(o: Partial<ProgressSession> = {}): ProgressSession {
@@ -79,5 +79,17 @@ describe('shortDate', () => {
     const today = new Date(2026, 10, 4)
     expect(shortDate('2026-09-03T12:00:00Z', today)).toBe('3 Sep')
     expect(shortDate('2025-09-03T12:00:00Z', today)).toBe('3 Sep 2025')
+  })
+})
+
+describe('strength score copy', () => {
+  it('prints the change with a plus or a true minus', () => {
+    expect(scoreLine(12)).toBe('+12 since the first time')
+    expect(scoreLine(-5)).toBe('\u22125 since the first time')
+    expect(scoreLine(0)).toBe('No change since the first time')
+  })
+  it('prints the score, or nothing', () => {
+    expect(scoreText(112)).toBe('Strength 112')
+    expect(scoreText(null)).toBeNull()
   })
 })

@@ -850,6 +850,8 @@ class PlanOut(BaseModel):
     created_at: str
     updated_at: str
     last_session: LastSessionOut | None = None
+    strength_score: int | None = None  # the latest session's score; None with fewer than 2 sessions
+    strength_change: int | None = None  # score - 100
 
 
 # --- Home-workout sessions (persistent tier) ---------------------------------------------------------------------
@@ -957,6 +959,7 @@ class ProgressSessionOut(BaseModel):
     active_s: int
     overtime_s: int
     effort: float | None
+    score: int | None = None  # strength score; the baseline row is 100 (the page hides scores with fewer than 2 sessions); None when not comparable
     missed_reps: int | None  # EMOM only; None when a flagged minute is unanswered, and for other formats
     changed: bool  # the session's moves (name, reps, seconds) differ from the plan's now
     cap_min: int | None  # the session's own plan snapshot, for comparing like with like

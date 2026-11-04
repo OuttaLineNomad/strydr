@@ -7,7 +7,7 @@ import { useSettingsStore } from '@/stores/settings'
 import { planSummary } from '@/lib/plans'
 import { unlockAudio } from '@/lib/useTone'
 import { formatClock } from '@/lib/units'
-import { bellText, better, measureComparable, effortText, gainLine, headline, roundsFigure, sessionLine, shortDate, type Field } from '@/lib/progress'
+import { bellText, better, measureComparable, effortText, gainLine, headline, roundsFigure, SCORE_EXPLAINER, scoreLine, scoreText, sessionLine, shortDate, type Field } from '@/lib/progress'
 import type { PlanProgress } from '@/api/types'
 
 const props = defineProps<{ id: string }>()
@@ -42,6 +42,8 @@ const units = computed(() => settings.units)
 const then = computed(() => data.value?.then ?? null)
 const now = computed(() => data.value?.now ?? null)
 const head = computed(() => (then.value && now.value ? headline(then.value, now.value, units.value) : ''))
+const strength = computed(() => (then.value && now.value ? scoreText(now.value?.score ?? plan.value?.strength_score) : null))
+const change = computed(() => { const sc = now.value?.score; return sc != null ? sc - 100 : (plan.value?.strength_change ?? null) })
 const gain = computed(() => (plan.value && then.value && now.value ? gainLine(plan.value, then.value, now.value) : ''))
 
 interface CompareRow { key: string; label: string; a: string | null; b: string | null; win: 'a' | 'b' | null }
@@ -100,6 +102,11 @@ const rows = computed<CompareRow[]>(() => {
       <section class="lead" data-testid="progress-lead">
         <p class="headline" data-testid="progress-headline">{{ head }}</p>
         <p class="body" data-testid="progress-gain">{{ gain }}</p>
+        <div v-if="strength && change != null" class="strength" data-testid="strength">
+          <p class="headline" data-testid="strength-score">{{ strength }}</p>
+          <p class="body" data-testid="strength-change">{{ scoreLine(change) }}</p>
+          <p class="body explainer" data-testid="strength-explainer">{{ SCORE_EXPLAINER }}</p>
+        </div>
       </section>
 
       <GlassPanel class="compare" data-testid="compare">
@@ -129,7 +136,10 @@ const rows = computed<CompareRow[]>(() => {
         <ul class="rows">
           <li v-for="x in data.sessions" :key="x.id" class="srow">
             <RouterLink :to="`/workouts/sessions/${x.id}`" class="srow-link" data-testid="session-row">
-              <span class="srow-title">{{ new Date(x.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) }}</span>
+              <span class="srow-head">
+                <span class="srow-title">{{ new Date(x.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) }}</span>
+                <span v-if="data.sessions.length >= 2" class="srow-score" data-testid="session-score"><template v-if="x.score != null">{{ scoreText(x.score) }}</template><span v-else role="img" aria-label="no score">—</span></span>
+              </span>
               <span class="body">{{ sessionLine(x, plan, units) }}</span>
             </RouterLink>
           </li>
@@ -165,5 +175,9 @@ const rows = computed<CompareRow[]>(() => {
 .rows { list-style: none; margin: 0; padding: 0; }
 .srow + .srow { border-top: 1px solid var(--divider); }
 .srow-link { display: flex; flex-direction: column; gap: 4px; padding: var(--space-4) var(--space-5); min-height: 44px; color: var(--ink); text-decoration: none; }
+.srow-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.srow-score { font-variant-numeric: tabular-nums; font-family: var(--font-display); font-weight: 600; white-space: nowrap; }
+.strength { display: flex; flex-direction: column; gap: var(--space-1, 4px); margin-top: var(--space-2); }
+.explainer { color: var(--ink-secondary); }
 .srow-title { font-family: var(--font-display); font-size: 18px; line-height: 24px; font-weight: 700; }
 </style>

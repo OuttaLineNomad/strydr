@@ -10,8 +10,10 @@ from sqlalchemy.exc import IntegrityError
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from strydr import progress as pg
+from strydr import sessions_summary as ss
 from strydr.api import schemas as sc
-from strydr.api.sessions import build_summary, last_sessions, match_workout, session_effort
+from strydr.api.sessions import build_summary, last_sessions, session_effort
 from strydr.api.common import Api, rfc3339
 from strydr.egress import EgressError, PlanImportPayload, resolve, youtube
 from strydr.store import models, settings
@@ -59,8 +61,9 @@ def _plan_from_reply(raw: str, video_url: str) -> sc.PlanIn:
 TAKEN = "a workout with that name exists"
 
 
-def plan_out(p: models.WorkoutPlan, last: sc.LastSessionOut | None = None) -> sc.PlanOut:
-    return sc.PlanOut(id=p.id, name=p.name, format=p.format, cap_min=p.cap_min, emom_min=p.emom_min, rounds=p.rounds,
+def plan_out(p: models.WorkoutPlan, last: sc.LastSessionOut | None = None, score: int | None = None,
+             change: int | None = None) -> sc.PlanOut:
+    return sc.PlanOut(strength_score=score, strength_change=change, id=p.id, name=p.name, format=p.format, cap_min=p.cap_min, emom_min=p.emom_min, rounds=p.rounds,
                       moves=[sc.MoveIn(**m) for m in p.moves], video_url=p.video_url,
                       created_at=p.created_at.isoformat(), updated_at=p.updated_at.isoformat(), last_session=last)
 
@@ -84,10 +87,46 @@ def _shape(moves: list[dict]) -> list[tuple]:
     return [(x["name"], x.get("reps"), x.get("seconds")) for x in moves]
 
 
-def _progress_row(s: Session, m: models.WorkoutSession, current: list[tuple]) -> dict:
-    effort, _, _ = session_effort(m, match_workout(s, m))
+def _efforts(s: Session, rows: list[models.WorkoutSession]) -> dict[int, float | None]:
+    """Each session's effort (watch rating, then manual pick, then estimate) from one query for the strength workouts."""
+    if not rows:
+        return {}
+    lo, hi = min(m.start_utc for m in rows), max(m.end_utc for m in rows)
+    cands = s.execute(select(models.Workout).where(models.Workout.type == "strength", models.Workout.start_utc < hi,
+                                                   models.Workout.end_utc > lo)).scalars().all()
+    return {m.id: session_effort(m, ss.match(m.start_utc, m.end_utc, cands))[0] for m in rows}
+
+
+def _scores(rows: list[models.WorkoutSession], efforts: dict[int, float | None]) -> dict[int, int | None]:
+    """Strength score by session id for the sessions of ONE plan (any order)."""
+    ordered = sorted(rows, key=lambda m: (m.start_utc, m.id))
+    got = pg.scores([pg.ScoreInput(m.plan, m.weight_kg, m.rounds_done, m.partial_moves, m.fell_short, m.short_reps,
+                                   m.active_s, efforts.get(m.id)) for m in ordered])
+    return {m.id: sc_ for m, sc_ in zip(ordered, got)}
+
+
+def _plan_scores(s: Session, plan_ids: list[int]) -> dict[int, tuple[int | None, int | None]]:
+    """(strength_score, strength_change) per plan from one sessions query; absent with fewer than 2 sessions."""
+    if not plan_ids:
+        return {}
+    rows = list(s.execute(select(models.WorkoutSession).where(models.WorkoutSession.plan_id.in_(plan_ids))).scalars())
+    efforts = _efforts(s, rows)
+    by_plan: dict[int, list[models.WorkoutSession]] = {}
+    for m in rows:
+        by_plan.setdefault(m.plan_id, []).append(m)
+    out = {}
+    for pid, ms in by_plan.items():
+        if len(ms) < 2:
+            continue
+        latest = max(ms, key=lambda m: (m.start_utc, m.id))
+        score = _scores(ms, efforts)[latest.id]
+        out[pid] = (score, score - 100) if score is not None else (None, None)
+    return out
+
+
+def _progress_row(m: models.WorkoutSession, current: list[tuple], effort: float | None, score: int | None) -> dict:
     return dict(id=m.id, date=rfc3339(m.start_utc), weight_kg=m.weight_kg, rounds_done=m.rounds_done,
-                partial_moves=m.partial_moves, active_s=m.active_s, overtime_s=m.overtime_s, effort=effort,
+                partial_moves=m.partial_moves, active_s=m.active_s, overtime_s=m.overtime_s, effort=effort, score=score,
                 missed_reps=_missed_reps(m), changed=_shape(m.plan["moves"]) != current, cap_min=m.plan.get("cap_min"),
                 target_rounds=m.plan.get("rounds"), move_count=len(m.plan["moves"]))
 
@@ -124,7 +163,8 @@ def router(api: Api) -> APIRouter:
             rows = s.execute(select(models.WorkoutPlan).order_by(models.WorkoutPlan.name)).scalars()
             plans = list(rows)
             last = last_sessions(s, [p.id for p in plans])
-            return sorted((plan_out(p, last.get(p.id)) for p in plans), key=lambda p: p.name.casefold())
+            sc_ = _plan_scores(s, [p.id for p in plans])
+            return sorted((plan_out(p, last.get(p.id), *sc_.get(p.id, (None, None))) for p in plans), key=lambda p: p.name.casefold())
 
     @r.post("/plans/import-youtube", response_model=sc.PlanDraftOut)
     def import_youtube(body: sc.YoutubeImportIn) -> sc.PlanDraftOut:
@@ -162,7 +202,7 @@ def router(api: Api) -> APIRouter:
     def get_plan(plan_id: int) -> sc.PlanOut:
         with Session(api.engine) as s:
             p = get_or_404(s, plan_id)
-            return plan_out(p, last_sessions(s, [p.id]).get(p.id))
+            return plan_out(p, last_sessions(s, [p.id]).get(p.id), *_plan_scores(s, [p.id]).get(p.id, (None, None)))
 
     @r.get("/plans/{plan_id}/progress", response_model=sc.PlanProgressOut)
     def plan_progress(plan_id: int) -> sc.PlanProgressOut:
@@ -172,12 +212,16 @@ def router(api: Api) -> APIRouter:
             rows = list(s.execute(select(models.WorkoutSession).where(models.WorkoutSession.plan_id == plan_id)
                                   .order_by(models.WorkoutSession.start_utc.desc(), models.WorkoutSession.id.desc())).scalars())
             current = _shape(p.moves)
-            sessions = [_progress_row(s, m, current) for m in rows]
+            efforts = _efforts(s, rows)
+            scored = _scores(rows, efforts)
+            sessions = [_progress_row(m, current, efforts[m.id], scored.get(m.id)) for m in rows]
+            latest = sessions[0]["score"] if len(rows) >= 2 else None  # rows are newest first
+            head = (latest, latest - 100) if latest is not None else (None, None)
             then = now = None
             if len(rows) >= 2:  # the HR series is read for these two only
                 now = sc.ProgressCompareOut(**sessions[0], avg_hr=build_summary(s, rows[0]).avg_hr)
                 then = sc.ProgressCompareOut(**sessions[-1], avg_hr=build_summary(s, rows[-1]).avg_hr)
-            return sc.PlanProgressOut(plan=plan_out(p, last_sessions(s, [p.id]).get(p.id)),
+            return sc.PlanProgressOut(plan=plan_out(p, last_sessions(s, [p.id]).get(p.id), *head),
                                       sessions=[sc.ProgressSessionOut(**x) for x in sessions], then=then, now=now)
 
     @r.post("/plans", response_model=sc.PlanOut, status_code=201)

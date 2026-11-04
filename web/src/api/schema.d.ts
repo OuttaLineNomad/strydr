@@ -1445,6 +1445,10 @@ export interface components {
             name: string;
             /** Rounds */
             rounds: number | null;
+            /** Strength Change */
+            strength_change?: number | null;
+            /** Strength Score */
+            strength_score?: number | null;
             /** Updated At */
             updated_at: string;
             /** Video Url */
@@ -1534,6 +1538,8 @@ export interface components {
             partial_moves: number;
             /** Rounds Done */
             rounds_done: number;
+            /** Score */
+            score?: number | null;
             /** Target Rounds */
             target_rounds: number | null;
             /** Weight Kg */
@@ -1563,6 +1569,8 @@ export interface components {
             partial_moves: number;
             /** Rounds Done */
             rounds_done: number;
+            /** Score */
+            score?: number | null;
             /** Target Rounds */
             target_rounds: number | null;
             /** Weight Kg */

@@ -105,6 +105,13 @@ describe('WorkoutsView', () => {
     expect(lastLine({ id: 7, rounds: 3, partial_moves: 2, date }, new Date())).toContain('3 rounds + 2 moves')
   })
 
+  it('ends the summary line with the strength score when there is one', async () => {
+    const w = await mountIt([plan({ strength_score: 112, strength_change: 12 }), plan({ id: 2, name: 'Zed' })])
+    const rows = w.findAll('[data-testid="plan-row"]')
+    expect(rows[0]!.get('[data-testid="plan-summary"]').text()).toMatch(/ · Strength 112$/)
+    expect(rows[1]!.get('[data-testid="plan-summary"]').text()).not.toContain('Strength')
+  })
+
   it('lists the recent sessions, each linking to its summary', async () => {
     const x = (id: number, rounds_done: number, partial_moves = 0) => ({
       id, plan_id: 1, plan: plan(), weight_kg: null, start_utc: '2026-11-03T18:00:00Z', end_utc: '2026-11-03T18:10:00Z', events: [],

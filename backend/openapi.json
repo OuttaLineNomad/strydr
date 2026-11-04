@@ -1899,6 +1899,28 @@
             ],
             "title": "Rounds"
           },
+          "strength_change": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strength Change"
+          },
+          "strength_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strength Score"
+          },
           "updated_at": {
             "title": "Updated At",
             "type": "string"
@@ -2211,6 +2233,17 @@
             "title": "Rounds Done",
             "type": "integer"
           },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
           "target_rounds": {
             "anyOf": [
               {
@@ -2319,6 +2352,17 @@
           "rounds_done": {
             "title": "Rounds Done",
             "type": "integer"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
           },
           "target_rounds": {
             "anyOf": [

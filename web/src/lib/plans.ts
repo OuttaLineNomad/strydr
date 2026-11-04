@@ -14,7 +14,7 @@ export function moveLine(m: PlanOut['moves'][number], system: UnitSystem): strin
 }
 
 /** "AMRAP · 20 min · 5 moves · 25 lb" */
-export function planSummary(p: PlanOut, system: UnitSystem): string {
+export function planSummary(p: PlanOut, system: UnitSystem, withScore = false): string {
   const n = p.moves.length
   const moves = `${n} ${n === 1 ? 'move' : 'moves'}`
   const parts: string[] = []
@@ -29,6 +29,7 @@ export function planSummary(p: PlanOut, system: UnitSystem): string {
     const u = weightUnit(system)
     parts.push(planWeight(lo, system) === planWeight(hi, system) ? `${planWeight(lo, system)} ${u}` : `${planWeight(lo, system)}–${planWeight(hi, system)} ${u}`)
   }
+  if (withScore && p.strength_score != null) parts.push(`Strength ${p.strength_score}`)
   return parts.join(' · ')
 }
 

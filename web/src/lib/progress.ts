@@ -94,3 +94,16 @@ export function sessionLine(r: Row, plan: Pick<Plan, 'format'>, system: UnitSyst
   const measure = plan.format === 'amrap' ? `${r.rounds_done} ${r.rounds_done === 1 ? 'round' : 'rounds'}${r.partial_moves > 0 ? ` + ${r.partial_moves}` : ''}` : plan.format === 'complex' ? formatClock(r.active_s) : r.missed_reps == null ? 'missed reps unknown' : `${r.missed_reps} missed`
   return [bellText(r.weight_kg, system), measure, r.effort == null ? 'effort —' : `effort ${Number(r.effort.toFixed(1))}`].join(' · ')
 }
+
+/** "Strength 112", or null when there is no score. */
+export function scoreText(score: number | null | undefined): string | null {
+  return score == null ? null : `Strength ${score}`
+}
+
+/** "+12 since the first time", "−5 since the first time" or "No change since the first time". */
+export function scoreLine(change: number): string {
+  if (change === 0) return 'No change since the first time'
+  return `${change > 0 ? '+' : '\u2212'}${Math.abs(change)} since the first time`
+}
+
+export const SCORE_EXPLAINER = '100 is your first session. More work per minute (a heavier bell or more reps) or an easier effort raises it.'
