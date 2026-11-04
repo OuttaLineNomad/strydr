@@ -360,6 +360,15 @@ const fieldLabel = computed(() => {
 const readySeconds = computed(() => Math.max(1, Math.ceil((st.value?.readyMs ?? 0) / 1000)))
 const wakeNote = computed(() => wake.unavailable.value)
 
+/** Leaves Get ready without saving anything. */
+function cancelReady() {
+  gone = true
+  stopTicker()
+  void wake.stop()
+  clearDraft()
+  void router.replace(`/workouts/${props.id}`)
+}
+
 function done() {
   void router.push('/workouts')
 }
@@ -416,6 +425,7 @@ function done() {
       </div>
       <p v-else class="line">Bodyweight</p>
       <p class="line">This changes today only, not the workout.</p>
+      <button type="button" class="cancel" data-testid="ready-cancel" @click="cancelReady">Cancel</button>
     </section>
 
     <!-- The live field -->
@@ -524,6 +534,12 @@ function done() {
 .end.holding .end-fill { animation: endfill 1000ms linear forwards; }
 @keyframes endfill { to { transform: scaleX(1); } }
 .end-text { position: relative; }
+.cancel {
+  position: absolute; top: calc(env(safe-area-inset-top, 0px) + var(--space-3)); right: var(--space-3); z-index: 2;
+  min-width: 88px; min-height: 52px; padding: 0 var(--space-5); border: 0; background: transparent; color: inherit;
+  font: inherit; font-weight: 700; font-size: 18px; cursor: pointer; touch-action: manipulation;
+}
+.cancel:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 
 .notice { position: absolute; top: calc(env(safe-area-inset-top, 0px) + var(--space-3)); left: var(--space-4); right: 120px; margin: 0; z-index: 2; font-size: 15px; line-height: 20px; font-weight: 600; pointer-events: none; }
 

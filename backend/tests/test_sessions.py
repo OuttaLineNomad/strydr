@@ -173,3 +173,22 @@ def test_mixed_timestamps_and_bad_fell_short_are_422_not_500(c, body):
 
 def test_both_naive_timestamps_are_taken(c):
     assert c.post(f"{API}/sessions", json=session(start_utc="2026-11-03T18:00:00", end_utc="2026-11-03T18:10:00")).status_code == 201
+
+
+def test_delete_a_session(engine, c):
+    p = c.post(f"{API}/plans", json=plan()).json()
+    a = c.post(f"{API}/sessions", json=session(p["id"])).json()
+    before = count(engine, models.Job, models.Job.type == "recompute")
+    assert c.delete(f"{API}/sessions/{a['id']}").status_code == 204
+    assert count(engine, models.Job, models.Job.type == "recompute") == before
+    assert c.get(f"{API}/sessions/{a['id']}").status_code == 404
+    assert c.get(f"{API}/sessions/{a['id']}/summary").status_code == 404
+    assert c.get(f"{API}/sessions").json() == []
+    assert c.get(f"{API}/plans/{p['id']}").json()["last_session"] is None
+    assert all(not w["counted"] for w in c.get(f"{API}/streak").json()["recent"])
+    assert c.delete(f"{API}/sessions/{a['id']}").status_code == 404
+    assert c.delete(f"{API}/sessions/999").status_code == 404
+
+
+def test_delete_needs_login(app_client):
+    assert app_client.delete(f"{API}/sessions/1").status_code == 401

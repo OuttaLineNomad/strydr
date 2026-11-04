@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import Button from '@/components/ui/Button.vue'
 import { useSessionsStore } from '@/stores/sessions'
@@ -12,6 +13,7 @@ import type { LadderSet, SessionSummary } from '@/api/types'
 
 const props = defineProps<{ id: string }>()
 const store = useSessionsStore()
+const router = useRouter()
 const settings = useSettingsStore()
 
 const sm = ref<SessionSummary | null>(null)
@@ -160,6 +162,23 @@ const again = computed(() => {
   if (!s || s.plan_id == null) return null
   return { path: `/workouts/${s.plan_id}/run`, query: s.weight_kg != null ? { weight: String(s.weight_kg) } : {} }
 })
+
+// --- Delete this session ---
+const confirmDelete = ref(false)
+const deleting = ref(false)
+const deleteError = ref(false)
+const deleteDate = computed(() => (session.value ? new Date(session.value.start_utc).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : ''))
+async function removeSession() {
+  if (!session.value || deleting.value) return
+  deleting.value = true
+  deleteError.value = false
+  try {
+    if (await store.remove(session.value.id)) void router.replace('/workouts')
+    else deleteError.value = true
+  } finally {
+    deleting.value = false
+  }
+}
 </script>
 
 <template>
@@ -320,6 +339,18 @@ const again = computed(() => {
     <div v-if="again" class="again">
       <Button variant="primary" :to="again" data-testid="do-again">Do it again</Button>
     </div>
+
+    <section class="danger" data-testid="session-danger">
+      <div v-if="confirmDelete" class="confirm" data-testid="session-delete-confirm">
+        <p class="body">Delete this session from {{ deleteDate }}? This can't be undone.</p>
+        <div class="confirm-actions">
+          <Button :disabled="deleting" data-testid="session-delete-yes" @click="removeSession">Delete</Button>
+          <Button :disabled="deleting" data-testid="session-delete-no" @click="confirmDelete = false; deleteError = false">Keep it</Button>
+        </div>
+      </div>
+      <button v-else type="button" class="del" data-testid="session-delete" @click="confirmDelete = true">Delete this session</button>
+      <p v-if="deleteError" class="err" role="alert" data-testid="session-delete-error">That was not deleted. Try again.</p>
+    </section>
   </template>
 </template>
 
@@ -380,6 +411,12 @@ const again = computed(() => {
 .chip:focus-visible, .text-action:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .ladder-actions { display: flex; flex-wrap: wrap; gap: var(--space-4); }
 .text-action { min-height: 44px; padding: 0; border: 0; background: none; color: var(--accent-text); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
+.danger { margin: 0 0 var(--space-6); display: flex; flex-direction: column; gap: var(--space-2); }
+.danger p { margin: 0; }
+.confirm { display: flex; flex-direction: column; gap: var(--space-3); }
+.confirm-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.del { min-height: 44px; width: fit-content; padding: 0 var(--space-3); background: none; border: 0; font: inherit; font-weight: 600; color: var(--danger); cursor: pointer; }
+.del:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .again { margin: var(--space-5) 0 var(--space-6); }
 .again :deep(.btn) { width: 100%; min-height: 52px; }
 </style>

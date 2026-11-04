@@ -667,6 +667,23 @@ describe('End by keyboard and sound unlock', () => {
     expect(w.find('[data-testid="saved"]').exists()).toBe(true)
   })
 
+  it('Cancel leaves Get ready without saving anything or leaving a draft', async () => {
+    const w = await mountIt()
+    await w.get('[data-testid="ready-cancel"]').trigger('click')
+    expect(replace).toHaveBeenCalledWith('/workouts/1')
+    await advance(6000)
+    expect(post).not.toHaveBeenCalled()
+    expect(localStorage.length).toBe(0)
+    expect(release).toHaveBeenCalled()
+  })
+
+  it('has no Cancel once the workout is running', async () => {
+    const w = await mountIt()
+    await start(w)
+    expect(w.find('[data-testid="ready-cancel"]').exists()).toBe(false)
+    expect(w.find('[data-testid="live-end"]').exists()).toBe(true)
+  })
+
   it('an Escape hold during Get ready does nothing', async () => {
     const w = await mountIt()
     key('Escape')

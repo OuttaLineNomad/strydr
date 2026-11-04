@@ -2,7 +2,7 @@
 a pipeline input, so no write here enqueues a recompute."""
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -163,6 +163,16 @@ def router(api: Api) -> APIRouter:
             if m is None:
                 raise HTTPException(status_code=404, detail="session not found")
             return session_out(m)
+
+    @r.delete("/sessions/{session_id}", status_code=204)
+    def delete_session(session_id: int) -> Response:
+        with Session(api.engine) as s:
+            m = s.get(models.WorkoutSession, session_id)
+            if m is None:
+                raise HTTPException(status_code=404, detail="session not found")
+            s.delete(m)
+            s.commit()  # user content: no recompute job
+        return Response(status_code=204)
 
     @r.get("/sessions/{session_id}/summary", response_model=sc.SessionSummaryOut)
     def session_summary(session_id: int) -> sc.SessionSummaryOut:

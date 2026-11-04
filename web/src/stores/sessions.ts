@@ -133,6 +133,16 @@ export const useSessionsStore = defineStore('sessions', () => {
     }
   }
 
+  /** Deletes a saved session. True when it is gone (a 404 means it already was). */
+  async function remove(id: number): Promise<boolean> {
+    try {
+      const { response } = await api.DELETE('/api/v1/sessions/{session_id}', { params: { path: { session_id: id } } })
+      return response.ok || response.status === 404
+    } catch {
+      return false
+    }
+  }
+
   /** The staircase of a ladder: the best set of each session, oldest first. Empty when it could not load. */
   async function ladderHistory(ladder: 'push-up' | 'pull-up'): Promise<LadderPoint[]> {
     try {
@@ -143,5 +153,5 @@ export const useSessionsStore = defineStore('sessions', () => {
     }
   }
 
-  return { pending, save, flush, list, summary, setEffort, setShort, setRung, ladderHistory }
+  return { pending, save, flush, list, summary, setEffort, setShort, setRung, remove, ladderHistory }
 })

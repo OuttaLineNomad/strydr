@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
-vi.mock('@/api', () => ({ api: { GET: vi.fn(), POST: vi.fn(), PUT: vi.fn() } }))
+vi.mock('@/api', () => ({ api: { GET: vi.fn(), POST: vi.fn(), PUT: vi.fn(), DELETE: vi.fn() } }))
+const replace = vi.fn()
+vi.mock('vue-router', async (orig) => ({ ...(await orig<typeof import('vue-router')>()), useRouter: () => ({ push: vi.fn(), replace }) }))
 import { api } from '@/api'
 import SessionSummaryView from '../SessionSummaryView.vue'
 import { useSettingsStore } from '@/stores/settings'
@@ -11,6 +13,7 @@ import type { SessionSummary } from '@/api/types'
 
 const get = vi.mocked(api.GET) as unknown as ReturnType<typeof vi.fn>
 const put = vi.mocked(api.PUT) as unknown as ReturnType<typeof vi.fn>
+const del = vi.mocked(api.DELETE) as unknown as ReturnType<typeof vi.fn>
 
 const moves = [
   { name: 'Swing', reps: 10, seconds: null, weight_kg: 11.3398 },
@@ -212,5 +215,37 @@ describe('SessionSummaryView', () => {
     await w.get('[data-testid="summary-error"] button').trigger('click')
     await flushPromises()
     expect(t(w, 'summary-title')).toBe('Swing circuit')
+  })
+
+  describe('delete this session', () => {
+    it('asks first, and Keep it closes the row without deleting', async () => {
+      const w = await mountIt(summary())
+      expect(t(w, 'session-delete')).toBe('Delete this session')
+      await w.get('[data-testid="session-delete"]').trigger('click')
+      expect(t(w, 'session-delete-confirm')).toContain("This can't be undone.")
+      await w.get('[data-testid="session-delete-no"]').trigger('click')
+      expect(w.find('[data-testid="session-delete-confirm"]').exists()).toBe(false)
+      expect(del).not.toHaveBeenCalled()
+    })
+
+    it('deletes, then goes to /workouts', async () => {
+      del.mockResolvedValue({ response: { ok: true, status: 204 } })
+      const w = await mountIt(summary())
+      await w.get('[data-testid="session-delete"]').trigger('click')
+      await w.get('[data-testid="session-delete-yes"]').trigger('click')
+      await flushPromises()
+      expect(del).toHaveBeenCalledWith('/api/v1/sessions/{session_id}', { params: { path: { session_id: 3 } } })
+      expect(replace).toHaveBeenCalledWith('/workouts')
+    })
+
+    it('says so and stays on the page when the delete fails', async () => {
+      del.mockResolvedValue({ response: { ok: false, status: 500 } })
+      const w = await mountIt(summary())
+      await w.get('[data-testid="session-delete"]').trigger('click')
+      await w.get('[data-testid="session-delete-yes"]').trigger('click')
+      await flushPromises()
+      expect(t(w, 'session-delete-error')).toBe('That was not deleted. Try again.')
+      expect(replace).not.toHaveBeenCalled()
+    })
   })
 })
