@@ -56,6 +56,12 @@ const LABEL_EVERY = 8
 const du = computed(() => distanceUnit(s.units))
 const detail = computed(() => w.detail)
 const run = computed(() => detail.value?.workout ?? null)
+// A strength workout has heart rate and effort but no distance, pace, map or shoe.
+const isStrength = computed(() => run.value?.type === 'strength')
+const zones = computed(() => {
+  const z = detail.value?.zone_seconds
+  return z?.length && z.some((sec) => sec > 0) ? z.map((sec, i) => ({ label: `Zone ${i + 1}`, value: formatDuration(sec) })) : null
+})
 // Back goes to the list the workout is on: runs on Runs, walks and hikes on Other activities.
 const route = useRoute()
 const fromActivities = computed(() => route?.query?.from === 'activities')
@@ -129,7 +135,7 @@ const elev = computed(() => {
       :conditions="conditionsLine(detail.conditions, s.units)"
       :sleep="sleepLine(detail.sleep)"
       :carry="detail.carry_kg == null ? null : `Carrying ${formatWeightValue(detail.carry_kg, s.units)} ${weightUnit(s.units)}`"
-      :stats="[
+      :stats="isStrength ? [] : [
         { label: 'Distance', value: run.distance_m == null ? null : formatDistance(run.distance_m, s.units, 2), unit: du },
         { label: 'Time', value: run.duration_s == null ? null : formatDuration(run.duration_s) },
         { label: 'Avg pace', value: run.avg_speed_mps == null ? null : formatPace(run.avg_speed_mps, s.units), unit: paceUnit(s.units) },
@@ -147,8 +153,24 @@ const elev = computed(() => {
     <div class="canvas over">
       <StatTile class="s3" label="Avg heart rate" :value="run.avg_hr == null ? null : String(Math.round(run.avg_hr))" unit="bpm" />
       <StatTile class="s3" label="Max heart rate" :value="run.max_hr == null ? null : String(Math.round(run.max_hr))" unit="bpm" />
-      <StatTile class="s3" label="Cadence" :value="detail.avg_cadence == null ? null : String(Math.round(detail.avg_cadence))" unit="spm" />
       <StatTile
+        v-if="isStrength"
+        class="s3"
+        label="Effort"
+        :value="detail.effort_score == null ? null : String(Math.round(detail.effort_score))"
+        unit="/ 10"
+        :sub="detail.effort_score != null && detail.effort_estimated ? 'Estimated by Apple' : null"
+        data-testid="effort"
+      />
+      <StatTile v-else class="s3" label="Cadence" :value="detail.avg_cadence == null ? null : String(Math.round(detail.avg_cadence))" unit="spm" />
+      <StatTile
+        v-if="isStrength"
+        class="s3"
+        label="Time"
+        :value="run.duration_s == null ? null : formatDuration(run.duration_s)"
+      />
+      <StatTile
+        v-else
         class="s3"
         label="Training load"
         :value="detail.training_load == null ? null : String(Math.round(detail.training_load))"
@@ -159,6 +181,7 @@ const elev = computed(() => {
       <RunSummary class="wide" :summary="detail.summary" />
 
       <WorkoutDetails
+        v-if="!isStrength"
         class="wide"
         :workout-id="run.workout_id"
         :type="run.type"
@@ -174,6 +197,11 @@ const elev = computed(() => {
         </ul>
       </GlassPanel>
 
+      <GlassPanel v-if="isStrength && zones" class="s6" data-testid="zones">
+        <h3 class="chart-title">Time in heart rate zones</h3>
+        <dl class="zones"><div v-for="z in zones" :key="z.label"><dt>{{ z.label }}</dt><dd>{{ z.value }}</dd></div></dl>
+      </GlassPanel>
+
       <LineChart
         v-if="pace"
         class="s6"
@@ -186,7 +214,7 @@ const elev = computed(() => {
         :format="formatClock"
         lower-is-up
       />
-      <GlassPanel v-else class="missing s6" data-testid="pace-na"><h3 class="chart-title">Pace</h3><p>Pace is not available for this workout.</p></GlassPanel>
+      <GlassPanel v-else-if="!isStrength" class="missing s6" data-testid="pace-na"><h3 class="chart-title">Pace</h3><p>Pace is not available for this workout.</p></GlassPanel>
 
       <LineChart
         v-if="hr"
@@ -202,7 +230,7 @@ const elev = computed(() => {
       <GlassPanel v-else class="missing s6" data-testid="hr-na"><h3 class="chart-title">Heart rate</h3><p>Heart rate is not available for this workout.</p></GlassPanel>
 
       <LineChart
-        v-if="elev"
+        v-if="elev && !isStrength"
         class="s6"
         title="Elevation"
         :caption="`${elevationUnit(s.units) === 'ft' ? 'Feet' : 'Metres'} above sea level by distance (${du})`"
@@ -212,15 +240,15 @@ const elev = computed(() => {
         :series="[{ label: 'Elevation', role: 'emphasis', color: 'chart-elevation', icon: 'elevation', values: elev.values }]"
         :format="(v) => String(Math.round(v))"
       />
-      <GlassPanel v-else class="missing s6" data-testid="elev-na"><h3 class="chart-title">Elevation</h3><p>Elevation is not available for this workout.</p></GlassPanel>
+      <GlassPanel v-else-if="!isStrength" class="missing s6" data-testid="elev-na"><h3 class="chart-title">Elevation</h3><p>Elevation is not available for this workout.</p></GlassPanel>
 
-      <SplitsTable class="s6" :splits-km="detail.splits_km" :splits-mi="detail.splits_mi" :units="s.units" />
+      <SplitsTable v-if="!isStrength" class="s6" :splits-km="detail.splits_km" :splits-mi="detail.splits_mi" :units="s.units" />
 
-      <ConditionsCard v-if="!run.is_indoor" class="s6" :conditions="detail.conditions ?? null" :gap="detail.gap ?? null" :speed-mps="run.avg_speed_mps" :units="s.units" />
+      <ConditionsCard v-if="!run.is_indoor && !isStrength" class="s6" :conditions="detail.conditions ?? null" :gap="detail.gap ?? null" :speed-mps="run.avg_speed_mps" :units="s.units" />
 
-      <SleepCard class="s6" :sleep="detail.sleep ?? null" :workout-id="run.workout_id" />
+      <SleepCard v-if="!isStrength" class="s6" :sleep="detail.sleep ?? null" :workout-id="run.workout_id" />
 
-      <InsightList class="s7" :run="run.workout_id" title="Insights for this run" empty-text="No insights for this run." />
+      <InsightList v-if="!isStrength" class="s7" :run="run.workout_id" title="Insights for this run" empty-text="No insights for this run." />
 
       <NoteEditor class="s5" :workout-id="run.workout_id" :note="detail.note" />
     </div>
@@ -238,5 +266,9 @@ const elev = computed(() => {
 /* Below desktop the four figures sit two by two, so none is squeezed. */
 @media (max-width: 1079px) { .over { grid-template-columns: repeat(2, minmax(0, 1fr)); } .over > :nth-child(n+5) { grid-column: 1 / -1; } }
 @media (max-width: 1079px) { .over > :nth-child(-n+4) { padding: var(--space-3) var(--space-4); } .over > :nth-child(-n+4) :deep(.num--sm) { font-size: 24px; line-height: 28px; } }
+
+.zones { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: var(--space-3); }
+.zones dt { color: var(--ink-secondary); font-size: var(--body-sm-size); }
+.zones dd { margin: 0; font-weight: 600; }
 .flip { transform: rotate(180deg); }
 </style>

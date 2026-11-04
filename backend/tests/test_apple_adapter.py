@@ -42,13 +42,13 @@ RUN = ("run", "2026-03-03T12:30:20")
 
 
 def test_version():
-    assert ADAPTER_VERSION == 4
+    assert ADAPTER_VERSION == 5
 
 
 def test_only_run_walk_hike_are_yielded():
     ws = _parse()
     kinds = sorted(w.type for w in ws if isinstance(w, Workout))
-    assert kinds == ["hike", "run", "run", "walk", "walk", "walk"]  # cycling is skipped
+    assert kinds == ["hike", "run", "run", "strength", "strength", "walk", "walk", "walk"]  # cycling is skipped
 
 
 def test_twin_run():
@@ -179,7 +179,8 @@ def test_hae_workout_ids_unchanged():
     assert ids == ["714829EC-0B8E-5EBA-B28A-27A75222F9AA", "009B784A-7117-5211-8A16-975F687B671C",
                    "7A2A9127-ABF6-53FE-9EF5-80F6C88CB31D", "A1A413AF-F37D-56E7-B185-7C7C8EEFCEB0",
                    "FAAA0FC4-06CE-5E66-ABB5-7E9EAB5F909D", "h:3999f8042fea25a9",
-                   "1087F312-690B-59ED-B723-C3450C2FC1FA"]  # captured before the helper was extracted
+                   "1087F312-690B-59ED-B723-C3450C2FC1FA", "986C81A4-44AD-5E97-94F7-0961AB02E889",
+                   "59F0F2EB-A669-5D20-97AA-A5A6367D1A40"]  # captured before the helper was extracted
 
 
 @pytest.mark.parametrize("data", [b"", b"<HealthData><Record", b"not xml", b"<Other/>",

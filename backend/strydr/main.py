@@ -102,7 +102,7 @@ def cli(argv: list[str] | None = None) -> None:
     pi.add_argument("--password-file", type=Path, help="read the password from a file instead of prompting")
     pi.add_argument("--reset", action="store_true", help="replace the existing user and token")
     pr = sub.add_parser("relabel", help="correct the type of past workouts (e.g. walks that were runs)")
-    pr.add_argument("--from", dest="src", required=True, choices=("run", "walk", "hike"))
+    pr.add_argument("--from", dest="src", required=True, choices=("run", "walk", "hike", "strength"))
     pr.add_argument("--to", dest="dst", required=True, choices=("run", "walk", "hike"))
     pr.add_argument("--through", required=True, help="last local date included, YYYY-MM-DD")
     po = sub.add_parser("openapi", help="write the OpenAPI schema for the frontend type generator")

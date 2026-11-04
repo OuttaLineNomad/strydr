@@ -125,7 +125,7 @@ def test_fixture_export_recomputes_end_to_end(engine, send):
         gid = generations.current_id(s)
         assert gid is not None
         assert s.get(models.ProfileResult, gid) is not None
-        assert s.execute(select(func.count()).select_from(models.WorkoutDetail)).scalar_one() == 7
+        assert s.execute(select(func.count()).select_from(models.WorkoutDetail)).scalar_one() == 9
 
 
 def test_migrations_match_models(engine):

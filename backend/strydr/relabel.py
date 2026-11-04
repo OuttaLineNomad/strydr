@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 from strydr.jobs import queue
 from strydr.store import models, settings
 
-TYPES = ("run", "walk", "hike")
+TYPES = ("run", "walk", "hike")  # what a workout can be relabelled to
+LIST_TYPES = (*TYPES, "strength")  # what can be listed or relabelled from; strength is imported, never assigned
 
 
 def set_type(s: Session, workout_id: str, dst: str, default_tz: str = "UTC", enqueue: bool = True) -> None:
@@ -27,8 +28,8 @@ def set_type(s: Session, workout_id: str, dst: str, default_tz: str = "UTC", enq
 
 
 def relabel(engine: Engine, src: str, dst: str, through: str, default_tz: str = "UTC") -> int:
-    if src not in TYPES or dst not in TYPES or src == dst:
-        raise ValueError("types must be two different values of run, walk, hike")
+    if src not in LIST_TYPES or dst not in TYPES or src == dst:
+        raise ValueError("types must differ: from one of run, walk, hike or strength; to one of run, walk or hike")
     with Session(engine) as s:
         ids = list(s.execute(select(models.Workout.workout_id)
                              .where(models.Workout.type == src, models.Workout.local_date <= through)).scalars())

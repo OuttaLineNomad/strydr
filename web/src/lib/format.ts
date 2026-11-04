@@ -33,8 +33,8 @@ export function formatInstant(iso: string | null | undefined, tz?: string): stri
   }
 }
 
-export function typeLabel(t: 'run' | 'walk' | 'hike'): string {
-  return t === 'run' ? 'Run' : t === 'walk' ? 'Walk' : 'Hike'
+export function typeLabel(t: 'run' | 'walk' | 'hike' | 'strength'): string {
+  return t === 'run' ? 'Run' : t === 'walk' ? 'Walk' : t === 'hike' ? 'Hike' : 'Strength'
 }
 
 /** Keeps at most `max` evenly spaced indices, always including the first and last. */

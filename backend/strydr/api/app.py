@@ -78,14 +78,14 @@ def create_app(engine: Engine | None, default_tz: str = "UTC", web_dist: Path | 
             )
 
     @router.get("/workouts", response_model=list[sc.WorkoutOut], dependencies=auth)
-    def workouts(type: str | None = Query(None, description="run, walk or hike; a comma list such as walk,hike"),
+    def workouts(type: str | None = Query(None, description="run, walk, hike or strength; a comma list such as walk,hike"),
                  limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0)) -> list[sc.WorkoutOut]:
         with generations.read_snapshot(engine) as s:
             q = select(models.Workout).order_by(models.Workout.start_utc.desc()).limit(limit).offset(offset)
             if type:
                 kinds = [x.strip() for x in type.split(",")]
-                if not all(k in relabel.TYPES for k in kinds):
-                    raise HTTPException(status_code=422, detail="type must be run, walk or hike, or a comma list of them")
+                if not all(k in relabel.LIST_TYPES for k in kinds):
+                    raise HTTPException(status_code=422, detail="type must be run, walk, hike or strength, or a comma list of them")
                 q = q.where(models.Workout.type.in_(kinds))
             rows = s.execute(q).scalars().all()
             ids = [r.workout_id for r in rows]

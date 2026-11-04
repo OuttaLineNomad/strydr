@@ -15,6 +15,8 @@ export type Tile = S['Tile']
 export type WeekTotal = S['WeekTotal']
 export type SyncStatus = S['SyncStatus']
 export type WorkoutType = WorkoutOut['type']
+/** The types a workout can be relabelled to: strength is imported from the watch, never assigned. */
+export type PickableType = Exclude<WorkoutType, 'strength'>
 export type InsightOut = S['InsightOut']
 export type InsightDetail = S['InsightDetailOut']
 export type InsightFeed = S['InsightFeedOut']

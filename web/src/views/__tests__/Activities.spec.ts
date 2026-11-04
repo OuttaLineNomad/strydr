@@ -36,16 +36,26 @@ describe('lists', () => {
     expect(w.find('[aria-label="Workout type"]').exists()).toBe(false)
   })
 
-  it('Other activities asks for walk,hike, narrows with the filter, and shows the carry chip', async () => {
+  it('Other activities asks for walk,hike,strength, narrows with the filter, and shows the carry chip', async () => {
     get.mockResolvedValue({ data: [item({ type: 'walk', carry_kg: 11.3 })], response: { ok: true } })
     const w = mount(ActivitiesView, { global: { plugins: [setup()], stubs } })
     await flushPromises()
-    expect(get.mock.calls[0]![1].params.query.type).toBe('walk,hike')
+    expect(get.mock.calls[0]![1].params.query.type).toBe('walk,hike,strength')
     expect(w.get('[data-testid="carry-chip"]').text()).toBe('+25 lb')
     const hikes = w.findAll('button').find((b) => b.text() === 'Hikes')!
     await hikes.trigger('click')
     await flushPromises()
     expect(get.mock.calls[1]![1].params.query.type).toBe('hike')
+  })
+
+  it('has a Strength filter that asks for type=strength', async () => {
+    get.mockResolvedValue({ data: [item({ type: 'strength', distance_m: null, avg_speed_mps: null })], response: { ok: true } })
+    const w = mount(ActivitiesView, { global: { plugins: [setup()], stubs } })
+    await flushPromises()
+    await w.findAll('button').find((b) => b.text() === 'Strength')!.trigger('click')
+    await flushPromises()
+    expect(get.mock.calls[1]![1].params.query.type).toBe('strength')
+    expect(w.text()).toContain('Strength')
   })
 
   it('shows the chip in kg for metric', async () => {
@@ -104,6 +114,11 @@ describe('lists', () => {
     expect(isActive('/runs', '/runs/w-1', 'run')).toBe(true)
     expect(isActive('/runs', '/runs/routes', 'walk')).toBe(true)
     expect(isActive('/runs', '/runs/w-1')).toBe(true)
+  })
+
+  it('highlights Other activities on a strength workout page', () => {
+    expect(isActive('/activities', '/runs/s-1', 'strength')).toBe(true)
+    expect(isActive('/runs', '/runs/s-1', 'strength')).toBe(false)
   })
 
   it('has an Other activities nav item after Runs', () => {

@@ -65,11 +65,11 @@ def test_richer_copy_wins_and_poorer_does_not(engine, send):
 def test_missing_fields_still_import(engine, send):
     send(load_fixture("hae-export.json"))
     ws = workouts(engine)
-    assert len(ws) == 7  # cycling is raw-only
-    assert {w.type for w in ws.values()} == {"run", "walk", "hike"}
+    assert len(ws) == 9  # cycling is raw-only
+    assert {w.type for w in ws.values()} == {"run", "walk", "hike", "strength"}
     nohr = [w for w in ws.values() if w.avg_hr is None]
     assert len(nohr) == 1 and nohr[0].series_count == 1  # route only
-    indoor = next(w for w in ws.values() if w.is_indoor)
+    indoor = next(w for w in ws.values() if w.is_indoor and w.type != "strength")
     assert indoor.is_indoor and indoor.elevation_gain_m is None and indoor.temperature_c is None
     assert indoor.effort_estimated is True and indoor.series_count == 1  # HR only, no route
     assert any(w.workout_id.startswith("h:") for w in ws.values())  # AD-6 hash id for the id-less workout
@@ -144,7 +144,7 @@ def test_db_does_not_open_without_key(engine, send, tmp_path):
         c.close()
     c = sqlcipher3.connect(path)
     c.execute(f"PRAGMA key = \"x'{KEY}'\"")
-    assert c.execute("select count(*) from workout").fetchone()[0] == 7
+    assert c.execute("select count(*) from workout").fetchone()[0] == 9
 
 
 def test_no_plaintext_on_disk(engine, send, tmp_path):

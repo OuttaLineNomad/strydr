@@ -257,7 +257,7 @@ def test_reparse_order_is_deterministic(tmp_path):
 
     first, second = run("a"), run("b")
     assert first == second
-    assert len(first) == 7 + 6 - 2  # the twin run and the 03-04 walk merge; the other four Apple workouts are new
+    assert len(first) == 9 + 8 - 3  # the twin run, the 03-04 walk and the 03-03 strength merge; the other five Apple workouts are new
     assert HAE_RUN in first
 
 

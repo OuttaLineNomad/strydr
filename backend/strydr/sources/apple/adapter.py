@@ -17,16 +17,18 @@ from strydr.sources.apple import sleep
 from strydr.sources.canonical import Characteristics, DailyMetric, SampleSeries, Workout, active_seconds, fallback_workout_id
 from strydr.sources.hae.units import convert
 
-ADAPTER_VERSION = 4  # 4: step_count series
+ADAPTER_VERSION = 5  # 4: step_count series; 5: strength workouts and their effort score
 
 HR_MIN, HR_MAX = 25, 250  # bpm; outside this range a sample is impossible (same bounds as the HAE adapter)
 MAX_SPEED_MPS = 12.0
 
 _TS = "%Y-%m-%d %H:%M:%S %z"
-_TYPES = {"Running": "run", "Walking": "walk", "Hiking": "hike"}
+_TYPES = {"Running": "run", "Walking": "walk", "Hiking": "hike",
+          "FunctionalStrengthTraining": "strength", "TraditionalStrengthTraining": "strength"}
 _Q = "HKQuantityTypeIdentifier"
 _HR = _Q + "HeartRate"
 _STEPS = _Q + "StepCount"
+_EFFORT = _Q + "WorkoutEffortScore"
 _SLEEP = "HKCategoryTypeIdentifierSleepAnalysis"
 _SLEEP_PREFIX = "HKCategoryValueSleepAnalysis"
 _SLEEP_STAGES = {"InBed", "Asleep", "AsleepUnspecified", "AsleepCore", "AsleepDeep", "AsleepREM", "Awake"}
@@ -63,6 +65,7 @@ def parse(stream: BinaryIO, home_tz: tzinfo,
     seen: set[tuple] = set()  # identical records (a nested copy of a top-level one) count once
     hr = _HeartRates()
     steps = _Steps()
+    efforts: list[tuple[float, float, float]] = []  # (start, end, score) of WorkoutEffortScore records
     pending: list[tuple[Workout, str | None, list[tuple[float, float]], str | None]] = []
     me: Characteristics | None = None
     export_year = datetime.now(UTC).year
@@ -86,6 +89,8 @@ def parse(stream: BinaryIO, home_tz: tzinfo,
                     hr.add(el, nested=depth > 1)
                 elif el.get("type") == _STEPS:
                     steps.add(el, nested=depth > 1)
+                elif el.get("type") == _EFFORT:
+                    _effort_record(el, efforts)
                 else:
                     _record(el, home_tz, sums, sleep_samples, seen)
             if el.tag == "ExportDate" and depth == 1 and (el.get("value") or "")[:4].isdigit():
@@ -117,6 +122,9 @@ def parse(stream: BinaryIO, home_tz: tzinfo,
         step_series = steps.series(w, source)
         if step_series:
             w.series["step_count"] = step_series
+        if w.type == "strength":
+            w.effort_score = _effort_for(w, efforts)
+            w.effort_estimated = False if w.effort_score is not None else None
         if route_path is not None:
             route = _route(open_route, route_path, w.start_utc, w.end_utc, pauses, w.quality_flags)
             if route:
@@ -188,6 +196,31 @@ def _record(el, home_tz: tzinfo, sums: dict, sleep_samples: list, seen: set) -> 
 
 
 # --- workouts ---------------------------------------------------------------
+
+def _effort_record(el, out: list[tuple[float, float, float]]) -> None:
+    """Keep a WorkoutEffortScore record (nested in its workout or top-level) for matching by time window."""
+    try:
+        score = float(el.get("value"))
+        start, end = _epoch(el.get("startDate")), _epoch(el.get("endDate"))
+    except (TypeError, ValueError):
+        return
+    if math.isfinite(score) and 0 < score <= 10:
+        out.append((start, end, score))
+
+
+def _effort_for(w: Workout, efforts: list[tuple[float, float, float]]) -> float | None:
+    """The effort record sharing most of the workout's time window; none when nothing overlaps meaningfully."""
+    w0, w1 = w.start_utc.replace(tzinfo=UTC).timestamp(), w.end_utc.replace(tzinfo=UTC).timestamp()
+    best, best_overlap = None, 0.0
+    for start, end, score in efforts:
+        overlap = min(end, w1) - max(start, w0)
+        if overlap < 0 or (start == end and not w0 <= start <= w1):
+            continue
+        share = overlap / max(min(end - start, w1 - w0), 1.0)
+        if share >= 0.5 and (best is None or overlap > best_overlap):
+            best, best_overlap = score, overlap
+    return best
+
 
 def _flag(flags: dict, key: str) -> None:
     flags[f"unit_{key}"] = flags.get(f"unit_{key}", 0) + 1
@@ -285,7 +318,7 @@ def _workout(el) -> Workout | None:
             _flag(flags, "elevationUp")
 
     return Workout(
-        workout_id=fallback_workout_id(wtype, start_utc), type=wtype, is_indoor=meta.get("HKIndoorWorkout") == "1",
+        workout_id=fallback_workout_id(wtype, start_utc), type=wtype, is_indoor=wtype == "strength" or meta.get("HKIndoorWorkout") == "1",
         start_utc=start_utc, end_utc=end_utc, utc_offset_s=offset, local_date=local_date,
         duration_s=duration, distance_m=distance,
         avg_speed_mps=distance / duration if distance is not None and duration else None,

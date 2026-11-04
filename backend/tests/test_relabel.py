@@ -9,7 +9,7 @@ from conftest import count, load_fixture, workouts
 
 
 def _types(engine) -> dict[str, str]:
-    return {w.local_date: w.type for w in workouts(engine).values()}
+    return {w.local_date: w.type for w in workouts(engine).values() if w.type != "strength"}  # dates are unique without them
 
 
 def test_relabel_turns_past_walks_into_runs_and_queues_a_recompute(engine, send):

@@ -13,13 +13,14 @@ from ijson.common import ObjectBuilder
 from strydr.sources.canonical import DailyMetric, SampleSeries, Workout, active_seconds, fallback_workout_id
 from strydr.sources.hae.units import convert, passthrough
 
-ADAPTER_VERSION = 3  # 2: active time (pauses removed), the watch's own speed, elevation and splits; 3: step_count series
+ADAPTER_VERSION = 4  # 2: active time (pauses removed), the watch's own speed, elevation and splits; 3: step_count series; 4: strength workouts
 
 HR_MIN, HR_MAX = 25, 250  # bpm; outside this range a sample is impossible
 MAX_SPEED_MPS = 12.0
 _TS = "%Y-%m-%d %H:%M:%S %z"
-_TYPES = {"running": "run", "walking": "walk", "hiking": "hike"}
-_TYPE_CODES = {37: "run", 52: "walk", 24: "hike"}
+_TYPES = {"running": "run", "walking": "walk", "hiking": "hike",
+          "functionalStrengthTraining": "strength", "traditionalStrengthTraining": "strength"}
+_TYPE_CODES = {37: "run", 52: "walk", 24: "hike", 20: "strength", 50: "strength"}
 _HR_UNITS = {"count/min", "bpm"}
 _ITEMS = {"data.metrics.item": "metric", "data.workouts.item": "workout"}
 
@@ -106,7 +107,7 @@ def _workout_type(w: dict) -> str | None:
     if a.get("activityTypeCode") in _TYPE_CODES:
         return _TYPE_CODES[a["activityTypeCode"]]
     name = str(w.get("name", "")).lower()
-    for needle, t in (("run", "run"), ("walk", "walk"), ("hik", "hike")):
+    for needle, t in (("strength", "strength"), ("run", "run"), ("walk", "walk"), ("hik", "hike")):
         if needle in name:
             return t
     return None
@@ -123,6 +124,8 @@ def convert_workout(w: dict) -> Workout | None:
         wid = fallback_workout_id(wtype, start_utc)
     flags: dict[str, int] = {}
     indoor = bool(w["isIndoor"]) if "isIndoor" in w else str(w.get("location", "")).lower() == "indoor"
+    if wtype == "strength":
+        indoor = True
 
     hr_obj = w.get("heartRate") if isinstance(w.get("heartRate"), dict) else {}
     avg_hr = _plain(w, "avgHeartRate", _HR_UNITS, flags) or _plain(hr_obj, "avg", _HR_UNITS, flags)

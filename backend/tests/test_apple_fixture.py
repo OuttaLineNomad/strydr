@@ -54,7 +54,8 @@ def test_regeneration_is_byte_identical(tmp_path):
 def test_export_counts():
     records, workouts = _parse()
     kinds = Counter(w.get("workoutActivityType").removeprefix("HKWorkoutActivityType") for w in workouts)
-    assert kinds == {"Running": 2, "Walking": 3, "Hiking": 1, "Cycling": 1}
+    assert kinds == {"Running": 2, "Walking": 3, "Hiking": 1, "Cycling": 1,
+                     "FunctionalStrengthTraining": 1, "TraditionalStrengthTraining": 1}
     types = Counter(r.get("type").removeprefix("HKQuantityTypeIdentifier").removeprefix("HKCategoryTypeIdentifier")
                     for r in records)
     assert types["SleepAnalysis"] == 5 + 3 * 6 + 1  # 5 InBed (one from the phone), 3 modern nights x 6 stages, 1 legacy
@@ -79,7 +80,7 @@ def test_export_counts():
     assert meta["HKTimeZone"] == "Europe/Amsterdam" and meta["HKElevationAscended"].endswith(" m")
     assert {s.get("unit") for s in hike.findall("WorkoutStatistics")} >= {"km", "Cal"}
     indoor = [w for w in workouts if {m.get("key"): m.get("value") for m in w.findall("MetadataEntry")}
-              .get("HKIndoorWorkout") == "1"]
+              .get("HKIndoorWorkout") == "1" and "Strength" not in w.get("workoutActivityType")]
     assert len(indoor) == 1 and indoor[0].find("WorkoutRoute") is None
     assert (TREE / "export_cda.xml").exists() and any((TREE / "electrocardiograms").iterdir())
     assert (TREE / "clinical-records" / "synthetic.json").exists()
@@ -205,19 +206,22 @@ def test_run_pause_gap_and_nested_duplicate():
 
 def test_twins_align_with_hae_fixture():
     hae = json.loads(HAE.read_text())["data"]["workouts"]
-    kinds = {"running": "Running", "walking": "Walking", "hiking": "Hiking", "cycling": "Cycling"}
+    kinds = {"running": "Running", "walking": "Walking", "hiking": "Hiking", "cycling": "Cycling",
+             "functionalStrengthTraining": "FunctionalStrengthTraining",
+             "traditionalStrengthTraining": "TraditionalStrengthTraining"}
     _, workouts = _parse()
     hae_starts = [(kinds[w["activities"][0]["activityType"]], _dt(w["start"])) for w in hae]
     twins = 0
     for w in workouts:
         kind, start = _kind(w), _dt(w.get("startDate"))
         deltas = [(start - s).total_seconds() for k, s in hae_starts if k == kind and abs((start - s).total_seconds()) <= 60]
-        if (kind, w.get("startDate")) in {("Running", "2026-03-03 07:30:20 -0500"), ("Walking", "2026-03-04 17:40:20 -0500")}:
+        if (kind, w.get("startDate")) in {("Running", "2026-03-03 07:30:20 -0500"), ("Walking", "2026-03-04 17:40:20 -0500"),
+                                     ("FunctionalStrengthTraining", "2026-03-03 18:00:20 -0500")}:
             assert len(deltas) == 1 and 0 < deltas[0] <= 60
             twins += 1
         else:
             assert deltas == []
-    assert twins == 2
+    assert twins == 3
 
 
 def test_no_real_dates_in_tree():

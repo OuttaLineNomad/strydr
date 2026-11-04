@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import Segmented from '@/components/ui/Segmented.vue'
 import { useWorkoutsStore } from '@/stores/workouts'
-import type { WorkoutType } from '@/api/types'
+import type { PickableType, WorkoutType } from '@/api/types'
 
 defineProps<{ workoutId: string; type: WorkoutType }>()
 const w = useWorkoutsStore()
-const options: { label: string; value: WorkoutType; testid: string }[] = [
+const options: { label: string; value: PickableType; testid: string }[] = [
   { label: 'Run', value: 'run', testid: 'type-run' },
   { label: 'Walk', value: 'walk', testid: 'type-walk' },
   { label: 'Hike', value: 'hike', testid: 'type-hike' },
@@ -15,10 +15,10 @@ const options: { label: string; value: WorkoutType; testid: string }[] = [
 <template>
   <div class="type" :aria-busy="w.typeBusy">
     <Segmented
-      :model-value="type"
+      :model-value="type as PickableType"
       :options="options"
       label="Workout type"
-      @update:model-value="(v: WorkoutType) => v !== type && !w.typeBusy && w.setType(workoutId, v)"
+      @update:model-value="(v: PickableType) => v !== type && !w.typeBusy && w.setType(workoutId, v)"
     />
     <span v-if="w.updating" class="upd" role="status" data-testid="type-updating">Updating stats…</span>
     <span v-if="w.typeError" class="err" role="alert" data-testid="type-error">{{ w.typeError }}</span>

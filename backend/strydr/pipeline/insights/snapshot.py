@@ -33,7 +33,7 @@ def build(ctx: Context, profile: Profile) -> DerivedSnapshot:
     since_minutes = (as_of - timedelta(days=MINUTES_WINDOW_DAYS)).isoformat()
     since_daily = (as_of - timedelta(days=DAILY_WINDOW_DAYS)).isoformat()
     with Session(ctx.engine) as s:
-        first = s.execute(select(models.Workout.local_date).order_by(models.Workout.local_date).limit(1)).scalar_one_or_none()
+        first = s.execute(select(models.Workout.local_date).where(models.Workout.type.in_(("run", "walk", "hike"))).order_by(models.Workout.local_date).limit(1)).scalar_one_or_none()
         workouts = s.execute(select(models.Workout).where(models.Workout.type == "run", models.Workout.local_date <= iso)
                              .order_by(models.Workout.start_utc, models.Workout.workout_id)).scalars().all()
         summ = {r.workout_id: r for r in s.execute(select(models.WorkoutSummary).where(models.WorkoutSummary.generation_id == gid)).scalars()}

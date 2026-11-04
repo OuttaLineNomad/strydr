@@ -5,13 +5,14 @@ import WorkoutList from '@/components/app/WorkoutList.vue'
 import { useWorkoutsStore } from '@/stores/workouts'
 
 const w = useWorkoutsStore()
-const ALL = 'walk,hike'
+const ALL = 'walk,hike,strength'
 onMounted(() => w.loadList({ type: ALL, page: 0 }))
 
 const filters = [
   { label: 'All', value: ALL },
   { label: 'Walks', value: 'walk' },
   { label: 'Hikes', value: 'hike' },
+  { label: 'Strength', value: 'strength' },
 ]
 </script>
 
@@ -19,7 +20,7 @@ const filters = [
   <header class="title-row">
     <div>
       <h1 class="page-title">Other activities</h1>
-      <p class="page-sub">Your walks and hikes, newest first.</p>
+      <p class="page-sub">Your walks, hikes and strength workouts, newest first.</p>
     </div>
     <div class="controls">
       <Segmented
@@ -31,7 +32,7 @@ const filters = [
     </div>
   </header>
 
-  <WorkoutList from="activities" empty="You have no walks or hikes here yet." />
+  <WorkoutList from="activities" empty="You have no walks, hikes or strength workouts here yet." />
 </template>
 
 <style scoped>

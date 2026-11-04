@@ -69,7 +69,7 @@ def test_happy_path_after_hae_merges_the_twins(engine, send, worker, login, expo
     worker.run_all()
     st = login.get(URL).json()
     assert st["state"] == "done" and st["error"] is None
-    assert (st["workouts"], st["merged"], st["kept_existing"], st["metrics"], st["nights"]) == (4, 2, 0, 13, 3)
+    assert (st["workouts"], st["merged"], st["kept_existing"], st["metrics"], st["nights"]) == (5, 3, 0, 13, 3)
     assert (st["date_from"], st["date_to"]) == ("2026-03-02", "2026-03-09")
     assert hae_ids <= set(select_ids(engine))  # the twins kept HAE's ids; Apple-only workouts were added
     assert len(select_ids(engine)) > len(hae_ids)
@@ -245,13 +245,13 @@ def test_a_second_export_of_the_same_runs_is_already_there(engine, send, worker,
     assert _run(engine, worker, login, export_zip)["state"] == "done"
     again = rewrite(export_zip, tmp_path, lambda n, d: d + b"\n" if n.endswith("export.xml") else d)  # new bytes, same runs
     st = _run(engine, worker, login, again)
-    assert st["state"] == "done" and (st["workouts"], st["merged"], st["kept_existing"]) == (0, 2, 4)
+    assert st["state"] == "done" and (st["workouts"], st["merged"], st["kept_existing"]) == (0, 3, 5)
 
 
 def test_export_at_the_zip_root_or_nested_deeper(engine, worker, login, export_zip, tmp_path):
     root = rewrite(export_zip, tmp_path, lambda n, d: (n.removeprefix("apple_health_export/"), d))
     st = _run(engine, worker, login, root)
-    assert st["state"] == "done" and st["workouts"] == 6
+    assert st["state"] == "done" and st["workouts"] == 8
     with Session(engine) as s:
         assert s.execute(select(models.SampleSeries.id).where(models.SampleSeries.series == "route")).first() is not None
 
@@ -263,7 +263,7 @@ def test_nested_export_ignores_macosx_litter(engine, worker, login, export_zip, 
     with zipfile.ZipFile(tmp_path / "edited.zip", "a") as z:
         z.writestr("__MACOSX/Health/2026/apple_health_export/export.xml", b"junk")
     st = _run(engine, worker, login, (tmp_path / "edited.zip").read_bytes())
-    assert st["state"] == "done" and st["workouts"] == 6
+    assert st["state"] == "done" and st["workouts"] == 8
 
 
 def test_two_export_files_are_rejected(engine, worker, login, export_zip, tmp_path):

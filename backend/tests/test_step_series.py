@@ -34,7 +34,7 @@ def _el(sec, qty="x", **kw):
 
 
 def test_versions():
-    assert hae.ADAPTER_VERSION == 3 and apple.ADAPTER_VERSION == 4
+    assert hae.ADAPTER_VERSION == 4 and apple.ADAPTER_VERSION == 5
 
 
 def test_hae_seconds_keep_every_step():

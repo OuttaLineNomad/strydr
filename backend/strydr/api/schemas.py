@@ -30,7 +30,7 @@ class SyncStatus(BaseModel):
 
 class WorkoutOut(BaseModel):
     workout_id: str
-    type: Literal["run", "walk", "hike"]
+    type: Literal["run", "walk", "hike", "strength"]
     is_indoor: bool
     start: str
     local_date: str
@@ -482,7 +482,7 @@ class WeekDetailOut(WeekSummaryOut):
 
 class CalendarWorkout(BaseModel):
     workout_id: str
-    type: Literal["run", "walk", "hike"]
+    type: Literal["run", "walk", "hike", "strength"]
     distance_m: float | None
     duration_s: float | None
 

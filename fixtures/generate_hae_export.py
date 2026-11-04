@@ -131,6 +131,27 @@ def workout(label, name, activity, code, start, minutes, speed_mps, *, indoor=Fa
     return w
 
 
+def strength_workout(label, name, activity, code, start, minutes, *, seed=0, base_hr=128, effort=5) -> dict:
+    """A watch strength workout: indoor, HR and step series and an effort score, with no distance, speed or route."""
+    seconds = minutes * 60
+    w = {
+        "name": name, "location": "Indoor", "isIndoor": True, "id": wid(label),
+        "start": ts(start), "end": ts(start + timedelta(seconds=seconds + 30)), "duration": float(seconds),
+        "source": SOURCE, "metadata": {},
+        "activeEnergyBurned": q(round(seconds * 0.1, 1), "kcal"), "totalEnergy": q(round(seconds * 0.12, 1), "kcal"),
+        "intensity": q(3.5, "kcal/hr·kg"),
+        "activities": [{"index": 0, "activityType": activity, "activityTypeCode": code,
+                        "configuration": {"locationType": "indoor"}, "id": wid(label)}],
+        "avgHeartRate": q(base_hr, "count/min"), "maxHeartRate": q(base_hr + 24, "count/min"),
+        "heartRate": {k: q(v, "count/min") for k, v in (("min", base_hr - 30), ("avg", base_hr), ("max", base_hr + 24))},
+        "heartRateData": hr_series(start, minutes, base_hr, seed, seconds=True),
+        "stepCount": step_series(start, seconds, 18, seed, per_second=False),
+    }
+    if effort is not None:
+        w["effortScore"] = q(effort, "appleEffortScore")
+    return w
+
+
 def metric_points(start_day: datetime, values: list, key="qty", skip=()) -> list[dict]:
     return [{"date": ts(start_day + timedelta(days=i)), key: v, "source": "Synthetic Watch"}
             for i, v in enumerate(values) if i not in skip]
@@ -178,8 +199,12 @@ def build() -> dict[str, dict]:
     richer = workout("walk-richer", "Outdoor Walk", "walking", 52, t(6, 16, 15), 20, 1.5, seed=4, base_hr=108)
     secs = workout("run-seconds", "Outdoor Run", "running", 37, t(9, 7, 30), 25, 3.2, seed=9, base_hr=158,
                    hr_seconds=True, hr_dropout=(600, 960))
+    func = strength_workout("strength-functional", "Functional Strength Training", "functionalStrengthTraining", 20,
+                            t(3, 18, 0), 20, seed=10)
+    trad = strength_workout("strength-traditional", "Traditional Strength Training", "traditionalStrengthTraining", 50,
+                            t(9, 12, 0), 25, seed=11, base_hr=120, effort=None)
     return {
-        "hae-export.json": export([indoor, run, walk_a, walk_nohr, walk_thin, walk_noid, hike, bike]),
+        "hae-export.json": export([indoor, run, walk_a, walk_nohr, walk_thin, walk_noid, hike, bike, func, trad]),
         # Same run re-exported in a later window: identical content, different payload bytes.
         "hae-resend.json": export([run], with_metrics=False) | {"window": "re-run"},
         # A richer copy (adds the route) of a workout that is thin in hae-export.json.

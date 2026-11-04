@@ -745,7 +745,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "run" | "walk" | "hike";
+            type: "run" | "walk" | "hike" | "strength";
             /** Workout Id */
             workout_id: string;
         };
@@ -1905,7 +1905,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "run" | "walk" | "hike";
+            type: "run" | "walk" | "hike" | "strength";
             /** Workout Id */
             workout_id: string;
         };
@@ -3246,7 +3246,7 @@ export interface operations {
     workouts: {
         parameters: {
             query?: {
-                /** @description run, walk or hike; a comma list such as walk,hike */
+                /** @description run, walk, hike or strength; a comma list such as walk,hike */
                 type?: string | null;
                 limit?: number;
                 offset?: number;

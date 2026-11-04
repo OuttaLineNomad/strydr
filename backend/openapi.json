@@ -265,7 +265,8 @@
             "enum": [
               "run",
               "walk",
-              "hike"
+              "hike",
+              "strength"
             ],
             "title": "Type",
             "type": "string"
@@ -4229,7 +4230,8 @@
             "enum": [
               "run",
               "walk",
-              "hike"
+              "hike",
+              "strength"
             ],
             "title": "Type",
             "type": "string"
@@ -6091,7 +6093,7 @@
         "operationId": "workouts",
         "parameters": [
           {
-            "description": "run, walk or hike; a comma list such as walk,hike",
+            "description": "run, walk, hike or strength; a comma list such as walk,hike",
             "in": "query",
             "name": "type",
             "required": false,
@@ -6104,7 +6106,7 @@
                   "type": "null"
                 }
               ],
-              "description": "run, walk or hike; a comma list such as walk,hike",
+              "description": "run, walk, hike or strength; a comma list such as walk,hike",
               "title": "Type"
             }
           },

@@ -52,12 +52,17 @@ def run(ctx: Context, profile: Profile) -> None:
     efforts: dict[str, dict[str, float]] = {}
     inputs: list[load_mod.WorkoutLoadInput] = []
     day_info: dict[str, days_mod.DayWorkout] = {}
+    strength_days: list[tuple[date, days_mod.DayWorkout]] = []
     for w in workouts:
         try:
             with Session(ctx.engine) as s:
                 cols = series.load_series(s, w.workout_id)
             rows, fact, best = _workout_rows(gid, w, cols, profile, zones, weather.get(w.workout_id),
                                              sleep.before_run(nights, w.start_utc, w.utc_offset_s, rhr, hrv, ctx.tz))
+            if w.type == "strength":  # detail rows only: never an input to load, fitness or run facts
+                generations.add_rows(ctx.engine, rows)
+                strength_days.append((date.fromisoformat(w.local_date), days_mod.DayWorkout("strength", w.duration_s or 0.0, 0.0)))
+                continue
             hr = cols.get("heart_rate")
             samples = list(zip(active_clock(hr), hr["avg"])) if hr and profile.hrmax else None
             inp = load_mod.WorkoutLoadInput(
@@ -89,7 +94,7 @@ def run(ctx: Context, profile: Profile) -> None:
             sex=profile.sex, params=load_params, history=loads))
     generations.add_rows(ctx.engine, (_load_row(gid, wl, rpe.get(wl.workout_id), profile.hrmax) for wl in loads))
     if loads:
-        _daily(ctx, th, load_params, loads, day_info)
+        _daily(ctx, th, load_params, loads, day_info, strength_days)
 
     generations.add_rows(ctx.engine, (models.Record(generation_id=gid, **r)
                                       for r in records.build_records(facts, efforts, periods)))
@@ -104,7 +109,7 @@ def _load_row(gid: int, wl: load_mod.WorkoutLoad, rpe: int | None, hrmax: int | 
 
 
 def _daily(ctx: Context, th, p: load_mod.LoadParams, loads: list[load_mod.WorkoutLoad],
-           day_info: dict[str, days_mod.DayWorkout]) -> None:
+           day_info: dict[str, days_mod.DayWorkout], strength_days: list[tuple[date, days_mod.DayWorkout]] = ()) -> None:
     gid = ctx.generation_id
     start = min(wl.local_date for wl in loads)
     dl = load_mod.daily_loads(loads, start, ctx.as_of)
@@ -125,6 +130,8 @@ def _daily(ctx: Context, th, p: load_mod.LoadParams, loads: list[load_mod.Workou
         w = day_info[wl.workout_id]
         by_day.setdefault(wl.local_date, []).append(
             days_mod.DayWorkout(w.type, w.duration_s, wl.trimp, w.hard_s, w.is_long_run, w.effort_score, w.elevation_gain_m, w.carried))
+    for d, sw in strength_days:  # marks the day active, never hard; no load
+        by_day.setdefault(d, []).append(sw)
     classes = days_mod.classify_days(by_day, start, ctx.as_of, days_mod.DayParams.from_mapping(th.section("days")))
     generations.add_rows(ctx.engine, (models.DayClass(
         generation_id=gid, local_date=c.local_date.isoformat(), has_run=c.has_run, is_hard=c.is_hard, is_rest=c.is_rest,
@@ -145,6 +152,10 @@ def _workout_rows(gid, w, cols, profile, zones, weather=None, night=None) -> tup
             generation_id=gid, workout_id=w.workout_id, is_long_run=long_run, zone_seconds=zone_s,
             hr_time_s=mix[0] if mix else None, easy_time_s=mix[1] if mix else None, hr_coverage=mix[2] if mix else None,
             minutes=summary.minute_points(hr, route, w.duration_s)))
+    elif w.type == "strength" and hr:  # HR zones for the detail page; no run facts, so no totals or insights
+        rows.append(models.WorkoutSummary(
+            generation_id=gid, workout_id=w.workout_id, is_long_run=False,
+            zone_seconds=summary.zone_seconds(hr["avg"], profile.zone_bounds_bpm, hr_t=active_clock(hr))))
     detail = models.WorkoutDetail(generation_id=gid, workout_id=w.workout_id, sleep=night)
     if not w.is_indoor:
         detail.conditions = conditions.conditions(w.temperature_c, w.humidity_pct, weather, w.avg_speed_mps)

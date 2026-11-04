@@ -44,6 +44,23 @@ describe('RunDetailView', () => {
     expect(w.get('[data-testid="shoe-current"]').text()).toContain('Vomero')
   })
 
+  it('shows a strength workout with HR, zones and effort, and no pace, splits, map or type picker', async () => {
+    const base = workoutDetail()
+    const { w } = await mountIt(workoutDetail({
+      workout: { ...base.workout, type: 'strength', is_indoor: true, distance_m: null, avg_speed_mps: null, has_route: false },
+      effort_score: 6, zone_seconds: [60, 300, 600, 120, 0], splits_km: null, splits_mi: null,
+      pace_series: null, elevation_series: null, display_geometry: null, training_load: null,
+    }))
+    expect(w.text()).toContain('Strength')
+    expect(w.get('[data-testid="effort"]').text()).toContain('6')
+    expect(w.get('[data-testid="zones"]').text()).toContain('Zone 3')
+    expect(w.find('[data-testid="pace-na"]').exists()).toBe(false)
+    expect(w.find('[data-testid="splits-table"]').exists()).toBe(false)
+    expect(w.find('[data-testid="workout-details"]').exists()).toBe(false)
+    expect(w.find('[data-testid="type-run"]').exists()).toBe(false)
+    expect(w.find('[data-testid="hr-na"]').exists()).toBe(false)
+  })
+
   it('switches the splits table between miles and kilometres with the units setting', async () => {
     const { w, settings } = await mountIt()
     expect(w.findAll('[data-testid="splits-table"] tbody tr')).toHaveLength(3)

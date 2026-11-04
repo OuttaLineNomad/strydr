@@ -130,7 +130,7 @@ class Workout:
     def __init__(self, activity, start, minutes, speed, *, indoor=False, route=True, tz_name=None, dist_unit="mi",
                  base_hr=None, seed=0, events="", zone_group=False, nested="", ascent="9000 cm",
                  pause_min=None, pause_len=1, temp="41.2 degF", dist_type="DistanceWalkingRunning",
-                 stats="", meta_extra=()):
+                 stats="", meta_extra=(), distance=True):
         self.start, self.seconds = start, minutes * 60  # duration is active time
         pause_s = pause_len * 60 if pause_min is not None else 0
         pause = (pause_min * 60, pause_s) if pause_min is not None else None
@@ -162,7 +162,8 @@ class Workout:
         def stat(ty, unit, **v):
             return "   <WorkoutStatistics " + attrs(type=ty, startDate=ts(start), endDate=ts(self.end), **v,
                                                      unit=unit) + "/>\n"
-        x += stat(f"{HK}{dist_type}", dist_unit, sum=round(dist, 4))
+        if distance:
+            x += stat(f"{HK}{dist_type}", dist_unit, sum=round(dist, 4))
         x += stat(f"{HK}ActiveEnergyBurned", "Cal", sum=round(self.seconds * 0.12, 2))
         x += stats
         if base_hr:
@@ -231,9 +232,17 @@ def build() -> dict[str, str]:
     nohr = Workout("HKWorkoutActivityTypeWalking", t(5, 15, 5), 15, 1.3, seed=6)
     bike = Workout("HKWorkoutActivityTypeCycling", t(8, 17, 0), 20, 6.0, seed=7,
                   dist_type="DistanceCycling")
-    workouts = [indoor, run, walk, nohr, sparse, hike, bike]
+    gstart = t(3, 18, 0, 20)  # the HAE functional strength workout, 20 s later
+    func = Workout("HKWorkoutActivityTypeFunctionalStrengthTraining", gstart, 20, 0.0, indoor=True, route=False,
+                   base_hr=128, seed=12, distance=False)
+    func_hr = hr_irregular(gstart, 20 * 60, 128, 15)
+    tstart = t(9, 19, 0)  # Apple only, traditional, no effort record; on a run day
+    trad = Workout("HKWorkoutActivityTypeTraditionalStrengthTraining", tstart, 25, 0.0, indoor=True, route=False,
+                   base_hr=120, seed=13, distance=False)
+    trad_hr = hr_irregular(tstart, 25 * 60, 120, 16)
+    workouts = [indoor, run, walk, nohr, sparse, hike, bike, func, trad]
 
-    rec = "".join(hr_record(at, bpm) for at, bpm in run_hr + walk_hr + indoor_hr + hike_hr)
+    rec = "".join(hr_record(at, bpm) for at, bpm in run_hr + walk_hr + indoor_hr + hike_hr + func_hr + trad_hr)
     for m, bpm, span in sparse_hr:
         at = mn(sstart, m)
         rec += hr_record(at, bpm, end=at + timedelta(seconds=span))
@@ -262,6 +271,7 @@ def build() -> dict[str, str]:
     rec += step_records(twin, 25 * 60, 3.2 * 24, 22, lead=0, span=60, source=PHONE)  # the phone's coarser, lower count
     rec += step_records(wstart, 18 * 60, 1.4 * 26, 23)
     rec += step_records(hstart, 40 * 60, 1.1 * 26, 24)
+    rec += record(f"{HK}WorkoutEffortScore", gstart, func.end, 5, "appleEffortScore")  # linked by time window
     rec += record(f"{HK}StepCount", t(3, 12, 0), t(3, 12, 30), 412, "count")
     rec += record(f"{HK}ActiveEnergyBurned", t(3, 12, 0), t(3, 12, 30), 21.5, "Cal")
     b = t(6, 9, 0)

@@ -42,7 +42,7 @@ class DayParams:
 class DayWorkout:
     """One workout as `derive/days` sees it. `hard_s` comes from `hard_seconds()`."""
 
-    type: str  # run | walk | hike
+    type: str  # run | walk | hike | strength (strength: active day, no load, never hard)
     duration_s: float
     load: float  # the workout's TRIMP from derive/load
     hard_s: float = 0.0
@@ -113,7 +113,7 @@ def classify_days(
                 for x in (d - timedelta(days=k) for k in range(1, p.light_median_window_days + 1))
                 if run_load.get(x, 0) > 0
             ]
-            kind = "rest" if _light(ws, load, window, p) else "active"
+            kind = "active" if any(w.type == "strength" for w in ws) or not _light(ws, load, window, p) else "rest"
         out.append(DayClass(d, has_run, bool(reasons), kind == "rest", kind, load, hard_s, tuple(reasons)))
         d += timedelta(days=1)
     return out

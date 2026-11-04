@@ -2,7 +2,7 @@ import { ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import { api } from '@/api'
 import { useSettingsStore } from '@/stores/settings'
-import type { NoteOut, WorkoutShoeResult, WorkoutDetail, WorkoutOut, WorkoutType } from '@/api/types'
+import type { NoteOut, WorkoutShoeResult, WorkoutDetail, WorkoutOut, WorkoutType, PickableType } from '@/api/types'
 
 export const PAGE_SIZE = 20
 
@@ -71,7 +71,7 @@ export const useWorkoutsStore = defineStore('workouts', () => {
     }
   }
 
-  async function setType(id: string, next: WorkoutType): Promise<boolean> {
+  async function setType(id: string, next: PickableType): Promise<boolean> {
     typeBusy.value = true
     typeError.value = null
     try {

@@ -21,7 +21,7 @@ def test_login_cookie_flags_and_workout_list(engine, send, app_client):
     cookie = r.headers["set-cookie"].lower()
     assert r.status_code == 204 and "httponly" in cookie and "samesite=strict" in cookie
     rows = app_client.get("/api/v1/workouts").json()
-    assert len(rows) == 7
+    assert len(rows) == 9
     assert rows[0]["start"] >= rows[-1]["start"]
     assert all("latitude" not in str(r) for r in rows)
     assert any(r["has_hr"] is False for r in rows) and any(r["has_route"] is False for r in rows)
