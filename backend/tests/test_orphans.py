@@ -65,6 +65,14 @@ def test_happy_path_guess_and_log_with_hr_and_effort(c, engine):
     assert c.get(f"{API}/sessions").json()[0]["id"] == s["id"]
 
 
+def test_logging_against_a_round_mode_plan_keeps_tap_per_in_the_snapshot(c, engine):
+    pid = c.post(f"{API}/plans", json=plan("Rounds", "complex", tap_per="round")).json()["id"]
+    add_strength(engine, "w1", start=now() - timedelta(hours=3), minutes=12)
+    r = c.post(f"{API}/orphans/w1/log", json={"plan_id": pid, "weight_kg": None, "rounds_done": 2, "partial_moves": 0})
+    assert r.status_code == 201
+    assert r.json()["plan"]["tap_per"] == "round"
+
+
 def test_double_tap_makes_one_session(c, engine):
     pid = new_plan(c)
     add_strength(engine, "w1", start=now() - timedelta(hours=3))

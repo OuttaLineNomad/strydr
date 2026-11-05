@@ -251,3 +251,73 @@ describe('undoable (Back)', () => {
     expect(inputs).toHaveLength(3)
   })
 })
+
+describe('tap per round', () => {
+  const four = five.slice(0, 4)
+  const cx = (rounds = 3, moves = four): PlanShape => ({ ...complex(rounds, moves), tap_per: 'round' })
+  const am = (cap = 20, moves = four): PlanShape => ({ ...amrap(cap, moves), tap_per: 'round' })
+
+  it('complex: a tap ends the round into rest (count-up), the next starts round 2, the last tap ends', () => {
+    let r = replay(cx(), taps(10 * S), 12 * S)
+    expect(r.state).toMatchObject({ phase: 'rest', roundsDone: 1, tap: 'start-round', restMs: 2 * S, clockMs: 2 * S })
+    expect(r.log).toEqual([{ t_ms: 10 * S, kind: 'next', move: 3, round: 0 }])
+    r = replay(cx(), taps(10 * S, 20 * S), 25 * S)
+    expect(r.state).toMatchObject({ phase: 'work', round: 1, roundsDone: 1, restMs: 0, tap: 'next' })
+    expect(r.log[1]).toEqual({ t_ms: 20 * S, kind: 'next', move: 3, round: 0 })
+    r = replay(cx(), taps(10 * S, 20 * S, 30 * S, 40 * S, 50 * S), 60 * S)
+    expect(r.state).toMatchObject({ phase: 'done', roundsDone: 3, partialMoves: 0 })
+    expect(r.log.filter((e) => e.kind === 'next').map((e) => e.move)).toEqual([3, 3, 3, 3, 3])
+  })
+
+  it('a seconds move runs no timer and never advances on its own', () => {
+    const p = cx(3, [mv('Hold', { seconds: 30 }), mv('B')])
+    const r = replay(p, [], 5 * 60 * S)
+    expect(r.state).toMatchObject({ phase: 'work', move: 0, moveLeftMs: null })
+    expect(r.log).toEqual([])
+  })
+
+  it('AMRAP: cap mid-round is overtime and the tap finishes it; a round tap past the cap ends', () => {
+    const p = am(1)
+    let r = replay(p, taps(10 * S, 20 * S), 61 * S)
+    expect(r.state).toMatchObject({ phase: 'overtime', base: 'overtime', clockMs: 1 * S })
+    r = replay(p, taps(10 * S, 20 * S, 70 * S), 80 * S)
+    expect(r.state).toMatchObject({ phase: 'done', roundsDone: 2, partialMoves: 0 })
+  })
+
+  it('AMRAP: the cap during rest ends the workout', () => {
+    const r = replay(am(1), taps(10 * S), 61 * S)
+    expect(r.state).toMatchObject({ phase: 'done', roundsDone: 1, partialMoves: 0 })
+    expect(r.log[r.log.length - 1]).toMatchObject({ kind: 'auto' })
+  })
+
+  it('End in work carries the stepper count (clamped to n-1); End in rest has no partial', () => {
+    const end = (partial: number): InputEvent[] => [...taps(10 * S, 20 * S), { t_ms: 40 * S, kind: 'end', partial }]
+    expect(replay(cx(5), end(2), 50 * S).state).toMatchObject({ phase: 'done', roundsDone: 1, partialMoves: 2 })
+    expect(replay(cx(5), end(9), 50 * S).state.partialMoves).toBe(3)
+    expect(replay(cx(5), end(-4), 50 * S).state.partialMoves).toBe(0)
+    expect(replay(cx(5), [...taps(10 * S), { t_ms: 15 * S, kind: 'end', partial: 2 }], 20 * S).state).toMatchObject({ roundsDone: 1, partialMoves: 0 })
+    expect(replay(cx(5), [{ t_ms: 15 * S, kind: 'end' }], 20 * S).state).toMatchObject({ roundsDone: 0, partialMoves: 0 })
+  })
+
+  it('Back undoes the round tap, and the rest tap', () => {
+    const p = cx()
+    let inputs = taps(10 * S)
+    let i = undoable(p, inputs, 12 * S)!
+    expect(i).toBe(0)
+    expect(replay(p, withoutInput(inputs, i), 12 * S).state).toMatchObject({ phase: 'work', round: 0, roundsDone: 0 })
+    inputs = taps(10 * S, 20 * S)
+    i = undoable(p, inputs, 22 * S)!
+    expect(replay(p, withoutInput(inputs, i), 22 * S).state).toMatchObject({ phase: 'rest', roundsDone: 1 })
+  })
+
+  it('EMOM ignores tap_per, and a plan without it behaves per move', () => {
+    const e: PlanShape = { ...emom(), tap_per: 'round' }
+    expect(replay(e, [], 70 * S).state).toMatchObject({ minute: 1, move: 1 })
+    expect(replay(complex(), taps(1 * S), 2 * S).state).toMatchObject({ phase: 'work', move: 1 })
+  })
+
+  it('pauses do not count toward the rest clock', () => {
+    const inputs: InputEvent[] = [...taps(10 * S), { t_ms: 12 * S, kind: 'pause' }, { t_ms: 22 * S, kind: 'resume' }]
+    expect(replay(cx(), inputs, 25 * S).state).toMatchObject({ phase: 'rest', restMs: 5 * S })
+  })
+})

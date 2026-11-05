@@ -307,3 +307,52 @@ def test_real_watch_rating_beats_a_manual_pick(c, engine):
     add_strength(engine, effort=5)
     sm = c.get(f"{API}/sessions/{sid}/summary").json()
     assert sm["effort"] == 5 and sm["effort_source"] == "watch" and sm["effort_estimated"] is False
+
+
+def test_round_mode_session_has_per_round_hr_zones_and_no_per_move_rows(c, engine):
+    add_strength(engine)
+    set_hrmax(engine, 200)
+    recompute_now(engine, "2026-11-04")
+    # Round 1 work 0-60, rest 60-90, round 2 work 90-150, rest 150-180, End in round 3 at 200.
+    events = [ev(60_000, "next", 1, 0), ev(90_000, "next", 1, 0), ev(150_000, "next", 1, 1), ev(180_000, "next", 1, 1),
+              ev(200_000, "end", 0, 2)]
+    pl = plan(moves=[mv("Swing"), mv("Goblet squat")], fmt="complex", tap_per="round", rounds=5)
+    _, sm = summary(c, plan=pl, events=events, rounds_done=2, partial_moves=1, end_utc="2026-11-03T18:03:20Z")
+    assert sm["session"]["plan"]["tap_per"] == "round"
+    assert sm["moves"] == []
+    assert [(r["round"], r["time_s"], r["moves"]) for r in sm["rounds"]] == [(1, 60, 2), (2, 60, 2)]
+    assert [r["avg_hr"] for r in sm["rounds"]] == [pytest.approx(100, abs=0.1), pytest.approx(115, abs=0.1)]
+    assert sm["zone_seconds"] and sm["avg_hr"] is not None
+
+
+def test_emom_ignores_tap_per_round_and_old_plans_default_to_move(c):
+    p = c.post(f"{API}/plans", json=plan("E", "emom", tap_per="round")).json()
+    assert p["tap_per"] == "move"
+    q = c.post(f"{API}/plans", json=plan("C", "complex", tap_per="round")).json()
+    assert q["tap_per"] == "round"
+    assert c.post(f"{API}/plans", json=plan("D", "complex")).json()["tap_per"] == "move"
+    assert c.post(f"{API}/plans/{q['id']}/duplicate").json()["tap_per"] == "round"
+    q["tap_per"] = "move"
+    assert c.put(f"{API}/plans/{q['id']}", json=q).json()["tap_per"] == "move"
+
+
+def test_migration_0019_defaults_existing_plans_to_move(tmp_path):
+    from strydr.store.engine import make_engine
+    from sqlalchemy import text
+    e = make_engine(tmp_path / "m.db", KEY)
+    cfg = Config()
+    cfg.set_main_option("script_location", str(migrate._DIR))
+    with e.begin() as cn:
+        cfg.attributes["connection"] = cn
+        command.upgrade(cfg, "0018")
+        cn.execute(text("insert into workout_plan (name, format, rounds, moves, created_at, updated_at) values ('x','complex',3,'[]','2026-01-01','2026-01-01')"))
+    with e.begin() as cn:
+        cfg.attributes["connection"] = cn
+        command.upgrade(cfg, "head")
+    with e.connect() as cn:
+        assert cn.execute(text("select tap_per from workout_plan")).scalar() == "move"
+    with e.begin() as cn:
+        cfg.attributes["connection"] = cn
+        command.downgrade(cfg, "0018")
+    assert "tap_per" not in {x["name"] for x in inspect(e).get_columns("workout_plan")}
+    e.dispose()

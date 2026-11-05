@@ -63,7 +63,7 @@ TAKEN = "a workout with that name exists"
 
 def plan_out(p: models.WorkoutPlan, last: sc.LastSessionOut | None = None, score: int | None = None,
              change: int | None = None, unlocks: list[dict] | None = None) -> sc.PlanOut:
-    return sc.PlanOut(unlocks=[sc.UnlockOut(**u) for u in unlocks or []], strength_score=score, strength_change=change, id=p.id, name=p.name, format=p.format, cap_min=p.cap_min, emom_min=p.emom_min, rounds=p.rounds,
+    return sc.PlanOut(unlocks=[sc.UnlockOut(**u) for u in unlocks or []], strength_score=score, strength_change=change, id=p.id, name=p.name, format=p.format, cap_min=p.cap_min, emom_min=p.emom_min, rounds=p.rounds, tap_per=p.tap_per,
                       moves=[sc.MoveIn(**m) for m in p.moves], video_url=p.video_url,
                       created_at=p.created_at.isoformat(), updated_at=p.updated_at.isoformat(), last_session=last)
 
@@ -165,6 +165,7 @@ def router(api: Api) -> APIRouter:
 
     def fill(p: models.WorkoutPlan, body: sc.PlanIn) -> None:
         p.name, p.format, p.cap_min, p.emom_min, p.rounds = body.name, body.format, body.cap_min, body.emom_min, body.rounds
+        p.tap_per = body.tap_per
         p.moves = [m.model_dump() for m in body.moves]
         p.video_url = body.video_url
 
@@ -290,7 +291,7 @@ def router(api: Api) -> APIRouter:
                 name = candidate(n)
             now = utcnow()
             p = models.WorkoutPlan(name=name, format=src.format, cap_min=src.cap_min, emom_min=src.emom_min,
-                                   rounds=src.rounds, moves=[dict(m) for m in src.moves], video_url=src.video_url,
+                                   rounds=src.rounds, tap_per=src.tap_per, moves=[dict(m) for m in src.moves], video_url=src.video_url,
                                    created_at=now, updated_at=now)
             s.add(p)
             commit_unique(s)

@@ -38,7 +38,8 @@ what you have done, newest first.
 Each move has a name and **either** reps **or** seconds (for holds and carries such as a plank or a suitcase carry),
 and optionally a bell weight. **Same weight for all** sets every weighted move at once; moves left blank are bodyweight.
 A move can follow a [bodyweight level](#bodyweight-levels) instead of a name. Add an optional video link to keep the
-source with the plan. Moves can be reordered with the arrows.
+source with the plan. Moves can be reordered with the arrows. AMRAP and complex workouts also have **Tap per**: Move
+(the default) or [Round](#tap-per-round).
 
 ## From a YouTube Short
 
@@ -69,6 +70,19 @@ you press **Save workout**.
 - Short tones mark each minute and the end of timed moves. They play over your music instead of stopping it.
 - The screen stays awake while the workout runs (where the browser supports it).
 - Progress is kept on the phone while you go, so a reload or a locked screen does not lose the session.
+
+### Tap per round
+
+With a kettlebell in hand you may not want to put it down after every move. Set a workout to **Tap per: Round** (AMRAP
+and complex; EMOM ignores it) and the live screen lists the whole round: reps or seconds, the move and its bell, with the
+round number and the clock. Do the round, put the bell down, and tap anywhere. The screen goes to **Rest** with a clock
+counting up from zero, and the next tap starts the next round. A complex ends on its last round's tap; an AMRAP past its
+cap says "Finish this round" and the tap finishes it, and the cap during a rest ends the workout.
+
+Moves with seconds are only listed; nothing counts them down. This mode plays no sounds. **End** in the middle of a round
+asks how many moves of it you finished (0 up to one fewer than the round) and saves that as "3 rounds + 2 moves"; **End**
+during rest saves without asking. **Back** undoes the last tap. The summary shows heart rate per round and time in zones,
+but not per move, since there are no per-move taps.
 
 ## Session summary
 

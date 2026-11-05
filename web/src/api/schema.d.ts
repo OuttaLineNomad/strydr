@@ -1594,6 +1594,12 @@ export interface components {
             name: string;
             /** Rounds */
             rounds?: number | null;
+            /**
+             * Tap Per
+             * @default move
+             * @enum {string}
+             */
+            tap_per: "move" | "round";
             /** Video Url */
             video_url?: string | null;
         };
@@ -1623,6 +1629,12 @@ export interface components {
             strength_change?: number | null;
             /** Strength Score */
             strength_score?: number | null;
+            /**
+             * Tap Per
+             * @default move
+             * @enum {string}
+             */
+            tap_per: "move" | "round";
             /** Unlocks */
             unlocks?: components["schemas"]["UnlockOut"][];
             /** Updated At */

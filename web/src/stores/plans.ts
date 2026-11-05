@@ -71,8 +71,8 @@ export const usePlansStore = defineStore('plans', () => {
   /** Moves a plan's ladder move up to the unlocked rung (the server renames it). */
   async function acceptUnlock(plan: PlanOut, u: Unlock): Promise<PlanOut | null> {
     const moves = plan.moves.map((m, i) => (i === u.move_index ? { ...m, rung: u.to_rung } : m))
-    const { name, format, cap_min, emom_min, rounds, video_url } = plan
-    return update(plan.id, { name, format, cap_min, emom_min, rounds, video_url, moves })
+    const { name, format, cap_min, emom_min, rounds, tap_per, video_url } = plan
+    return update(plan.id, { name, format, cap_min, emom_min, rounds, tap_per, video_url, moves })
   }
   async function duplicate(id: number): Promise<PlanOut | null> {
     const p = await write(() => api.POST('/api/v1/plans/{plan_id}/duplicate', { params: { path: { plan_id: id } } }), 'The workout was not duplicated.')

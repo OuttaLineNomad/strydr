@@ -22,7 +22,7 @@ const getApi = vi.mocked(api.GET) as unknown as ReturnType<typeof vi.fn>
 const KG25 = 11.3398
 
 const plan = (o: Partial<PlanOut> = {}): PlanOut => ({
-  id: 1, name: 'Swing circuit', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, video_url: null,
+  id: 1, name: 'Swing circuit', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, tap_per: 'move', video_url: null,
   moves: ['Swing', 'Squat', 'Press', 'Row', 'Lunge'].map((name) => ({ name, reps: 10, seconds: null, weight_kg: KG25 })),
   created_at: '', updated_at: '', ...o,
 })
@@ -750,3 +750,152 @@ describe('End by keyboard and sound unlock', () => {
     })
   })
 })
+
+describe('Tap per round', () => {
+  const rp = (o: Partial<PlanOut> = {}) => plan({
+    format: 'complex', cap_min: null, rounds: 3, tap_per: 'round',
+    moves: [
+      { name: 'Swing', reps: 10, seconds: null, weight_kg: KG25 },
+      { name: 'Plank', reps: null, seconds: 30, weight_kg: null },
+      { name: 'Squat', reps: 8, seconds: null, weight_kg: KG25 },
+    ], ...o,
+  })
+
+  it('lists the round, one tap goes to Rest counting up, the next starts round 2', async () => {
+    const w = await mountIt(rp())
+    await start(w)
+    expect(t(w, 'live-move')).toBe('Round 1 of 3')
+    const rows = w.findAll('[data-testid="live-round-move"]').map((r) => r.text())
+    expect(rows).toHaveLength(3)
+    expect(rows[0]).toContain('10 reps')
+    expect(rows[0]).toContain('Swing')
+    expect(rows[0]).toContain('25 lb')
+    expect(rows[1]).toContain('30 sec')
+    expect(field(w).attributes('aria-label')).toContain('Round done')
+    await advance(40_000) // the hold never runs on its own
+    expect(t(w, 'live-move')).toBe('Round 1 of 3')
+    await field(w).trigger('click')
+    expect(t(w, 'live-state')).toBe('Rest')
+    expect(t(w, 'live-amount')).toBe('Tap to start round 2')
+    expect(w.find('[data-testid="live-round-list"]').exists()).toBe(false)
+    expect(t(w, 'live-clock')).toBe('0:00')
+    await advance(7000)
+    expect(t(w, 'live-clock')).toBe('0:07')
+    await field(w).trigger('click')
+    expect(t(w, 'live-move')).toBe('Round 2 of 3')
+  })
+
+  it('plays no sounds, but still flashes', async () => {
+    const w = await mountIt(rp())
+    await start(w)
+    await field(w).trigger('click')
+    await field(w).trigger('click')
+    await w.get('[data-testid="live-back"]').trigger('click')
+    expect(audioCreated).toBe(0)
+    expect(oscillators).toHaveLength(0)
+  })
+
+  it('finishing the last round saves the right rounds and the plan snapshot with tap_per', async () => {
+    const w = await mountIt(rp())
+    await start(w)
+    await tapN(w, 5) // round, rest, round, rest, round
+    await flushPromises()
+    expect(t(w, 'saved-rounds')).toBe('3 rounds')
+    const body = post.mock.calls[0]![1].body
+    expect(body).toMatchObject({ rounds_done: 3, partial_moves: 0 })
+    expect(body.plan.tap_per).toBe('round')
+    expect(body.events.filter((e: { kind: string }) => e.kind === 'next').every((e: { move: number }) => e.move === 2)).toBe(true)
+  })
+
+  async function holdEnd(w: W) {
+    const end = w.get('[data-testid="live-end"]')
+    await end.trigger('pointerdown')
+    await advance(1100)
+    await flushPromises()
+  }
+
+  it('End in work asks how many moves, with a 0 to n-1 stepper, and saves it', async () => {
+    const w = await mountIt(rp())
+    await start(w)
+    await tapN(w, 2) // round 1, rest tap: round 2 in progress
+    await holdEnd(w)
+    expect(w.find('[data-testid="saved"]').exists()).toBe(false)
+    expect(w.get('[data-testid="end-ask"]').text()).toContain('How many moves of this round did you finish?')
+    expect(t(w, 'end-ask-count')).toBe('0')
+    expect(w.get('[data-testid="end-ask-down"]').attributes('disabled')).toBeDefined()
+    await w.get('[data-testid="end-ask-up"]').trigger('click')
+    await w.get('[data-testid="end-ask-up"]').trigger('click')
+    await w.get('[data-testid="end-ask-up"]').trigger('click') // capped at n-1 = 2
+    expect(t(w, 'end-ask-count')).toBe('2')
+    await w.get('[data-testid="end-ask-save"]').trigger('click')
+    await flushPromises()
+    expect(t(w, 'saved-rounds')).toBe('1 round + 2 moves')
+    expect(post.mock.calls[0]![1].body).toMatchObject({ rounds_done: 1, partial_moves: 2 })
+  })
+
+  it('Save with the default saves no partial moves, and Keep going resumes', async () => {
+    const w = await mountIt(rp())
+    await start(w)
+    await tapN(w, 1)
+    await advance(1000)
+    await tapN(w, 1) // round 2
+    await holdEnd(w)
+    await w.get('[data-testid="end-ask-cancel"]').trigger('click')
+    expect(w.find('[data-testid="end-ask"]').exists()).toBe(false)
+    await holdEnd(w)
+    await w.get('[data-testid="end-ask-save"]').trigger('click')
+    await flushPromises()
+    expect(post.mock.calls[0]![1].body).toMatchObject({ rounds_done: 1, partial_moves: 0 })
+  })
+
+  it('Save after a delay still ends at the moment End was pressed', async () => {
+    const w = await mountIt(rp())
+    await start(w)
+    await advance(10_000)
+    await holdEnd(w)
+    await advance(30_000) // hesitating over the stepper
+    await w.get('[data-testid="end-ask-save"]').trigger('click')
+    await flushPromises()
+    const body = post.mock.calls[0]![1].body
+    const end = body.events.find((e: { kind: string }) => e.kind === 'end')
+    expect(end.t_ms).toBeLessThan(12_000)
+    expect(new Date(body.end_utc).getTime() - new Date(body.start_utc).getTime()).toBeLessThan(12_000)
+  })
+
+  it('a one-move round ends at once on End, with no question', async () => {
+    const w = await mountIt(rp({ moves: [{ name: 'Swing', reps: 10, seconds: null, weight_kg: KG25 }] }))
+    await start(w)
+    await holdEnd(w)
+    expect(w.find('[data-testid="end-ask"]').exists()).toBe(false)
+    expect(post.mock.calls[0]![1].body).toMatchObject({ rounds_done: 0, partial_moves: 0 })
+  })
+
+  it('End in rest saves with no question', async () => {
+    const w = await mountIt(rp())
+    await start(w)
+    await tapN(w, 1) // round 1 done: resting
+    await holdEnd(w)
+    expect(w.find('[data-testid="end-ask"]').exists()).toBe(false)
+    expect(t(w, 'saved-rounds')).toBe('1 round')
+    expect(post.mock.calls[0]![1].body).toMatchObject({ rounds_done: 1, partial_moves: 0 })
+  })
+
+  it('a reload during rest restores round mode and the rest clock continues from the tap', async () => {
+    const p = rp()
+    const startAt = Date.now() - 20_000
+    localStorage.setItem('strydr.liveDraft', JSON.stringify({ planId: 1, plan: p, startAt, inputs: [{ t_ms: 10_000, kind: 'next' }], weight: KG25 }))
+    const w = await mountIt(p)
+    expect(t(w, 'live-state')).toBe('Rest')
+    expect(t(w, 'live-clock')).toBe('0:10')
+    await advance(3000)
+    expect(t(w, 'live-clock')).toBe('0:13')
+  })
+
+  it('a tap-per-move plan is unchanged', async () => {
+    const w = await mountIt(plan({ tap_per: 'move' }))
+    await start(w)
+    expect(w.find('[data-testid="live-round-list"]').exists()).toBe(false)
+    expect(t(w, 'live-move')).toBe('Swing')
+  })
+})
+

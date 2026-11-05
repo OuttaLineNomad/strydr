@@ -6,7 +6,7 @@ import { useSessionsStore } from '@/stores/sessions'
 import { useSettingsStore } from '@/stores/settings'
 import { planWeight } from '@/lib/plans'
 import { weightUnit, formatClock } from '@/lib/units'
-import { nextMoveIndex, READY_MS, replay, roundsText, stepBell, undoable, withoutInput, type InputEvent, type PlanShape } from '@/lib/workoutEngine'
+import { nextMoveIndex, READY_MS, replay, roundMode, roundsText, stepBell, undoable, withoutInput, type InputEvent, type PlanShape } from '@/lib/workoutEngine'
 import { useWakeLock } from '@/lib/useWakeLock'
 import { useTone } from '@/lib/useTone'
 import { useLongPress } from '@/lib/useLongPress'
@@ -39,7 +39,16 @@ const running = ref(false)
 let ticker: ReturnType<typeof setInterval> | null = null
 
 const wake = useWakeLock()
-const tone = useTone()
+const realTone = useTone()
+// Tap per round plays no sounds at all (the flash stays): every tone call goes through here.
+const quiet = computed(() => !!planSnap.value && roundMode(planSnap.value as PlanShape))
+const tone = {
+  get ready() { return realTone.ready },
+  unlock: () => { if (!quiet.value) realTone.unlock() },
+  tap: () => { if (!quiet.value) realTone.tap() },
+  low: () => { if (!quiet.value) realTone.low() },
+  chime: () => { if (!quiet.value) realTone.chime() },
+}
 const flashOn = ref(false)
 let flashTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -81,10 +90,10 @@ const st = computed(() => rep.value?.state ?? null)
 function clock(): number {
   return Date.now() - startAt.value
 }
-function push(kind: InputEvent['kind']) {
+function push(kind: InputEvent['kind'], extra: Partial<InputEvent> = {}) {
   now.value = Date.now()
   // Never later than the server's 4 h cap, even if a throttled timer woke up late.
-  inputs.value = [...inputs.value, { t_ms: Math.min(Math.max(0, clock()), MAX_RUN_MS - 1000), kind }]
+  inputs.value = [...inputs.value, { t_ms: Math.min(Math.max(0, clock()), MAX_RUN_MS - 1000), kind, ...extra }]
   persist()
 }
 const undoAt = computed(() => (plan.value && running.value ? undoable(plan.value as PlanShape, inputs.value, now.value - startAt.value) : null))
@@ -111,7 +120,7 @@ const live = computed(() => !!st.value && (st.value.phase === 'work' || st.value
 function act() {
   tone.unlock()
   const s = st.value
-  if (!s || !plan.value) return
+  if (!s || !plan.value || endAsk.value != null) return
   if (s.phase === 'paused') {
     push('resume')
     tone.tap()
@@ -132,10 +141,32 @@ function togglePause() {
   tone.tap()
   flash()
 }
+const byRound = computed(() => !!plan.value && roundMode(plan.value as PlanShape))
+/** Tap per round: End during work asks how many moves of the round were done. Null when not asking; else the count. */
+const endAsk = ref<number | null>(null)
+let endAskT = 0 // wall t_ms when End was pressed: the end is stamped there, however long the question takes
+const askMoves = computed(() => Math.max(0, (plan.value?.moves.length ?? 1) - 1))
 function endNow() {
-  if (!live.value) return
+  if (!live.value || endAsk.value != null) return
+  if (byRound.value && st.value && st.value.base !== 'rest' && askMoves.value > 0) {
+    endAskT = Math.min(Math.max(0, clock()), MAX_RUN_MS - 1000)
+    endAsk.value = 0
+    return
+  }
   push('end')
   tone.tap()
+}
+function stepAsk(d: 1 | -1) {
+  if (endAsk.value == null) return
+  endAsk.value = Math.max(0, Math.min(askMoves.value, endAsk.value + d))
+}
+function saveEnd() {
+  const n = endAsk.value ?? 0
+  endAsk.value = null
+  push('end', { partial: n, t_ms: endAskT })
+}
+function keepGoing() {
+  endAsk.value = null
 }
 function startEnd(e?: Event) {
   if (live.value) pressEnd.start(e)
@@ -160,7 +191,7 @@ function onFieldClick() {
 }
 
 function onKeydown(e: KeyboardEvent) {
-  if (e.metaKey || e.ctrlKey || e.altKey) return
+  if (e.metaKey || e.ctrlKey || e.altKey || endAsk.value != null) return
   const t = e.target as HTMLElement | null
   const onControl = !!t && !!t.closest && !!t.closest('button, a, input, select, textarea')
   if (e.key === ' ' || e.key === 'Enter') {
@@ -274,7 +305,7 @@ watch(
     const record: SessionIn = {
       plan_id: p.id,
       plan: {
-        name: p.name, format: p.format, cap_min: p.cap_min, emom_min: p.emom_min, rounds: p.rounds,
+        name: p.name, format: p.format, cap_min: p.cap_min, emom_min: p.emom_min, rounds: p.rounds, tap_per: p.format === 'emom' ? 'move' : (p.tap_per ?? 'move'),
         moves: p.moves.map((m) => ({ name: m.name, reps: m.reps, seconds: m.seconds, weight_kg: m.weight_kg })),
         video_url: p.video_url,
       },
@@ -312,13 +343,25 @@ const headline = computed(() => {
   const ph = st.value?.phase
   if (ph === 'paused') return 'Paused'
   if (ph === 'rest') return 'Rest'
+  if (byRound.value && st.value && plan.value) return roundWord(st.value.round)
   return moveName.value
 })
+function roundWord(r: number): string {
+  return plan.value?.format === 'complex' ? `Round ${r + 1} of ${plan.value.rounds}` : `Round ${r + 1}`
+}
+/** Tap per round: every move of the round with its reps or seconds and bell, in order. */
+const roundList = computed(() => (plan.value?.moves ?? []).map((m, i) => ({
+  key: i,
+  amount: m.reps != null ? `${m.reps} reps` : `${m.seconds ?? 0} sec`,
+  name: m.name,
+  bell: m.weight_kg != null ? moveBell(i) : '',
+})))
 const amountLine = computed(() => {
   const s = st.value
   if (!s || !plan.value) return ''
   if (s.phase === 'paused') return 'Tap to resume'
   if (s.phase === 'rest') return `Tap to start round ${s.round + 2}`
+  if (byRound.value) return 'Tap when the round is done'
   const m = plan.value.moves[s.move]
   return `${amount(s.move)}${m?.weight_kg != null ? ` · ${moveBell(s.move)}` : ''}`
 })
@@ -326,6 +369,7 @@ const clockText = computed(() => {
   const s = st.value
   const p = plan.value
   if (!s || !p) return ''
+  if (byRound.value && s.base === 'rest') return formatClock(Math.floor(s.restMs / 1000))
   if (s.moveLeftMs != null) return formatClock(Math.ceil(s.moveLeftMs / 1000))
   if (p.format === 'emom') return String(Math.ceil(s.clockMs / 1000))
   if (p.format === 'amrap') {
@@ -338,6 +382,11 @@ const positionLine = computed(() => {
   const p = plan.value
   if (!s || !p) return ''
   const n = p.moves.length
+  if (byRound.value) {
+    if (s.base === 'rest') return `Round ${s.round + 1} done`
+    if (p.format !== 'amrap') return ''
+    return s.base === 'overtime' ? `+${formatClock(Math.floor(s.clockMs / 1000))}` : `${formatClock(Math.ceil(s.clockMs / 1000))} left`
+  }
   if (p.format === 'emom') return `Minute ${s.minute + 1} of ${p.emom_min} · Move ${s.move + 1} of ${n}`
   const round = p.format === 'complex' ? `Round ${s.round + 1} of ${p.rounds}` : `Round ${s.round + 1}`
   let line = s.phase === 'rest' ? `${round} done` : `${round} · Move ${s.move + 1} of ${n}`
@@ -357,7 +406,7 @@ const hint = computed(() => {
 const nextLine = computed(() => {
   const s = st.value
   const p = plan.value
-  if (!s || !p) return ''
+  if (!s || !p || byRound.value) return ''
   const i = nextMoveIndex(p as PlanShape, s)
   if (i == null) return 'Next: done'
   const m = p.moves[i]
@@ -367,8 +416,9 @@ const nextLine = computed(() => {
 const fieldLabel = computed(() => {
   const s = st.value
   if (!s) return ''
-  const act = s.phase === 'paused' ? 'Resume' : plan.value?.format === 'emom' ? 'Flag this minute as fell short' : s.phase === 'rest' ? 'Start next round' : 'Next move'
-  return `${act}. ${headline.value}. ${amountLine.value}`
+  const act = s.phase === 'paused' ? 'Resume' : plan.value?.format === 'emom' ? 'Flag this minute as fell short' : s.phase === 'rest' ? 'Start next round' : byRound.value ? 'Round done' : 'Next move'
+  const list = byRound.value && s.phase !== 'rest' ? ` ${roundList.value.map((r) => `${r.amount} ${r.name}${r.bell ? ` ${r.bell}` : ''}`).join(', ')}.` : ''
+  return `${act}. ${headline.value}. ${amountLine.value}${list}`
 })
 const readySeconds = computed(() => Math.max(1, Math.ceil((st.value?.readyMs ?? 0) / 1000)))
 const wakeNote = computed(() => wake.unavailable.value)
@@ -459,6 +509,13 @@ function done() {
       >
         <p class="state-word" data-testid="live-state">{{ stateWord }}</p>
         <h1 class="move" data-testid="live-move">{{ headline }}</h1>
+        <ul v-if="byRound && st.base !== 'rest'" class="round-list" data-testid="live-round-list">
+          <li v-for="r in roundList" :key="r.key" data-testid="live-round-move">
+            <span class="r-amount">{{ r.amount }}</span>
+            <span class="r-name">{{ r.name }}</span>
+            <span v-if="r.bell" class="r-bell">{{ r.bell }}</span>
+          </li>
+        </ul>
         <p class="amount" data-testid="live-amount">{{ amountLine }}</p>
         <p class="clock" data-testid="live-clock">{{ clockText }}</p>
         <p class="hint" data-testid="live-hint">{{ hint }}</p>
@@ -482,6 +539,18 @@ function done() {
       >
         Back
       </button>
+
+      <div v-if="endAsk != null" class="ask" role="dialog" aria-modal="true" aria-labelledby="ask-title" data-testid="end-ask" @pointerdown.stop @click.stop>
+        <h2 id="ask-title" class="ask-title">How many moves of this round did you finish?</h2>
+        <div class="stepper">
+          <button type="button" class="step" aria-label="One fewer move" :disabled="endAsk <= 0" data-testid="end-ask-down" @click="stepAsk(-1)">&minus;</button>
+          <span class="ask-n" aria-live="polite" data-testid="end-ask-count">{{ endAsk }}</span>
+          <button type="button" class="step" aria-label="One more move" :disabled="endAsk >= askMoves" data-testid="end-ask-up" @click="stepAsk(1)">+</button>
+        </div>
+        <p class="line">of {{ plan?.moves.length }} moves</p>
+        <button type="button" class="big-btn" data-testid="end-ask-save" @click="saveEnd">Save</button>
+        <button type="button" class="lighter" data-testid="end-ask-cancel" @click="keepGoing">Keep going</button>
+      </div>
 
       <p v-if="wakeNote" class="notice" role="status" data-testid="wake-notice">Screen may sleep — keep it on in Settings</p>
 
@@ -536,6 +605,18 @@ function done() {
   display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; max-width: 100%; }
 .amount { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(28px, 8vw, 64px); line-height: 1.1; }
 .clock { margin: var(--space-2) 0 0; font-family: var(--font-display); font-weight: 700; font-variant-numeric: tabular-nums; font-size: clamp(64px, 22vw, 168px); line-height: 1; letter-spacing: -.03em; }
+.round-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-2); max-width: 100%; }
+.round-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-3); font-family: var(--font-display); font-weight: 600; font-size: clamp(24px, 6.5vw, 44px); line-height: 1.15; }
+.r-amount { font-variant-numeric: tabular-nums; }
+.r-name { font-weight: 700; overflow-wrap: anywhere; }
+.r-bell { font-weight: 500; }
+.ask { position: absolute; inset: 0; z-index: 3; background: var(--surface-0); color: var(--ink); display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: var(--space-4); padding: var(--space-6) var(--space-5); }
+.ask-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 8vw, 48px); line-height: 1.1; }
+.stepper { display: flex; align-items: center; gap: var(--space-5); }
+.step { min-width: 72px; min-height: 72px; border: 3px solid currentColor; border-radius: var(--radius-full, 999px); background: transparent; color: inherit; font-family: var(--font-display); font-weight: 700; font-size: 40px; cursor: pointer; }
+.step:disabled { opacity: .4; cursor: default; }
+.step:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+.ask-n { min-width: 2ch; text-align: center; font-family: var(--font-display); font-weight: 700; font-variant-numeric: tabular-nums; font-size: clamp(64px, 20vw, 140px); line-height: 1; }
 .hint { margin: 0; min-height: 28px; font-weight: 700; font-size: 20px; line-height: 28px; }
 .position { margin: 0; font-size: 18px; line-height: 24px; font-weight: 600; }
 .next { margin: 0; font-size: 18px; line-height: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }

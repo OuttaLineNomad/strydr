@@ -480,6 +480,7 @@ class WorkoutPlan(Base):
     cap_min: Mapped[int | None] = mapped_column(Integer)  # AMRAP time cap
     emom_min: Mapped[int | None] = mapped_column(Integer)  # EMOM total minutes
     rounds: Mapped[int | None] = mapped_column(Integer)  # complex rounds
+    tap_per: Mapped[str] = mapped_column(String(8), default="move", server_default="move")  # move|round (AMRAP, complex)
     moves: Mapped[list] = mapped_column(JSON)
     video_url: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(DateTime)

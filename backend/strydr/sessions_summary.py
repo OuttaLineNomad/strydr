@@ -174,6 +174,7 @@ def compute(events: Sequence[dict], plan: dict, end_ms: int, samples: Samples | 
     """Per-round rows (always, from the taps), and heart-rate figures when there are `samples`. Only finished work
     segments count toward moves and rounds: the move the runner was still on when he ended is left out."""
     moves = plan["moves"]
+    by_round_tap = plan.get("tap_per") == "round" and plan["format"] != "emom"  # one tap per round: no per-move taps
     pauses = pause_windows(events, end_ms)
     segs = [s for s in segments(events, plan["format"], len(moves), end_ms) if not s.rest and s.finished and s.move < len(moves)]
     out = Computed()
@@ -185,7 +186,8 @@ def compute(events: Sequence[dict], plan: dict, end_ms: int, samples: Samples | 
         if samples:
             m = samples.mean(active_spans(s.t0, s.t1, pauses))
             if m:
-                by_name.setdefault(moves[s.move]["name"], []).append(m)
+                if not by_round_tap:
+                    by_name.setdefault(moves[s.move]["name"], []).append(m)
                 round_hr.setdefault(s.round, []).append(m)
     for name, parts in by_name.items():
         out.moves.append(MoveRow(name, round(_mean(parts) or 0, 1), len(parts)))
@@ -193,7 +195,7 @@ def compute(events: Sequence[dict], plan: dict, end_ms: int, samples: Samples | 
         rs = by_round[r]
         time_s = sum(b - a for s in rs for a, b in active_spans(s.t0, s.t1, pauses)) / 1000
         hr = _mean(round_hr.get(r, []))
-        out.rounds.append(RoundRow(r + 1, round(time_s), len(rs), None if hr is None else round(hr, 1)))
+        out.rounds.append(RoundRow(r + 1, round(time_s), len(moves) if by_round_tap else len(rs), None if hr is None else round(hr, 1)))
     if samples:
         whole = active_spans(0, end_ms, pauses)
         m = samples.mean(whole)

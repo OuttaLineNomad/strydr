@@ -2042,6 +2042,15 @@
             ],
             "title": "Rounds"
           },
+          "tap_per": {
+            "default": "move",
+            "enum": [
+              "move",
+              "round"
+            ],
+            "title": "Tap Per",
+            "type": "string"
+          },
           "video_url": {
             "anyOf": [
               {
@@ -2157,6 +2166,15 @@
               }
             ],
             "title": "Strength Score"
+          },
+          "tap_per": {
+            "default": "move",
+            "enum": [
+              "move",
+              "round"
+            ],
+            "title": "Tap Per",
+            "type": "string"
           },
           "unlocks": {
             "items": {

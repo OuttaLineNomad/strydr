@@ -26,7 +26,7 @@ function pinia() {
 }
 const move = { name: 'Incline push-up', reps: 12, seconds: null, weight_kg: null, ladder: 'push-up' as const, rung: 1 }
 const planOut = (o: Partial<PlanOut> = {}): PlanOut => ({
-  id: 1, name: 'Push day', format: 'complex', cap_min: null, emom_min: null, rounds: 3, video_url: null, created_at: '', updated_at: '', last_session: null,
+  id: 1, name: 'Push day', format: 'complex', cap_min: null, emom_min: null, rounds: 3, tap_per: 'move', video_url: null, created_at: '', updated_at: '', last_session: null,
   moves: [move], ...o,
 })
 
@@ -117,6 +117,16 @@ describe('WorkoutPlanView unlock offer and staircase', () => {
     expect(w.find('[data-testid="unlock-offer"]').exists()).toBe(false)
   })
 
+  it('Yes keeps a round-mode plan on tap per round', async () => {
+    get.mockImplementation(async (path: string) => (path.includes('ladders') ? { data: history, response: { status: 200 } } : { data: { ...progress(), plan: planOut({ unlocks: [unlock], tap_per: 'round' }) }, response: { status: 200 } }))
+    const w = mount(WorkoutPlanView, { props: { id: '1' }, global: { plugins: [pinia()], stubs: { RouterLink: RouterLinkStub } } })
+    await flushPromises()
+    put.mockResolvedValue({ data: planOut({ tap_per: 'round' }), response: { status: 200 } })
+    await w.get('[data-testid="unlock-yes"]').trigger('click')
+    await flushPromises()
+    expect(put.mock.calls[0]![1].body.tap_per).toBe('round')
+  })
+
   it('Not yet hides the offer until the next session', async () => {
     const w = setup()
     await flushPromises()
@@ -150,7 +160,7 @@ describe('SessionSummaryView step-down', () => {
   beforeEach(() => vi.clearAllMocks())
   const sets: LadderSet[] = [0, 1, 2].map((i) => ({ move_index: 0, instance: i, move: 'Incline push-up', ladder: 'push-up', planned_rung: 1, rung: 1, reps: 12 }))
   const sm = (ladder_sets = sets): SessionSummary => ({
-    session: { id: 3, plan_id: 1, plan: { name: 'Push day', format: 'complex', cap_min: null, emom_min: null, rounds: 3, moves: [move], video_url: null }, weight_kg: null, start_utc: '2026-11-03T18:00:00Z', end_utc: '2026-11-03T18:10:00Z', events: [], rounds_done: 3, partial_moves: 0, fell_short: [], active_s: 600, overtime_s: 0, created_at: '' },
+    session: { id: 3, plan_id: 1, plan: { name: 'Push day', format: 'complex', cap_min: null, emom_min: null, rounds: 3, tap_per: 'move', moves: [move], video_url: null }, weight_kg: null, start_utc: '2026-11-03T18:00:00Z', end_utc: '2026-11-03T18:10:00Z', events: [], rounds_done: 3, partial_moves: 0, fell_short: [], active_s: 600, overtime_s: 0, created_at: '' },
     matched_workout_id: null, avg_hr: null, effort: null, effort_source: null, effort_estimated: false, moves: [], rounds: [], zone_seconds: null, zone_bounds_bpm: null, fell_short: [], ladder_sets, unlocked: ['Knee push-up'],
   })
   async function setup() {

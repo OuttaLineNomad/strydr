@@ -22,7 +22,7 @@ const moves = [
 function summary(o: Partial<SessionSummary> = {}, session: Partial<SessionSummary['session']> = {}): SessionSummary {
   return {
     session: {
-      id: 3, plan_id: 1, plan: { name: 'Swing circuit', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, moves, video_url: null },
+      id: 3, plan_id: 1, plan: { name: 'Swing circuit', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, tap_per: 'move', moves, video_url: null },
       weight_kg: 11.3398, start_utc: '2026-11-03T18:00:00Z', end_utc: '2026-11-03T18:21:00Z', events: [], rounds_done: 3, partial_moves: 2,
       fell_short: [], active_s: 1260, overtime_s: 60, created_at: '2026-11-03T18:21:00Z', ...session,
     },
@@ -114,7 +114,7 @@ describe('SessionSummaryView', () => {
     put.mockResolvedValue({ data: { '5': 8 }, response: { status: 200 } })
     const w = await mountIt(summary({
       fell_short: [{ minute: 5, move: 'Swings', target_reps: 10, short_reps: null }, { minute: 9, move: 'Swings', target_reps: 10, short_reps: 7 }],
-    }, { plan: { name: 'E', format: 'emom', cap_min: null, emom_min: 12, rounds: null, moves, video_url: null } }))
+    }, { plan: { name: 'E', format: 'emom', cap_min: null, emom_min: 12, rounds: null, tap_per: 'move', moves, video_url: null } }))
     const rows = w.findAll('[data-testid="short-row"]')
     expect(rows).toHaveLength(2)
     expect(rows[0]!.text()).toContain('Minute 5 · Swings × 10')

@@ -105,7 +105,7 @@ def router(api: Api) -> APIRouter:
             if body.partial_moves >= len(plan.moves) and body.partial_moves != 0:
                 raise HTTPException(status_code=422, detail="partial moves must be fewer than the plan's moves")
             snap = sc.PlanIn(name=plan.name, format=plan.format, cap_min=plan.cap_min, emom_min=plan.emom_min,
-                             rounds=plan.rounds, moves=plan.moves, video_url=plan.video_url)
+                             rounds=plan.rounds, tap_per=plan.tap_per, moves=plan.moves, video_url=plan.video_url)
             span_ms = round((w.end_utc - w.start_utc).total_seconds() * 1000)
             m = models.WorkoutSession(
                 plan_id=plan.id, plan=snap.model_dump(), weight_kg=body.weight_kg, start_utc=w.start_utc, end_utc=w.end_utc,

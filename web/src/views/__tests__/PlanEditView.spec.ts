@@ -17,7 +17,7 @@ const post = vi.mocked(api.POST) as unknown as ReturnType<typeof vi.fn>
 const put = vi.mocked(api.PUT) as unknown as ReturnType<typeof vi.fn>
 
 const saved = (o: Partial<PlanOut> = {}): PlanOut => ({
-  id: 7, name: 'Swing circuit', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, video_url: 'https://example.com/v',
+  id: 7, name: 'Swing circuit', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, tap_per: 'move', video_url: 'https://example.com/v',
   moves: [
     { name: 'Swing', reps: 15, seconds: null, weight_kg: 16 },
     { name: 'Plank', reps: null, seconds: 30, weight_kg: null },
@@ -56,7 +56,7 @@ describe('PlanEditView', () => {
     await w.get('form').trigger('submit')
     await flushPromises()
     const body = post.mock.calls[0]![1].body
-    expect(body).toMatchObject({ name: 'Swing circuit', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, video_url: null })
+    expect(body).toMatchObject({ name: 'Swing circuit', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, tap_per: 'move', video_url: null })
     expect(body.moves[0]).toMatchObject({ name: 'Swing', reps: 10, seconds: null })
     expect(body.moves[0].weight_kg).toBeCloseTo(15.876, 2)
     expect(push).toHaveBeenCalledWith('/workouts')
@@ -264,7 +264,7 @@ describe('PlanEditView', () => {
   })
 
   describe('YouTube import', () => {
-    const draft = { title: 'Five move AMRAP', plan: { name: 'Five move AMRAP', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, video_url: 'https://youtu.be/abcdEFGhi_0',
+    const draft = { title: 'Five move AMRAP', plan: { name: 'Five move AMRAP', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, tap_per: 'move', video_url: 'https://youtu.be/abcdEFGhi_0',
       moves: Array.from({ length: 5 }, (_, i) => ({ name: `Move ${i}`, reps: 10, seconds: null, weight_kg: 11.34 })) } }
     const build = async (w: Awaited<ReturnType<typeof mountIt>>, url = 'https://youtu.be/abcdEFGhi_0') => {
       await w.get('[data-testid="yt-input"]').setValue(url)
@@ -404,6 +404,29 @@ describe('PlanEditView', () => {
     it('is not offered when editing a saved workout', async () => {
       const w = await mountIt('7', [saved()])
       expect(w.find('[data-testid="yt-block"]').exists()).toBe(false)
+    })
+  })
+
+  describe('Tap per', () => {
+    it('is offered for AMRAP and complex, hidden for EMOM, sent and loaded', async () => {
+      const w = await mountIt()
+      await fillOne(w)
+      expect(w.find('[data-testid="plan-tap-per"]').exists()).toBe(true)
+      await w.get('[data-testid="tap-round"]').trigger('click')
+      post.mockResolvedValue({ data: saved(), response: { status: 201 } })
+      await w.get('form').trigger('submit')
+      await flushPromises()
+      expect(post.mock.calls[0]![1].body.tap_per).toBe('round')
+      await w.get('[data-testid="format-emom"]').trigger('click')
+      expect(w.find('[data-testid="plan-tap-per"]').exists()).toBe(false)
+      await set(w, '[data-testid="plan-emom"]', '12')
+      await w.get('form').trigger('submit')
+      await flushPromises()
+      expect(post.mock.calls[1]![1].body.tap_per).toBe('move')
+    })
+    it('loads a saved round-mode plan with Round selected', async () => {
+      const w = await mountIt('7', [saved({ tap_per: 'round' })])
+      expect(w.get('[data-testid="tap-round"]').attributes('aria-pressed')).toBe('true')
     })
   })
 })

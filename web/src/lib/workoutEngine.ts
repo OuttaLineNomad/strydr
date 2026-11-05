@@ -9,12 +9,14 @@
  */
 import type { PlanOut } from '@/api/types'
 
-export type PlanShape = Pick<PlanOut, 'format' | 'cap_min' | 'emom_min' | 'rounds' | 'moves'>
+export type PlanShape = Pick<PlanOut, 'format' | 'cap_min' | 'emom_min' | 'rounds' | 'moves'> & { tap_per?: 'move' | 'round' }
 export type EventKind = 'next' | 'auto' | 'flag' | 'pause' | 'resume' | 'end'
 /** What the runner did. `next` and `flag` are the same tap; the format decides what it means (and is logged as). */
 export interface InputEvent {
   t_ms: number
   kind: 'next' | 'flag' | 'pause' | 'resume' | 'end'
+  /** Tap per round only: on an `end` during work, how many moves of the round were finished. */
+  partial?: number
 }
 export interface LoggedEvent {
   t_ms: number
@@ -44,6 +46,8 @@ export interface WorkoutState {
   roundsDone: number
   partialMoves: number
   activeMs: number
+  /** Rest only: ms of active time since the rest began (round mode counts this up); else 0. */
+  restMs: number
   overtimeMs: number
   /** Wall t_ms at which the workout finished (done only). */
   endedMs: number | null
@@ -67,6 +71,7 @@ interface Sim {
   round: number
   moveStartA: number
   rest: boolean
+  restA: number // active ms at which the current rest began
   done: boolean
   doneA: number
   doneWall: number
@@ -77,6 +82,8 @@ interface Sim {
   log: LoggedEvent[]
 }
 
+/** One tap per round (AMRAP and complex only; EMOM advances by itself and ignores it). */
+export const roundMode = (p: PlanShape) => p.tap_per === 'round' && p.format !== 'emom'
 const capMs = (p: PlanShape) => (p.format === 'amrap' ? (p.cap_min ?? 0) * MIN : Infinity)
 const emomMs = (p: PlanShape) => (p.emom_min ?? 0) * MIN
 const wallOf = (s: Sim, a: number) => Math.round(a + s.wallOffset)
@@ -106,6 +113,7 @@ function completeMove(p: PlanShape, s: Sim, a: number, kind: 'next' | 'auto') {
     finish(s, a)
   } else {
     s.rest = true
+    s.restA = a
   }
 }
 
@@ -113,6 +121,7 @@ function completeMove(p: PlanShape, s: Sim, a: number, kind: 'next' | 'auto') {
 function nextAuto(p: PlanShape, s: Sim): { a: number; kind: 'move' | 'minute' | 'cap' } | null {
   if (p.format === 'emom') return { a: (s.minute + 1) * MIN, kind: 'minute' }
   if (s.rest) return p.format === 'amrap' ? { a: capMs(p), kind: 'cap' } : null
+  if (roundMode(p)) return null // a hold or carry is listed with its seconds; nothing runs on its own
   const m = p.moves[s.move]
   return m?.seconds != null ? { a: s.moveStartA + m.seconds * 1000, kind: 'move' } : null
 }
@@ -145,7 +154,7 @@ function emomPosition(p: PlanShape, s: Sim) {
 
 export function replay(plan: PlanShape, inputs: InputEvent[], nowMs: number): Replay {
   const empty: Sim = {
-    a: 0, wallOffset: 0, pausedAt: null, move: 0, round: 0, moveStartA: 0, rest: false, done: false, doneA: 0,
+    a: 0, wallOffset: 0, pausedAt: null, move: 0, round: 0, moveStartA: 0, rest: false, restA: 0, done: false, doneA: 0,
     doneWall: 0, roundsDone: 0, partial: 0, minute: 0, flags: new Set(), log: [],
   }
   const s = empty
@@ -178,7 +187,8 @@ export function replay(plan: PlanShape, inputs: InputEvent[], nowMs: number): Re
       if (plan.format === 'emom') {
         s.roundsDone = Math.floor(s.minute / n)
         s.partial = s.minute % n
-      } else s.partial = s.rest ? 0 : s.move
+      } else if (roundMode(plan)) s.partial = s.rest ? 0 : Math.max(0, Math.min(n - 1, Math.floor(e.partial ?? 0)))
+      else s.partial = s.rest ? 0 : s.move
       finish(s, at)
     } else if (s.pausedAt != null) {
       // taps while paused do nothing: the view sends a resume
@@ -193,6 +203,9 @@ export function replay(plan: PlanShape, inputs: InputEvent[], nowMs: number): Re
       s.round++
       s.move = 0
       s.moveStartA = a
+    } else if (roundMode(plan)) {
+      s.move = n - 1 // the tap says the whole round is done
+      completeMove(plan, s, a, 'next')
     } else {
       completeMove(plan, s, a, 'next')
     }
@@ -228,15 +241,17 @@ function snapshot(plan: PlanShape, s: Sim, nowMs: number, a: number): WorkoutSta
   let clockMs = activeMs
   if (plan.format === 'amrap') clockMs = Math.abs(cap - activeMs)
   else if (plan.format === 'emom') clockMs = (s.done ? 0 : (s.minute + 1) * MIN - activeMs)
+  const restMs = s.rest && !s.done ? Math.max(0, activeMs - s.restA) : 0
+  if (roundMode(plan) && s.rest && !s.done) clockMs = restMs
   const m = plan.moves[Math.min(s.move, n - 1)]
-  const moveLeftMs = !s.rest && !s.done && m?.seconds != null && plan.format !== 'emom' ? Math.max(0, s.moveStartA + m.seconds * 1000 - activeMs) : null
+  const moveLeftMs = !roundMode(plan) && !s.rest && !s.done && m?.seconds != null && plan.format !== 'emom' ? Math.max(0, s.moveStartA + m.seconds * 1000 - activeMs) : null
   const doneRounds = plan.format === 'emom' && !s.done ? Math.floor(s.minute / n) : s.roundsDone
   const doneMoves = plan.format === 'emom' && !s.done ? s.minute % n : s.done ? s.partial : s.rest ? 0 : s.move
   const tap: WorkoutState['tap'] = phase === 'ready' || phase === 'done' || phase === 'paused' ? 'none' : plan.format === 'emom' ? 'flag' : s.rest ? 'start-round' : 'next'
   return {
     phase, base, move: Math.min(s.move, n - 1), round: s.round, minute: s.minute, clockMs: Math.max(0, clockMs), moveLeftMs,
     readyMs: nowMs < 0 ? -nowMs : 0, fellShort: [...s.flags].sort((x, y) => x - y), roundsDone: doneRounds, partialMoves: doneMoves,
-    activeMs, overtimeMs: plan.format === 'amrap' ? Math.max(0, activeMs - cap) : 0, endedMs: s.done ? s.doneWall : null, tap,
+    activeMs, restMs, overtimeMs: plan.format === 'amrap' ? Math.max(0, activeMs - cap) : 0, endedMs: s.done ? s.doneWall : null, tap,
   }
 }
 

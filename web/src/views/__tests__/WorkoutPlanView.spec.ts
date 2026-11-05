@@ -12,7 +12,7 @@ import type { PlanProgress, ProgressSession } from '@/api/types'
 const get = vi.mocked(api.GET) as unknown as ReturnType<typeof vi.fn>
 
 const plan: PlanProgress['plan'] = {
-  id: 1, name: 'Swing circuit', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, video_url: null, created_at: '', updated_at: '', last_session: null,
+  id: 1, name: 'Swing circuit', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, tap_per: 'move', video_url: null, created_at: '', updated_at: '', last_session: null,
   moves: [{ name: 'Swing', reps: 10, seconds: null, weight_kg: 11.3398 }, { name: 'Squat', reps: 12, seconds: null, weight_kg: 11.3398 }],
 }
 function row(o: Partial<ProgressSession> = {}): ProgressSession {

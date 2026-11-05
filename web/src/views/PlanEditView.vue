@@ -13,6 +13,7 @@ import { LADDERS, LADDER_IDS, rungName, type LadderId } from '@/lib/ladders'
 import type { PlanIn, PlanOut } from '@/api/types'
 
 type Format = PlanOut['format']
+type TapPer = PlanOut['tap_per']
 /** `origKg` and `origText` are what was loaded: an untouched weight is saved back as exactly `origKg`. */
 interface MoveRow { key: number; name: string; mode: 'reps' | 'seconds'; amount: string; weight: string; origKg: number | null; origText: string; ladder: LadderId | null; rung: number | null }
 
@@ -35,6 +36,7 @@ const cap = ref('20')
 const emom = ref('12')
 const rounds = ref('4')
 const video = ref('')
+const tapPer = ref<TapPer>('move')
 const moves = reactive<MoveRow[]>([blankMove()])
 const same = ref('')
 const loading = ref(editingId.value != null)
@@ -46,6 +48,10 @@ const ytUrl = ref('')
 const ytInput = ref<HTMLInputElement | null>(null)
 const builtFrom = ref<string | null>(null)
 
+const tapOptions = [
+  { label: 'Move', value: 'move' as TapPer, testid: 'tap-move' },
+  { label: 'Round', value: 'round' as TapPer, testid: 'tap-round' },
+]
 const formats = [
   { label: 'AMRAP', value: 'amrap' as Format, testid: 'format-amrap' },
   { label: 'EMOM', value: 'emom' as Format, testid: 'format-emom' },
@@ -59,6 +65,7 @@ function fill(p: PlanOut) {
   emom.value = p.emom_min == null ? '12' : String(p.emom_min)
   rounds.value = p.rounds == null ? '4' : String(p.rounds)
   video.value = p.video_url ?? ''
+  tapPer.value = p.tap_per ?? 'move'
   moves.splice(0, moves.length, ...p.moves.map((m) => ({
     key: nextKey++,
     name: m.name,
@@ -79,6 +86,7 @@ function reset() {
   emom.value = '12'
   rounds.value = '4'
   video.value = ''
+  tapPer.value = 'move'
   same.value = ''
   moves.splice(0, moves.length, blankMove())
 }
@@ -244,6 +252,7 @@ function body(): PlanIn {
     cap_min: format.value === 'amrap' ? int(cap.value) : null,
     emom_min: format.value === 'emom' ? int(emom.value) : null,
     rounds: format.value === 'complex' ? int(rounds.value) : null,
+    tap_per: format.value === 'emom' ? 'move' : tapPer.value,
     moves: moves.map((m) => ({
       name: m.name.trim(),
       reps: m.mode === 'reps' ? int(m.amount) : null,
@@ -327,6 +336,12 @@ const nameMsg = computed(() => (tried.value ? errors.value.name : undefined) ?? 
         <input v-model="rounds" class="input short" type="number" inputmode="numeric" min="1" max="50" data-testid="plan-rounds" />
       </label>
       <span v-if="tried && errors.setting" class="err" role="alert" data-testid="plan-setting-error">{{ errors.setting }}</span>
+
+      <div v-if="format !== 'emom'" class="field" data-testid="plan-tap-per">
+        <span class="lbl">Tap per</span>
+        <Segmented v-model="tapPer" :options="tapOptions" label="Tap per" />
+        <span class="hint">{{ tapPer === 'round' ? 'Tap once when the whole round is done, with the bell down.' : 'Tap after every move.' }}</span>
+      </div>
     </GlassPanel>
 
     <GlassPanel class="block">

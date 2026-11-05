@@ -16,7 +16,7 @@ const post = vi.mocked(api.POST) as unknown as ReturnType<typeof vi.fn>
 const del = vi.mocked(api.DELETE) as unknown as ReturnType<typeof vi.fn>
 
 const plan = (o: Partial<PlanOut> = {}): PlanOut => ({
-  id: 1, name: 'Swing circuit', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, video_url: null,
+  id: 1, name: 'Swing circuit', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, tap_per: 'move', video_url: null,
   moves: Array.from({ length: 5 }, (_, i) => ({ name: `Move ${i}`, reps: 10, seconds: null, weight_kg: 11.3398 })),
   created_at: '2026-11-03T00:00:00', updated_at: '2026-11-03T00:00:00', ...o,
 })

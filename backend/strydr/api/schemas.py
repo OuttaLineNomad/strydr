@@ -803,6 +803,7 @@ class PlanIn(BaseModel):
     cap_min: int | None = Field(None, ge=1, le=90)
     emom_min: int | None = Field(None, ge=1, le=90)
     rounds: int | None = Field(None, ge=1, le=50)
+    tap_per: Literal["move", "round"] = "move"  # what a live tap means; EMOM ignores it
     moves: list[MoveIn] = Field(min_length=1, max_length=12)
     video_url: str | None = Field(None, max_length=500)
 
@@ -835,6 +836,8 @@ class PlanIn(BaseModel):
         for f in ("cap_min", "emom_min", "rounds"):  # settings of other formats are dropped
             if f != need:
                 setattr(self, f, None)
+        if self.format == "emom":
+            self.tap_per = "move"
         return self
 
 
@@ -869,6 +872,7 @@ class PlanOut(BaseModel):
     cap_min: int | None
     emom_min: int | None
     rounds: int | None
+    tap_per: Literal["move", "round"] = "move"
     moves: list[MoveIn]
     video_url: str | None
     created_at: str

@@ -11,7 +11,7 @@ const post = vi.mocked(api.POST) as unknown as ReturnType<typeof vi.fn>
 const KEY = 'strydr.sessionOutbox'
 const rec = (n = 1): SessionIn => ({
   plan_id: 1,
-  plan: { name: 'P', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, video_url: null, moves: [{ name: 'Swing', reps: 10, seconds: null, weight_kg: null }] },
+  plan: { name: 'P', format: 'amrap', cap_min: 20, emom_min: null, rounds: null, tap_per: 'move', video_url: null, moves: [{ name: 'Swing', reps: 10, seconds: null, weight_kg: null }] },
   weight_kg: null, start_utc: `2026-11-0${n}T10:00:00.000Z`, end_utc: `2026-11-0${n}T10:20:00.000Z`, events: [], rounds_done: 3, partial_moves: 2, fell_short: [],
 })
 
